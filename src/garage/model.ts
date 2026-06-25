@@ -1,17 +1,18 @@
 import type { PersonId, ZoneId, Decision } from '../types'
 
 /**
- * Garage spatial model, inferred from the 26 photos in /garage-photos and
- * corrected against John's bearings. Top-down plan, NORTH is up. Units = feet.
+ * Spatial model of JOHN'S SECTION of a long shared garage — the back area where
+ * the family's stuff lives. Scoped from the Polycam LiDAR scan + John's notes:
+ * the full garage is ~25 m long; the front is shared parking, John's part is the
+ * back, ending at the line where the south-wall cabinet aligns with the north-wall
+ * jut-out. Laundry is NOT John's (they have one in the apartment) — it sits just
+ * past the line and is shown only as faded context.
  *
- *   x: 0 = WEST wall (people door + window + cabinets, faces the backyard)
- *      → width = EAST wall (the double garage door)
- *   y: 0 = NORTH wall (gray standing wardrobe + fitness: weights, bikes, dresser)
- *      → depth = SOUTH wall (the well-organized storage racks)
- *
- * A Box's (x, y) is its north-west corner; w = east-west size, d = north-south size.
- * The car normally parks nose-East toward the door; it was moved out for the photos.
- * Dimensions are still a best guess — confirm the real footprint.
+ * Top-down plan, units = feet. Section ≈ 34 ft deep × 24 ft wide, 10.5 ft ceiling.
+ *   x: 0 = WEST / back wall (backyard door + window + cabinets)
+ *      → width = the ALLOTMENT LINE; beyond it (parkingBeyond) = shared space.
+ *   y: 0 = NORTH wall (fitness, bikes, stairs)  →  depth = SOUTH wall (storage racks).
+ * A Box's (x, y) is its north-west corner; w = east-west, d = north-south.
  */
 
 export interface Box {
@@ -33,42 +34,44 @@ export interface PlacedObject {
 }
 
 export interface GarageModel {
-  width: number // east-west feet
-  depth: number // north-south feet
+  width: number // x: back wall → allotment line (depth of John's section), feet
+  depth: number // y: north → south wall (width), feet
+  ceiling: number // feet
+  parkingBeyond: number // faded shared strip drawn east of the allotment line
   features: {
-    garageDoor: { y: number; h: number } // along EAST wall
-    peopleDoor: { y: number; h: number } // along WEST wall
-    window: { y: number; h: number } // along WEST wall
-    cabinets: Box // oak uppers + counter, WEST wall
+    peopleDoor: { y: number; h: number } // WEST / back wall — to the backyard
+    window: { y: number; h: number } // WEST / back wall
+    cabinets: Box // oak uppers + counter, back wall
     miniFridge: Box
-    waterHeater: { cx: number; cy: number; r: number } // NW corner
-    soffit: Box // low under-stair bulkhead, NW
+    waterHeater: { cx: number; cy: number; r: number } // back NW corner
+    stairs: Box // shared stairs, north wall near the line
   }
   objects: PlacedObject[]
 }
 
 export const garage: GarageModel = {
-  width: 26,
-  depth: 20,
+  width: 34,
+  depth: 24,
+  ceiling: 10.5,
+  parkingBeyond: 9,
   features: {
-    garageDoor: { y: 2, h: 16 },
-    peopleDoor: { y: 14.4, h: 2.6 },
-    window: { y: 8, h: 4 },
-    cabinets: { x: 0, y: 5.5, w: 1.6, d: 6 },
-    miniFridge: { x: 0.2, y: 12.7, w: 1.3, d: 1.3 },
-    waterHeater: { cx: 1.5, cy: 1, r: 1.1 },
-    soffit: { x: 4.5, y: 0, w: 3, d: 3.5 },
+    peopleDoor: { y: 9, h: 2.6 },
+    window: { y: 14, h: 4 },
+    cabinets: { x: 0, y: 3, w: 1.6, d: 5 },
+    miniFridge: { x: 0.2, y: 15.5, w: 1.3, d: 1.3 },
+    waterHeater: { cx: 1.3, cy: 1.3, r: 1.1 },
+    stairs: { x: 29, y: 0, w: 3.2, d: 3 },
   },
   objects: [
     {
-      id: 'car',
-      label: 'Car',
+      id: 'storage-shelf',
+      label: 'Storage racks (totes)',
       owner: null,
-      zone: null,
+      zone: 'shared-storage',
       decision: 'keep',
-      now: { x: 11, y: 6, w: 13, d: 6 },
-      plan: { x: 9, y: 7, w: 14, d: 6 },
-      note: 'Normally parks nose-East toward the door; pulled out for the photos.',
+      now: { x: 5, y: 21.4, w: 20, d: 2.2 },
+      plan: { x: 4, y: 21.4, w: 17, d: 2.2 },
+      note: 'The long rack run of black/red totes, banker boxes, holiday bins — south wall.',
     },
     {
       id: 'tool-chest',
@@ -76,8 +79,8 @@ export const garage: GarageModel = {
       owner: 'griffin',
       zone: 'griffin-workshop',
       decision: 'keep',
-      now: { x: 18.5, y: 17.2, w: 2, d: 2.2 },
-      plan: { x: 16, y: 17.2, w: 2, d: 2.2 },
+      now: { x: 27.5, y: 21, w: 2.2, d: 2 },
+      plan: { x: 24, y: 21, w: 2.2, d: 2 },
     },
     {
       id: 'parts-cabinet',
@@ -85,48 +88,8 @@ export const garage: GarageModel = {
       owner: 'griffin',
       zone: 'griffin-workshop',
       decision: 'keep',
-      now: { x: 20.8, y: 16.8, w: 2.2, d: 2.6 },
-      plan: { x: 18.3, y: 16.8, w: 2.2, d: 2.6 },
-    },
-    {
-      id: 'storage-shelf',
-      label: 'Storage racks (totes)',
-      owner: null,
-      zone: 'shared-storage',
-      decision: 'keep',
-      now: { x: 2.5, y: 17.3, w: 13, d: 2.2 },
-      plan: { x: 2.5, y: 17.3, w: 11.5, d: 2.2 },
-      note: 'The organized rack run along the south wall — totes, banker boxes, holiday bins.',
-    },
-    {
-      id: 'white-table',
-      label: 'White folding table',
-      owner: 'john',
-      zone: 'john-table',
-      decision: 'keep',
-      now: { x: 8, y: 9.5, w: 2.2, d: 4 },
-      plan: { x: 21, y: 15.8, w: 2, d: 3.6 },
-      note: 'Currently mid-floor; goal is cleared and tucked against a wall.',
-    },
-    {
-      id: 'banker-boxes',
-      label: 'Banker boxes',
-      owner: 'john',
-      zone: 'john-table',
-      decision: 'undecided',
-      now: { x: 11, y: 13, w: 2, d: 2 },
-      plan: { x: 22.6, y: 4.4, w: 2, d: 2 },
-      note: 'Scan / archive / trash — most should leave via the exit zone.',
-    },
-    {
-      id: 'dresser',
-      label: 'Oak dresser + lamp',
-      owner: 'griffin',
-      zone: 'griffin-fitness',
-      decision: 'undecided',
-      now: { x: 8, y: 6.5, w: 1.8, d: 2 },
-      plan: { x: 6.5, y: 0.4, w: 1.8, d: 2 },
-      note: 'Decide: keep against the north wall, or donate.',
+      now: { x: 30, y: 20.6, w: 2.6, d: 2.4 },
+      plan: { x: 26.5, y: 20.6, w: 2.6, d: 2.4 },
     },
     {
       id: 'weight-bench',
@@ -134,8 +97,8 @@ export const garage: GarageModel = {
       owner: 'griffin',
       zone: 'griffin-fitness',
       decision: 'keep',
-      now: { x: 11, y: 1.4, w: 4, d: 2.6 },
-      plan: { x: 12.5, y: 0.2, w: 4, d: 2.6 },
+      now: { x: 14, y: 0.4, w: 4, d: 2.6 },
+      plan: { x: 15, y: 0.3, w: 4, d: 2.6 },
     },
     {
       id: 'bikes',
@@ -143,8 +106,18 @@ export const garage: GarageModel = {
       owner: 'griffin',
       zone: 'griffin-fitness',
       decision: 'keep',
-      now: { x: 7.5, y: 0.4, w: 3.2, d: 2.2 },
-      plan: { x: 4, y: 0, w: 2.6, d: 2.2 },
+      now: { x: 9, y: 0.4, w: 3.2, d: 2.2 },
+      plan: { x: 5, y: 0.3, w: 3.2, d: 2.2 },
+    },
+    {
+      id: 'dresser',
+      label: 'Oak dresser + lamp',
+      owner: 'griffin',
+      zone: 'griffin-fitness',
+      decision: 'undecided',
+      now: { x: 10.5, y: 11, w: 2, d: 1.8 },
+      plan: { x: 20, y: 0.4, w: 2, d: 1.8 },
+      note: 'Currently marooned mid-floor; decide keep-against-north-wall or donate.',
     },
     {
       id: 'gray-wardrobe',
@@ -152,9 +125,9 @@ export const garage: GarageModel = {
       owner: 'lj',
       zone: 'lj-clothing',
       decision: 'keep',
-      now: { x: 1.8, y: 2.4, w: 3, d: 3.4 },
-      plan: { x: 1.8, y: 2.4, w: 3, d: 3.4 },
-      note: "LJ's gray standing clothing closet — north side. The 'gray wardrobe' to sort.",
+      now: { x: 2.5, y: 0.6, w: 3, d: 3.2 },
+      plan: { x: 2.5, y: 0.6, w: 3, d: 3.2 },
+      note: "LJ's gray standing clothing closet — the 'gray wardrobe' to sort.",
     },
     {
       id: 'oak-wardrobe',
@@ -162,9 +135,29 @@ export const garage: GarageModel = {
       owner: null,
       zone: 'shared-storage',
       decision: 'undecided',
-      now: { x: 0.4, y: 2.8, w: 2.2, d: 2 },
-      plan: { x: 0.5, y: 17.4, w: 2.2, d: 2 },
+      now: { x: 0.6, y: 4.5, w: 2, d: 2.2 },
+      plan: { x: 0.6, y: 20, w: 2, d: 2.2 },
       note: 'Decide: keep for storage or donate.',
+    },
+    {
+      id: 'white-table',
+      label: 'White folding table',
+      owner: 'john',
+      zone: 'john-table',
+      decision: 'keep',
+      now: { x: 35, y: 17.5, w: 3.6, d: 2.2 },
+      plan: { x: 0.7, y: 17.5, w: 3.6, d: 2 },
+      note: 'Right now it has drifted PAST your line into shared space — pull it back in.',
+    },
+    {
+      id: 'banker-boxes',
+      label: 'Banker boxes',
+      owner: 'john',
+      zone: 'john-table',
+      decision: 'undecided',
+      now: { x: 35.6, y: 14, w: 2, d: 2 },
+      plan: { x: 30.5, y: 21, w: 2, d: 2 },
+      note: 'Also over the line — scan / archive / trash, then most leave via the exit.',
     },
     {
       id: 'ne-clutter',
@@ -172,9 +165,9 @@ export const garage: GarageModel = {
       owner: null,
       zone: 'exit-zone',
       decision: 'undecided',
-      now: { x: 2.8, y: 0.4, w: 2.4, d: 2 },
-      plan: { x: 0.4, y: 0.2, w: 2, d: 1.8 },
-      note: 'Long boards, rakes/shovels, propane tank — sort keep vs donate vs trash.',
+      now: { x: 4, y: 0.5, w: 2.4, d: 2 },
+      plan: { x: 0.6, y: 0.6, w: 2, d: 1.8 },
+      note: 'Long boards, rakes/shovels, propane — sort keep vs donate vs trash.',
     },
     {
       id: 'recycle-bins',
@@ -182,9 +175,9 @@ export const garage: GarageModel = {
       owner: null,
       zone: 'exit-zone',
       decision: 'keep',
-      now: { x: 19.5, y: 1.2, w: 2.2, d: 2 },
-      plan: { x: 22.6, y: 6.7, w: 2, d: 1.8 },
-      note: 'Stage near the door as the donate / trash / exit lane.',
+      now: { x: 32, y: 2, w: 2, d: 2.2 },
+      plan: { x: 31.5, y: 2, w: 1.8, d: 2 },
+      note: 'Stage at the line as the donate / trash / exit lane.',
     },
   ],
 }

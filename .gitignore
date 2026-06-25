@@ -38,5 +38,7 @@ Thumbs.db
 # Claude Code local settings (machine-specific)
 .claude/settings.local.json
 
-# Personal garage photos (privacy-sensitive, not imported by the app)
+# Personal garage photos + scans (privacy-sensitive, not imported by the app)
 garage-photos/
+garage-scan/
+garage-video/

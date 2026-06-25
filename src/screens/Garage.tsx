@@ -10,9 +10,11 @@ type View = '2d' | '3d'
 
 const SCALE = 15 // px per foot
 const M = 16 // margin px
-const W = garage.width
+const W = garage.width // back wall → allotment line
 const D = garage.depth
-const svgW = W * SCALE + M * 2
+const PB = garage.parkingBeyond // faded shared strip east of the line
+const TOTX = W + PB
+const svgW = TOTX * SCALE + M * 2
 const svgH = D * SCALE + M * 2
 
 type Mode = 'now' | 'plan'
@@ -36,8 +38,11 @@ export function Garage() {
   return (
     <div className="space-y-4">
       <header>
-        <h1 className="text-2xl font-bold tracking-tight">Garage layout</h1>
-        <p className="text-sm text-slate-500">Drafted from your photos. Drag to orbit the 3D. Tap a block for detail.</p>
+        <h1 className="text-2xl font-bold tracking-tight">Your section</h1>
+        <p className="text-sm text-slate-500">
+          The back of the garage that's yours. <span className="font-medium text-amber-600">Now</span> = stuff over the line;{' '}
+          <span className="font-medium text-emerald-600">Plan</span> = everything contained.
+        </p>
       </header>
 
       <div className="flex gap-2">
@@ -82,44 +87,53 @@ export function Garage() {
       )}
 
       <div className={`overflow-hidden rounded-3xl bg-white p-3 shadow-sm ring-1 ring-slate-100 ${view === '3d' ? 'hidden' : ''}`}>
-        <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full" role="img" aria-label="Garage floor plan">
-          {/* floor */}
+        <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full" role="img" aria-label="Floor plan of your garage section">
+          {/* shared strip beyond the line (parking + laundry) */}
+          <rect x={M + W * SCALE} y={M} width={PB * SCALE} height={D * SCALE} rx="4" fill="#f1f5f9" />
+          <text
+            x={M + (W + PB / 2) * SCALE}
+            y={M + (D * SCALE) / 2}
+            textAnchor="middle"
+            fontSize="8"
+            fill="#94a3b8"
+            fontWeight="700"
+            transform={`rotate(-90 ${M + (W + PB / 2) * SCALE} ${M + (D * SCALE) / 2})`}
+          >
+            shared · laundry · parking
+          </text>
+
+          {/* your section floor */}
           <rect x={M} y={M} width={W * SCALE} height={D * SCALE} rx="6" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="2" />
 
-          {/* garage door — EAST wall (right edge) */}
+          {/* allotment line (east edge of your section) */}
           <line
             x1={M + W * SCALE}
-            y1={M + features.garageDoor.y * SCALE}
+            y1={M}
             x2={M + W * SCALE}
-            y2={M + (features.garageDoor.y + features.garageDoor.h) * SCALE}
-            stroke="#10b981"
-            strokeWidth="5"
-            strokeLinecap="round"
+            y2={M + D * SCALE}
+            stroke="#f59e0b"
+            strokeWidth="2.5"
+            strokeDasharray="6 4"
           />
+          <text
+            x={M + W * SCALE - 6}
+            y={M + (D * SCALE) / 2}
+            textAnchor="middle"
+            fontSize="8"
+            fill="#b45309"
+            fontWeight="700"
+            transform={`rotate(-90 ${M + W * SCALE - 6} ${M + (D * SCALE) / 2})`}
+          >
+            YOUR LINE
+          </text>
 
-          {/* people door + window — WEST wall (left edge) */}
-          <line
-            x1={M}
-            y1={M + features.peopleDoor.y * SCALE}
-            x2={M}
-            y2={M + (features.peopleDoor.y + features.peopleDoor.h) * SCALE}
-            stroke="#64748b"
-            strokeWidth="5"
-            strokeLinecap="round"
-          />
-          <line
-            x1={M}
-            y1={M + features.window.y * SCALE}
-            x2={M}
-            y2={M + (features.window.y + features.window.h) * SCALE}
-            stroke="#7dd3fc"
-            strokeWidth="4"
-            strokeLinecap="round"
-          />
+          {/* back wall (west): backyard door + window */}
+          <line x1={M} y1={M + features.peopleDoor.y * SCALE} x2={M} y2={M + (features.peopleDoor.y + features.peopleDoor.h) * SCALE} stroke="#64748b" strokeWidth="5" strokeLinecap="round" />
+          <line x1={M} y1={M + features.window.y * SCALE} x2={M} y2={M + (features.window.y + features.window.h) * SCALE} stroke="#7dd3fc" strokeWidth="4" strokeLinecap="round" />
 
           {/* direction labels */}
           <text x={M + (W * SCALE) / 2} y={M + 11} textAnchor="middle" fontSize="8" fill="#94a3b8" fontWeight="700">
-            NORTH · wardrobe + fitness
+            NORTH · fitness + bikes
           </text>
           <text x={M + (W * SCALE) / 2} y={M + D * SCALE - 5} textAnchor="middle" fontSize="8" fill="#94a3b8" fontWeight="700">
             SOUTH · storage racks
@@ -133,22 +147,11 @@ export function Garage() {
             fontWeight="700"
             transform={`rotate(-90 ${M + 10} ${M + (D * SCALE) / 2})`}
           >
-            WEST · door to yard
-          </text>
-          <text
-            x={M + W * SCALE - 9}
-            y={M + (D * SCALE) / 2}
-            textAnchor="middle"
-            fontSize="8"
-            fill="#059669"
-            fontWeight="700"
-            transform={`rotate(-90 ${M + W * SCALE - 9} ${M + (D * SCALE) / 2})`}
-          >
-            EAST · garage door
+            BACK · door to yard
           </text>
           <FeatureRect box={features.cabinets} label="cabinets" />
           <FeatureRect box={features.miniFridge} />
-          <FeatureRect box={features.soffit} dashed label="low ceiling" />
+          <FeatureRect box={features.stairs} dashed label="stairs" />
           <circle
             cx={M + features.waterHeater.cx * SCALE}
             cy={M + features.waterHeater.cy * SCALE}
@@ -160,9 +163,11 @@ export function Garage() {
 
           {/* objects */}
           {objects.map((o, i) => {
-            const r = px(mode === 'now' ? o.now : o.plan)
+            const b = mode === 'now' ? o.now : o.plan
+            const r = px(b)
             const c = colorOf(o)
             const isSel = selected === o.id
+            const overLine = b.x + b.w / 2 > W
             return (
               <g key={o.id} onClick={() => setSelected(isSel ? null : o.id)} className="cursor-pointer">
                 <rect
@@ -172,8 +177,9 @@ export function Garage() {
                   height={r.height}
                   rx="3"
                   fill={c.fill}
-                  stroke={isSel ? '#0f172a' : c.stroke}
-                  strokeWidth={isSel ? 2.5 : 1.5}
+                  stroke={isSel ? '#0f172a' : overLine ? '#dc2626' : c.stroke}
+                  strokeWidth={isSel ? 2.5 : overLine ? 2.5 : 1.5}
+                  strokeDasharray={overLine ? '4 2' : undefined}
                   opacity={selected && !isSel ? 0.45 : 0.92}
                   style={{ transition: 'x .6s ease, y .6s ease, width .6s ease, height .6s ease' }}
                 />
@@ -183,10 +189,10 @@ export function Garage() {
                   textAnchor="middle"
                   fontSize="9"
                   fontWeight="700"
-                  fill={c.stroke}
+                  fill={overLine ? '#dc2626' : c.stroke}
                   style={{ transition: 'x .6s ease, y .6s ease', pointerEvents: 'none' }}
                 >
-                  {o.id === 'car' ? 'CAR' : i}
+                  {i}
                 </text>
               </g>
             )

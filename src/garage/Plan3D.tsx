@@ -8,6 +8,7 @@ import { zoneColors } from '../theme'
 
 const W = garage.width
 const D = garage.depth
+const PB = garage.parkingBeyond
 const WALL_H = 3.5
 
 type Mode = 'now' | 'plan'
@@ -112,32 +113,37 @@ function Wall({ position, size }: { position: [number, number, number]; size: [n
 }
 
 function Scene({ mode, selected, onSelect }: { mode: Mode; selected: string | null; onSelect: (id: string | null) => void }) {
-  const { garageDoor, peopleDoor } = garage.features
+  const { peopleDoor } = garage.features
   return (
     <>
       <color attach="background" args={['#f8fafc']} />
       <ambientLight intensity={0.75} />
       <directionalLight position={[12, 18, 8]} intensity={1.15} castShadow shadow-mapSize={[1024, 1024]} />
 
-      {/* floor */}
+      {/* your section floor */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[W, D]} />
         <meshStandardMaterial color="#e2e8f0" />
       </mesh>
+      {/* faded shared strip beyond your line */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[W / 2 + PB / 2, -0.01, 0]}>
+        <planeGeometry args={[PB, D]} />
+        <meshStandardMaterial color="#eef2f6" />
+      </mesh>
       <gridHelper args={[Math.max(W, D), Math.max(W, D) / 2, '#cbd5e1', '#e2e8f0']} position={[0, 0.02, 0]} />
 
-      {/* low perimeter walls */}
+      {/* low walls: back (west), north, south. The east side is the OPEN allotment line. */}
       <Wall position={[0, WALL_H / 2, -D / 2]} size={[W, WALL_H, 0.3]} />
       <Wall position={[0, WALL_H / 2, D / 2]} size={[W, WALL_H, 0.3]} />
       <Wall position={[-W / 2, WALL_H / 2, 0]} size={[0.3, WALL_H, D]} />
-      <Wall position={[W / 2, WALL_H / 2, 0]} size={[0.3, WALL_H, D]} />
 
-      {/* garage door (east) */}
-      <mesh position={[W / 2, WALL_H / 2, garageDoor.y + garageDoor.h / 2 - D / 2]}>
-        <boxGeometry args={[0.4, WALL_H, garageDoor.h]} />
-        <meshStandardMaterial color="#10b981" transparent opacity={0.6} />
+      {/* allotment line — a low amber bar at the east edge */}
+      <mesh position={[W / 2, 0.4, 0]}>
+        <boxGeometry args={[0.2, 0.8, D]} />
+        <meshStandardMaterial color="#f59e0b" emissive="#f59e0b" emissiveIntensity={0.3} />
       </mesh>
-      {/* people door (west) */}
+
+      {/* people door (west / back, to the yard) */}
       <mesh position={[-W / 2, WALL_H / 2, peopleDoor.y + peopleDoor.h / 2 - D / 2]}>
         <boxGeometry args={[0.4, WALL_H, peopleDoor.h]} />
         <meshStandardMaterial color="#64748b" transparent opacity={0.7} />
