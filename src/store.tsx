@@ -32,6 +32,7 @@ interface State {
 
 interface Store extends State {
   setTaskStatus: (id: string, status: TaskStatus) => void
+  toggleStep: (id: string, index: number) => void
   addItem: (input: { name: string; owner: PersonId | null; zone: ZoneId | null; decision: Decision }) => void
   setItemDecision: (id: string, decision: Decision) => void
   deleteItem: (id: string) => void
@@ -51,13 +52,71 @@ function bumpStreak(streak: number, lastDay: string | null): { streak: number; l
   return { streak: lastDay === yesterday ? streak + 1 : 1, lastDay: today }
 }
 
+/** Fire the celebration sounds for completing task `id` (level/rank/mission/combo/weekly). */
+function playCompletionSfx(s: State, id: string) {
+  const today = dayStr(new Date())
+  const prev = s.tasks.find((t) => t.id === id)
+  const projected = s.tasks.map((t) => (t.id === id ? { ...t, status: 'done' as TaskStatus } : t))
+  const claimsMission = dailyMission(s.tasks, today)?.id === id && s.missionDay !== today
+  const bonusAfter = s.bonusXp + (claimsMission ? MISSION_BONUS : 0)
+  const newStreak = bumpStreak(s.streak, s.lastDay).streak
+  const before = level(xp(s.tasks) + s.bonusXp)
+  const after = level(xp(projected) + bonusAfter)
+  const achBefore = achievements(s.tasks, s.items, s.streak).filter((a) => a.unlocked).length
+  const achAfter = achievements(projected, s.items, newStreak).filter((a) => a.unlocked).length
+  const wk = weekKey()
+  const weekDoneAfter = (s.weekTag === wk ? s.weekDone : 0) + 1
+  const comboActive = s.lastDoneAt != null && Date.now() - s.lastDoneAt < COMBO_WINDOW
+  const combo = comboActive ? Math.min(s.combo + 1, COMBO_MAX) : 1
+  sound.done(prev?.weight ?? 1)
+  if (combo >= 2) sound.combo(combo)
+  if (rankIndex(after.lvl) > rankIndex(before.lvl)) sound.rankUp()
+  else if (after.lvl > before.lvl) sound.levelUp()
+  else if (claimsMission) sound.mission()
+  else if (achAfter > achBefore) sound.unlock()
+  if (weekDoneAfter === WEEKLY_GOAL) sound.weeklyClear()
+}
+
+/** Mark task `id` done and roll forward streak / mission / combo / weekly state. */
+function applyCompletion(s: State, id: string): State {
+  const today = dayStr(new Date())
+  const wk = weekKey()
+  const now = Date.now()
+  const streakState = bumpStreak(s.streak, s.lastDay)
+  const claimsMission = dailyMission(s.tasks, today)?.id === id && s.missionDay !== today
+  const weekDone = (s.weekTag === wk ? s.weekDone : 0) + 1
+  const comboActive = s.lastDoneAt != null && now - s.lastDoneAt < COMBO_WINDOW
+  const combo = comboActive ? Math.min(s.combo + 1, COMBO_MAX) : 1
+  const comboBonus = (combo - 1) * COMBO_BONUS
+  return {
+    ...s,
+    tasks: s.tasks.map((t) => (t.id === id ? { ...t, status: 'done' } : t)),
+    ...streakState,
+    bonusXp: s.bonusXp + (claimsMission ? MISSION_BONUS : 0) + comboBonus,
+    missionDay: claimsMission ? today : s.missionDay,
+    weekTag: wk,
+    weekDone,
+    combo,
+    lastDoneAt: now,
+  }
+}
+
 function initialState(): State {
   try {
     const raw = localStorage.getItem(KEY)
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<State>
+      // steps are a static definition: re-attach from seed by id so existing
+      // saves pick up newly added sub-steps without losing status/stepDone.
+      // A task already done before it gained steps shows them all cleared.
+      const stepsById = new Map(seedTasks().map((t) => [t.id, t.steps]))
+      const tasks = (parsed.tasks ?? seedTasks()).map((t) => {
+        const steps = stepsById.get(t.id) ?? t.steps
+        if (!steps) return { ...t, steps }
+        return { ...t, steps, stepDone: t.status === 'done' ? steps.map(() => true) : t.stepDone }
+      })
       return {
-        tasks: parsed.tasks ?? seedTasks(),
+        tasks,
         items: parsed.items ?? [],
         streak: parsed.streak ?? 0,
         lastDay: parsed.lastDay ?? null,
@@ -101,52 +160,31 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     ...state,
     setTaskStatus: (id, status) => {
       const prev = state.tasks.find((t) => t.id === id)
-      if (status === 'done' && prev?.status !== 'done') {
-        const today = dayStr(new Date())
-        const projected = state.tasks.map((t) => (t.id === id ? { ...t, status: 'done' as TaskStatus } : t))
-        const claimsMission = dailyMission(state.tasks, today)?.id === id && state.missionDay !== today
-        const bonusAfter = state.bonusXp + (claimsMission ? MISSION_BONUS : 0)
-        const newStreak = bumpStreak(state.streak, state.lastDay).streak
-        const before = level(xp(state.tasks) + state.bonusXp)
-        const after = level(xp(projected) + bonusAfter)
-        const achBefore = achievements(state.tasks, state.items, state.streak).filter((a) => a.unlocked).length
-        const achAfter = achievements(projected, state.items, newStreak).filter((a) => a.unlocked).length
-        const wk = weekKey()
-        const weekDoneAfter = (state.weekTag === wk ? state.weekDone : 0) + 1
-        const now = Date.now()
-        const comboActive = state.lastDoneAt != null && now - state.lastDoneAt < COMBO_WINDOW
-        const combo = comboActive ? Math.min(state.combo + 1, COMBO_MAX) : 1
-        sound.done(prev?.weight ?? 1)
-        if (combo >= 2) sound.combo(combo)
-        if (rankIndex(after.lvl) > rankIndex(before.lvl)) sound.rankUp()
-        else if (after.lvl > before.lvl) sound.levelUp()
-        else if (claimsMission) sound.mission()
-        else if (achAfter > achBefore) sound.unlock()
-        if (weekDoneAfter === WEEKLY_GOAL) sound.weeklyClear()
-      }
+      if (status === 'done' && prev?.status !== 'done') playCompletionSfx(state, id)
       setState((s) => {
         const p = s.tasks.find((t) => t.id === id)
-        const justCompleted = status === 'done' && p?.status !== 'done'
-        const today = dayStr(new Date())
-        const wk = weekKey()
-        const now = Date.now()
-        const streakState = justCompleted ? bumpStreak(s.streak, s.lastDay) : { streak: s.streak, lastDay: s.lastDay }
-        const claimsMission = justCompleted && dailyMission(s.tasks, today)?.id === id && s.missionDay !== today
-        const weekDone = justCompleted ? (s.weekTag === wk ? s.weekDone : 0) + 1 : s.weekDone
-        const comboActive = s.lastDoneAt != null && now - s.lastDoneAt < COMBO_WINDOW
-        const combo = justCompleted ? (comboActive ? Math.min(s.combo + 1, COMBO_MAX) : 1) : s.combo
-        const comboBonus = justCompleted ? (combo - 1) * COMBO_BONUS : 0
-        return {
-          ...s,
-          tasks: s.tasks.map((t) => (t.id === id ? { ...t, status } : t)),
-          ...streakState,
-          bonusXp: s.bonusXp + (claimsMission ? MISSION_BONUS : 0) + comboBonus,
-          missionDay: claimsMission ? today : s.missionDay,
-          weekTag: justCompleted ? wk : s.weekTag,
-          weekDone,
-          combo,
-          lastDoneAt: justCompleted ? now : s.lastDoneAt,
+        if (status === 'done' && p?.status !== 'done') return applyCompletion(s, id)
+        return { ...s, tasks: s.tasks.map((t) => (t.id === id ? { ...t, status } : t)) }
+      })
+    },
+    toggleStep: (id, index) => {
+      const task = state.tasks.find((t) => t.id === id)
+      if (!task?.steps) return
+      const current = task.stepDone ?? task.steps.map(() => false)
+      const next = current.map((v, i) => (i === index ? !v : v))
+      const completing = next.every(Boolean) && task.status !== 'done'
+      if (completing) playCompletionSfx(state, id)
+      else if (next[index]) sound.subTick()
+      setState((s) => {
+        const t0 = s.tasks.find((t) => t.id === id)
+        if (!t0?.steps) return s
+        const cur = t0.stepDone ?? t0.steps.map(() => false)
+        const stepDone = cur.map((v, i) => (i === index ? !v : v))
+        if (stepDone.every(Boolean) && t0.status !== 'done') {
+          return applyCompletion({ ...s, tasks: s.tasks.map((t) => (t.id === id ? { ...t, stepDone } : t)) }, id)
         }
+        const status: TaskStatus = stepDone.some(Boolean) ? 'in-progress' : 'not-started'
+        return { ...s, tasks: s.tasks.map((t) => (t.id === id ? { ...t, stepDone, status } : t)) }
       })
     },
     addItem: (input) =>

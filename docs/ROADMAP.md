@@ -32,26 +32,27 @@ Status: ✅ built & live · ▶ next · ⬜ backlog
 - **Flame Stakes** — the streak is now a growing campfire: SPARK → FLAME → BONFIRE →
   INFERNO (flame icon + escalating color) on the HUD.
 
+### Wave 3b — Pit-Stop Sub-Steps — John's original ask
+- **Sub-Steps** — heavy quests (Clear the white table, Sort the banker boxes, Sort the shoes,
+  Sort the gray wardrobe) carry 3–4 checkable sub-steps; each tick fills a segmented mini-bar
+  and plays a quiet SUB-TICK. The quest only counts done when all steps clear, then awards full
+  weighted XP through the normal completion flow (combo/streak/mission all fire). Step ticks
+  drive status (not-started → in-progress → done); no per-step XP. Step definitions live in the
+  seed and re-attach to saved tasks on load, so existing saves gain steps without losing
+  progress.
+
 ---
 
 ## ▶ Next
 
-### Wave 3b — Pit-Stop Sub-Steps  (effort L, impact high) — John's original ask
-Break a heavy quest into 2–4 checkable sub-steps (e.g. *Clear the white table* → wipe down /
-sort papers / box electronics / haul trash), each a quieter coin pip filling a segmented
-mini-bar; the quest only counts done when all steps clear. One quest becomes several
-satisfying ticks. Fits the segmented `.arc-bar` and the "surface the next small action" ethos.
-Planned simplest model: the checklist drives/gates completion; full weighted XP awarded when
-the quest completes (no per-step XP rework). SFX: SUB-TICK (already added).
+### Comeback Coin  (S, med) — top of the backlog
+If away 2+ days, the next return shows a warm "WELCOME BACK — FREE CREDIT" screen granting
+one-time **double XP on the next quest** — a no-guilt re-onboarding from the existing
+`lastDay`. SFX: comeback chime (already added); double-XP quest plays the coin twice.
 
 ---
 
 ## ⬜ Backlog (ranked-ish)
-
-### Comeback Coin  (S, med)
-If away 2+ days, the next return shows a warm "WELCOME BACK — FREE CREDIT" screen granting
-one-time **double XP on the next quest** — a no-guilt re-onboarding from the existing
-`lastDay`. SFX: comeback chime (already added); double-XP quest plays the coin twice.
 
 ### Game Over / Session Summary  (M, med)
 After a quest is done and the player goes idle, an arcade "GAME OVER" card tallies XP this
@@ -81,7 +82,7 @@ natural seasonal loop. SFX: rare dramatic 8-note "NEW GAME+" sting.
 ## Packages (how to bundle)
 - **Quick Spice** *(S)* — Rank Ladder + Daily Mission + Comeback Coin. *(2/3 built)*
 - **The Horse Race** *(M)* — Final Standings + Quest Weight + Weekly Goal. *(built)*
-- **Make It Last** *(L)* — Sub-Steps + Combo Meter + Flame Stakes. *(2/3 built; sub-steps next)*
+- **Make It Last** *(L)* — Sub-Steps + Combo Meter + Flame Stakes. *(built)*
 - **Full Arcade Cabinet** *(XL roadmap)* — all of the above + Game Over + Streak Shield +
   Token Vault + Prestige, sequenced.
 

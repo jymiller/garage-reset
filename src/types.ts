@@ -30,6 +30,8 @@ export interface Task {
   status: TaskStatus
   order: number
   weight?: number // 1-3 effort tier → 50/100/150 XP (defaults to 1)
+  steps?: string[] // pit-stop sub-step labels (static definition); completion gates the quest
+  stepDone?: boolean[] // per-step completion (runtime state, parallels steps)
 }
 
 export interface Item {
