@@ -125,7 +125,10 @@ export function Dashboard({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
         </div>
       </section>
 
-      <footer className="pt-1 text-center">
+      <footer className="flex items-center justify-center gap-5 pt-1">
+        <button onClick={() => onNavigate('sound')} className="font-pixel text-[8px] text-[#36e0e0]">
+          ♪ SOUND TEST
+        </button>
         <button
           onClick={() => {
             if (confirm('RESET ALL PROGRESS?')) resetAll()

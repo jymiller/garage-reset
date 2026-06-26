@@ -6,8 +6,9 @@ import { Zones } from './screens/Zones'
 import { Snowball } from './screens/Snowball'
 import { Capture } from './screens/Capture'
 import { Garage } from './screens/Garage'
+import { SoundTest } from './screens/SoundTest'
 
-export type Tab = 'dashboard' | 'people' | 'zones' | 'snowball' | 'capture' | 'layout'
+export type Tab = 'dashboard' | 'people' | 'zones' | 'snowball' | 'capture' | 'layout' | 'sound'
 
 export function App() {
   const [tab, setTab] = useState<Tab>('dashboard')
@@ -21,6 +22,7 @@ export function App() {
         {tab === 'snowball' && <Snowball />}
         {tab === 'layout' && <Garage />}
         {tab === 'capture' && <Capture />}
+        {tab === 'sound' && <SoundTest onNavigate={setTab} />}
       </main>
       <BottomNav tab={tab} onChange={setTab} />
     </div>
