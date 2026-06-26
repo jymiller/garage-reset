@@ -2,7 +2,19 @@ import { createContext, useContext, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { Task, Item, TaskStatus, Decision, PersonId, ZoneId } from './types'
 import { seedTasks } from './data'
-import { xp, level, achievements, dailyMission, rankIndex, MISSION_BONUS, weekKey, WEEKLY_GOAL } from './game'
+import {
+  xp,
+  level,
+  achievements,
+  dailyMission,
+  rankIndex,
+  MISSION_BONUS,
+  weekKey,
+  WEEKLY_GOAL,
+  COMBO_WINDOW,
+  COMBO_MAX,
+  COMBO_BONUS,
+} from './game'
 import { sound } from './sound'
 
 interface State {
@@ -14,6 +26,8 @@ interface State {
   missionDay: string | null
   weekTag: string | null
   weekDone: number
+  combo: number
+  lastDoneAt: number | null
 }
 
 interface Store extends State {
@@ -51,6 +65,8 @@ function initialState(): State {
         missionDay: parsed.missionDay ?? null,
         weekTag: parsed.weekTag ?? null,
         weekDone: parsed.weekDone ?? 0,
+        combo: parsed.combo ?? 0,
+        lastDoneAt: parsed.lastDoneAt ?? null,
       }
     }
   } catch {
@@ -65,6 +81,8 @@ function initialState(): State {
     missionDay: null,
     weekTag: null,
     weekDone: 0,
+    combo: 0,
+    lastDoneAt: null,
   }
 }
 
@@ -95,7 +113,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const achAfter = achievements(projected, state.items, newStreak).filter((a) => a.unlocked).length
         const wk = weekKey()
         const weekDoneAfter = (state.weekTag === wk ? state.weekDone : 0) + 1
+        const now = Date.now()
+        const comboActive = state.lastDoneAt != null && now - state.lastDoneAt < COMBO_WINDOW
+        const combo = comboActive ? Math.min(state.combo + 1, COMBO_MAX) : 1
         sound.done(prev?.weight ?? 1)
+        if (combo >= 2) sound.combo(combo)
         if (rankIndex(after.lvl) > rankIndex(before.lvl)) sound.rankUp()
         else if (after.lvl > before.lvl) sound.levelUp()
         else if (claimsMission) sound.mission()
@@ -107,17 +129,23 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const justCompleted = status === 'done' && p?.status !== 'done'
         const today = dayStr(new Date())
         const wk = weekKey()
+        const now = Date.now()
         const streakState = justCompleted ? bumpStreak(s.streak, s.lastDay) : { streak: s.streak, lastDay: s.lastDay }
         const claimsMission = justCompleted && dailyMission(s.tasks, today)?.id === id && s.missionDay !== today
         const weekDone = justCompleted ? (s.weekTag === wk ? s.weekDone : 0) + 1 : s.weekDone
+        const comboActive = s.lastDoneAt != null && now - s.lastDoneAt < COMBO_WINDOW
+        const combo = justCompleted ? (comboActive ? Math.min(s.combo + 1, COMBO_MAX) : 1) : s.combo
+        const comboBonus = justCompleted ? (combo - 1) * COMBO_BONUS : 0
         return {
           ...s,
           tasks: s.tasks.map((t) => (t.id === id ? { ...t, status } : t)),
           ...streakState,
-          bonusXp: s.bonusXp + (claimsMission ? MISSION_BONUS : 0),
+          bonusXp: s.bonusXp + (claimsMission ? MISSION_BONUS : 0) + comboBonus,
           missionDay: claimsMission ? today : s.missionDay,
           weekTag: justCompleted ? wk : s.weekTag,
           weekDone,
+          combo,
+          lastDoneAt: justCompleted ? now : s.lastDoneAt,
         }
       })
     },
@@ -139,6 +167,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         missionDay: null,
         weekTag: null,
         weekDone: 0,
+        combo: 0,
+        lastDoneAt: null,
       }),
   }
 

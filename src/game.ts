@@ -19,6 +19,19 @@ export const allCleared = (tasks: Task[]) => tasks.length > 0 && tasks.every((t)
 
 export const WEEKLY_GOAL = 5
 
+export const COMBO_WINDOW = 180000 // 3 min — back-to-back completions keep the combo
+export const COMBO_MAX = 3
+export const COMBO_BONUS = 25 // bonus XP per combo step above x1
+
+/** Streak → growing campfire tier. */
+export function flameTier(streak: number) {
+  if (streak >= 10) return { name: 'INFERNO', color: '#ff5a5a' }
+  if (streak >= 6) return { name: 'BONFIRE', color: '#ff8c1a' }
+  if (streak >= 3) return { name: 'FLAME', color: '#ffd23f' }
+  if (streak >= 1) return { name: 'SPARK', color: '#ffd23f' }
+  return { name: 'NO STREAK', color: '#8a8aa6' }
+}
+
 /** Year + week number, resets weekly. */
 export const weekKey = (date = new Date()) => {
   const d = new Date(date.getFullYear(), date.getMonth(), date.getDate())

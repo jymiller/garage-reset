@@ -61,6 +61,14 @@ export function MapIcon({ className = base }: IconProps) {
   )
 }
 
+export function FlameIcon({ className = 'h-5 w-5' }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M13 2c1 3-1 4-2 6-1-1-1-2-1-3-2 2-4 5-4 8a6 6 0 0 0 12 0c0-3-2-5-3-7-1 2-2 2-3 1 1-2 2-3 1-5z" />
+    </svg>
+  )
+}
+
 export function CheckIcon({ className = 'h-4 w-4' }: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} strokeLinecap="round" strokeLinejoin="round" className={className}>

@@ -14,10 +14,12 @@ import {
   MISSION_BONUS,
   WEEKLY_GOAL,
   allCleared,
+  flameTier,
 } from '../game'
 import { arcPerson } from '../theme'
 import { ProgressBar } from '../components/ProgressBar'
 import { TaskCard } from '../components/TaskCard'
+import { FlameIcon } from '../components/icons'
 
 const RANK = ['1ST', '2ND', '3RD']
 
@@ -30,10 +32,11 @@ function tagline(pct: number) {
 }
 
 export function Dashboard({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
-  const { tasks, items, streak, bonusXp, weekDone, resetAll } = useStore()
+  const { tasks, items, streak, bonusXp, weekDone, combo, resetAll } = useStore()
   const [muted, setMuted] = useState(sound.isMuted())
   const weekPct = Math.min(100, Math.round((weekDone / WEEKLY_GOAL) * 100))
   const cleared = allCleared(tasks)
+  const flame = flameTier(streak)
   const overall = progress(tasks)
   const totalXp = xp(tasks) + bonusXp
   const lv = level(totalXp)
@@ -62,12 +65,23 @@ export function Dashboard({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
           >
             {muted ? 'SFX OFF' : 'SFX ON'}
           </button>
-          <div className="arc-panel arc-panel-yellow px-2 py-1.5 text-center">
-            <p className="font-pixel text-[7px] text-[#ffd23f]">STREAK</p>
-            <p className="arc-vt mt-0.5 text-2xl leading-none text-[#ffd23f]">{streak}</p>
+          <div className="arc-panel px-2.5 py-1.5 text-center" style={{ borderColor: flame.color }}>
+            <div className="flex items-center justify-center gap-1" style={{ color: flame.color }}>
+              {streak > 0 && <FlameIcon className="h-4 w-4" />}
+              <span className="arc-vt text-2xl leading-none">{streak}</span>
+            </div>
+            <p className="font-pixel mt-1 text-[6px]" style={{ color: flame.color }}>
+              {flame.name}
+            </p>
           </div>
         </div>
       </header>
+
+      {combo >= 2 && (
+        <div className="arc-panel arc-panel-pink p-2 text-center">
+          <p className="arc-blink font-pixel text-sm text-[#ff3ca6]">COMBO x{combo}!</p>
+        </div>
+      )}
 
       <section className="arc-panel p-4">
         <div className="flex items-end justify-between">
