@@ -7,11 +7,28 @@ import { Snowball } from './screens/Snowball'
 import { Capture } from './screens/Capture'
 import { Garage } from './screens/Garage'
 import { SoundTest } from './screens/SoundTest'
+import { TitleScreen } from './screens/TitleScreen'
+import { sound } from './sound'
 
 export type Tab = 'dashboard' | 'people' | 'zones' | 'snowball' | 'capture' | 'layout' | 'sound'
 
 export function App() {
   const [tab, setTab] = useState<Tab>('dashboard')
+  const [started, setStarted] = useState(false)
+
+  if (!started) {
+    return (
+      <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
+        <TitleScreen
+          onStart={() => {
+            sound.prime()
+            sound.start()
+            setStarted(true)
+          }}
+        />
+      </div>
+    )
+  }
 
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
