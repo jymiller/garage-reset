@@ -4,8 +4,15 @@ import { sound } from '../sound'
 
 const SFX: { label: string; sub: string; play: () => void; color: string }[] = [
   { label: 'COIN', sub: 'task done · +50 XP', play: () => sound.done(), color: '#ffd23f' },
+  { label: 'SUB-TICK', sub: 'sub-step done', play: () => sound.subTick(), color: '#ffd23f' },
+  { label: 'COMBO', sub: 'back-to-back x3', play: () => sound.combo(3), color: '#ffd23f' },
   { label: 'LEVEL UP', sub: 'fill the XP bar', play: () => sound.levelUp(), color: '#2bd14a' },
+  { label: 'RANK UP', sub: 'new rank title', play: () => sound.rankUp(), color: '#2bd14a' },
   { label: 'TROPHY', sub: 'achievement unlock', play: () => sound.unlock(), color: '#36e0e0' },
+  { label: 'MISSION', sub: 'daily mission clear', play: () => sound.mission(), color: '#36e0e0' },
+  { label: 'WINNER', sub: 'champion!', play: () => sound.winner(), color: '#ffd23f' },
+  { label: 'LOSER', sub: 'good game · rematch', play: () => sound.loser(), color: '#ff3ca6' },
+  { label: 'COMEBACK', sub: 'welcome back', play: () => sound.comeback(), color: '#36e0e0' },
   { label: 'BATTLE START', sub: 'press PLAY', play: () => sound.start(), color: '#ff3ca6' },
   { label: 'SELECT', sub: 'pick a player', play: () => sound.select(), color: '#2bd14a' },
   { label: 'BACK', sub: 'cancel', play: () => sound.back(), color: '#8a8aa6' },

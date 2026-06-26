@@ -3,7 +3,7 @@ import type { Tab } from '../App'
 import { useStore } from '../store'
 import { sound } from '../sound'
 import { nextTasks, progress } from '../lib'
-import { xp, level, leaderboard, achievements } from '../game'
+import { xp, level, leaderboard, achievements, rankTitle, dailyMission, todayKey, MISSION_BONUS } from '../game'
 import { arcPerson } from '../theme'
 import { ProgressBar } from '../components/ProgressBar'
 import { TaskCard } from '../components/TaskCard'
@@ -19,14 +19,16 @@ function tagline(pct: number) {
 }
 
 export function Dashboard({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
-  const { tasks, items, streak, resetAll } = useStore()
+  const { tasks, items, streak, bonusXp, resetAll } = useStore()
   const [muted, setMuted] = useState(sound.isMuted())
   const overall = progress(tasks)
-  const totalXp = xp(tasks)
+  const totalXp = xp(tasks) + bonusXp
   const lv = level(totalXp)
   const board = leaderboard(tasks)
   const trophies = achievements(tasks, items, streak)
   const upNext = nextTasks(tasks, 3)
+  const mission = dailyMission(tasks, todayKey())
+  const missionDone = mission?.status === 'done'
 
   return (
     <div className="space-y-5">
@@ -56,14 +58,29 @@ export function Dashboard({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
 
       <section className="arc-panel p-4">
         <div className="flex items-end justify-between">
-          <p className="font-pixel text-sm text-[#2bd14a]">LV.{lv.lvl}</p>
+          <div>
+            <p className="font-pixel text-sm text-[#2bd14a]">LV.{lv.lvl}</p>
+            <p className="font-pixel mt-1.5 text-[8px] text-[#6cf08a]">{rankTitle(lv.lvl)}</p>
+          </div>
           <p className="arc-vt text-xl text-[#ffd23f]">{totalXp} XP</p>
         </div>
-        <ProgressBar pct={lv.pct} className="mt-2" />
+        <ProgressBar pct={lv.pct} className="mt-3" />
         <p className="arc-vt mt-2 text-[#8a8aa6]">
           {overall.done}/{overall.total} CLEARED · {overall.pct}% · {lv.per - lv.into} XP TO LV.{lv.lvl + 1}
         </p>
       </section>
+
+      {mission && (
+        <section className={`arc-panel p-3 ${missionDone ? 'arc-panel-dim' : 'arc-panel-yellow'}`}>
+          <div className="flex items-center justify-between">
+            <p className="font-pixel text-[9px] text-[#ffd23f]">TODAY'S MISSION</p>
+            <span className="font-pixel text-[8px] text-[#ffd23f]">+{MISSION_BONUS} XP</span>
+          </div>
+          <p className="arc-vt mt-1.5 text-[#e8e8f5]">
+            {missionDone ? 'MISSION CLEAR ✓' : mission.title}
+          </p>
+        </section>
+      )}
 
       <button
         onClick={() => {

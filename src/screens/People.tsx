@@ -3,7 +3,7 @@ import type { PersonId } from '../types'
 import { useStore } from '../store'
 import { people } from '../data'
 import { progress } from '../lib'
-import { xp, level } from '../game'
+import { xp, level, rankTitle } from '../game'
 import { arcPerson } from '../theme'
 import { ProgressBar } from '../components/ProgressBar'
 import { TaskCard } from '../components/TaskCard'
@@ -50,9 +50,12 @@ export function People() {
 
       <section className="arc-panel p-4" style={{ borderColor: color }}>
         <div className="flex items-end justify-between">
-          <p className="font-pixel text-sm" style={{ color }}>
-            LV.{lv.lvl}
-          </p>
+          <div>
+            <p className="font-pixel text-sm" style={{ color }}>
+              LV.{lv.lvl}
+            </p>
+            <p className="font-pixel mt-1.5 text-[8px] text-[#8a8aa6]">{rankTitle(lv.lvl)}</p>
+          </div>
           <p className="arc-vt text-xl text-[#ffd23f]">{px} XP</p>
         </div>
         <ProgressBar pct={pr.pct} color={color} className="mt-2" />

@@ -117,4 +117,40 @@ export const sound = {
     if (muted) return
     seq([196, 185, 175, 165], 0.1, 0.13, 'square', 0.16)
   },
+  /** Champion / everyone-finished winner fanfare. */
+  winner() {
+    if (muted) return
+    seq([523, 659, 784, 1047, 1319, 1047, 1319, 1568], 0.11, 0.2, 'square', 0.18)
+  },
+  /** Gentle last-place "wah-wah" — comedic, not harsh. */
+  loser() {
+    if (muted) return
+    seq([349, 311, 277, 220], 0.18, 0.34, 'triangle', 0.16)
+  },
+  /** Combo step — rising ratchet, pitches up with the multiplier. */
+  combo(step: number) {
+    if (muted) return
+    const base = 440 + step * 130
+    seq([base, base * 1.5], 0.05, 0.08, 'square', 0.13)
+  },
+  /** Sub-step ticked — a small, quieter coin pip. */
+  subTick() {
+    if (muted) return
+    blip(1175, 0.045, 'square', 0.09)
+  },
+  /** Promotion to a new rank — grander than a level-up. */
+  rankUp() {
+    if (muted) return
+    seq([392, 494, 587, 784, 988, 1319, 1568], 0.08, 0.16, 'square', 0.18)
+  },
+  /** Daily mission cleared. */
+  mission() {
+    if (muted) return
+    seq([784, 1047, 784, 1319], 0.07, 0.11, 'square', 0.15)
+  },
+  /** Comeback / free-credit welcome. */
+  comeback() {
+    if (muted) return
+    seq([659, 880, 1319], 0.09, 0.15, 'square', 0.16)
+  },
 }

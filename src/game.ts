@@ -15,6 +15,38 @@ export function level(totalXp: number) {
   return { lvl, into, per: PER_LEVEL, pct: Math.round((into / PER_LEVEL) * 100) }
 }
 
+const RANKS = ['ROOKIE', 'GREASE MONKEY', 'SHELF JOCKEY', 'CREW CHIEF', 'MASTER ORGANIZER']
+
+/** Which rank band a level falls in (0-4). New band = a rank-up moment. */
+export function rankIndex(lvl: number): number {
+  if (lvl < 3) return 0
+  if (lvl < 5) return 1
+  if (lvl < 7) return 2
+  if (lvl < 10) return 3
+  return 4
+}
+
+export const rankTitle = (lvl: number) => RANKS[rankIndex(lvl)]
+
+export const MISSION_BONUS = 25
+
+export const todayKey = () => {
+  const d = new Date()
+  return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`
+}
+
+const hash = (s: string) => {
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0
+  return h
+}
+
+/** Deterministically feature one quest as today's mission (stable for the whole day). */
+export function dailyMission(tasks: Task[], dayKey: string): Task | null {
+  if (tasks.length === 0) return null
+  return tasks.slice().sort((a, b) => a.order - b.order)[hash(dayKey) % tasks.length]
+}
+
 export function leaderboard(tasks: Task[]) {
   return people
     .map((p) => ({
