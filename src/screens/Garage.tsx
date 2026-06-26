@@ -2,7 +2,7 @@ import { useState, lazy, Suspense } from 'react'
 import { garage } from '../garage/model'
 import type { Box, PlacedObject } from '../garage/model'
 import { zoneName, personName } from '../data'
-import { zoneColors, decisionMeta } from '../theme'
+import { zoneColors, arcDecision } from '../theme'
 
 const Plan3D = lazy(() => import('../garage/Plan3D').then((m) => ({ default: m.Plan3D })))
 
@@ -38,37 +38,36 @@ export function Garage() {
   return (
     <div className="space-y-4">
       <header>
-        <h1 className="text-2xl font-bold tracking-tight">Your section</h1>
-        <p className="text-sm text-slate-500">
-          The back of the garage that's yours. <span className="font-medium text-amber-600">Now</span> = stuff over the line;{' '}
-          <span className="font-medium text-emerald-600">Plan</span> = everything contained.
+        <h1 className="font-pixel text-sm text-[#2bd14a]">MAP — YOUR SECTION</h1>
+        <p className="arc-vt mt-1 text-[#8a8aa6]">
+          <span className="text-[#ffd23f]">NOW</span> = STUFF OVER THE LINE · <span className="text-[#2bd14a]">PLAN</span> = CONTAINED
         </p>
       </header>
 
       <div className="flex gap-2">
-        <div className="flex flex-1 gap-1 rounded-2xl bg-white p-1.5 shadow-sm ring-1 ring-slate-100">
+        <div className="arc-panel arc-panel-dim flex flex-1 gap-1 p-1">
           {(['2d', '3d'] as View[]).map((v) => (
             <button
               key={v}
               onClick={() => setView(v)}
-              className={`flex-1 rounded-xl py-2 text-sm font-semibold transition ${
-                view === v ? 'bg-slate-800 text-white shadow-sm' : 'text-slate-500'
+              className={`font-pixel flex-1 py-2 text-[9px] transition ${
+                view === v ? 'bg-[#36e0e0] text-[#06343a]' : 'text-[#6a6a82]'
               }`}
             >
-              {v === '2d' ? 'Map' : '3D'}
+              {v === '2d' ? 'MAP' : '3D'}
             </button>
           ))}
         </div>
-        <div className="flex flex-1 gap-1 rounded-2xl bg-white p-1.5 shadow-sm ring-1 ring-slate-100">
+        <div className="arc-panel arc-panel-dim flex flex-1 gap-1 p-1">
           {(['now', 'plan'] as Mode[]).map((m) => (
             <button
               key={m}
               onClick={() => setMode(m)}
-              className={`flex-1 rounded-xl py-2 text-sm font-semibold transition ${
-                mode === m ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-500'
+              className={`font-pixel flex-1 py-2 text-[9px] transition ${
+                mode === m ? 'bg-[#2bd14a] text-[#04210d]' : 'text-[#6a6a82]'
               }`}
             >
-              {m === 'now' ? 'Now' : 'Plan'}
+              {m === 'now' ? 'NOW' : 'PLAN'}
             </button>
           ))}
         </div>
@@ -77,8 +76,8 @@ export function Garage() {
       {view === '3d' && (
         <Suspense
           fallback={
-            <div className="flex h-[360px] items-center justify-center rounded-2xl bg-white text-sm text-slate-400 ring-1 ring-slate-100">
-              Loading 3D…
+            <div className="arc-panel arc-vt flex h-[360px] items-center justify-center text-[#6cf08a]">
+              LOADING 3D...
             </div>
           }
         >
@@ -86,7 +85,7 @@ export function Garage() {
         </Suspense>
       )}
 
-      <div className={`overflow-hidden rounded-3xl bg-white p-3 shadow-sm ring-1 ring-slate-100 ${view === '3d' ? 'hidden' : ''}`}>
+      <div className={`arc-panel overflow-hidden p-2 ${view === '3d' ? 'hidden' : ''}`}>
         <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full" role="img" aria-label="Floor plan of your garage section">
           {/* shared strip beyond the line (parking + laundry) */}
           <rect x={M + W * SCALE} y={M} width={PB * SCALE} height={D * SCALE} rx="4" fill="#f1f5f9" />
@@ -202,33 +201,34 @@ export function Garage() {
 
       {/* selected detail */}
       {sel && (
-        <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
+        <div className="arc-panel arc-panel-yellow p-3">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="font-semibold text-slate-800">
-                {sel.id !== 'car' && (
-                  <span className="mr-1.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 text-xs text-slate-600">
-                    {objects.indexOf(sel)}
-                  </span>
-                )}
+              <p className="arc-vt text-lg text-[#e8e8f5]">
+                <span className="font-pixel mr-2 bg-[#1d1d2e] px-1.5 py-1 text-[8px] text-[#36e0e0]">
+                  {objects.indexOf(sel)}
+                </span>
                 {sel.label}
               </p>
-              <p className="mt-1 text-xs text-slate-500">
-                {zoneName(sel.zone)}
-                {sel.owner ? ` · ${personName(sel.owner)}` : ''}
+              <p className="arc-vt mt-1 text-[#8a8aa6]">
+                {zoneName(sel.zone).toUpperCase()}
+                {sel.owner ? ` · ${personName(sel.owner).toUpperCase()}` : ''}
               </p>
             </div>
-            <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${decisionMeta[sel.decision].chip}`}>
-              {decisionMeta[sel.decision].label}
+            <span
+              className="font-pixel shrink-0 px-1.5 py-1 text-[7px] text-[#07070e]"
+              style={{ background: arcDecision[sel.decision].color }}
+            >
+              {arcDecision[sel.decision].label}
             </span>
           </div>
-          {sel.note && <p className="mt-2 text-sm text-slate-600">{sel.note}</p>}
+          {sel.note && <p className="arc-vt mt-2 text-[#8a8aa6]">{sel.note}</p>}
         </div>
       )}
 
       {/* legend / object list */}
       <section>
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">Main objects</h2>
+        <h2 className="font-pixel mb-2 text-[10px] text-[#ff3ca6]">OBJECTS</h2>
         <div className="space-y-1.5">
           {objects
             .filter((o) => o.id !== 'car')
@@ -238,26 +238,26 @@ export function Garage() {
                 <button
                   key={o.id}
                   onClick={() => setSelected(selected === o.id ? null : o.id)}
-                  className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left text-sm ring-1 transition ${
-                    selected === o.id ? 'bg-slate-50 ring-slate-300' : 'bg-white ring-slate-100'
+                  className={`arc-panel flex w-full items-center gap-2.5 px-3 py-2 text-left ${
+                    selected === o.id ? 'arc-panel-yellow' : 'arc-panel-dim'
                   }`}
                 >
                   <span
-                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-xs font-bold"
+                    className="font-pixel flex h-5 w-5 shrink-0 items-center justify-center text-[8px]"
                     style={{ background: c.fill, color: c.stroke }}
                   >
                     {objects.indexOf(o)}
                   </span>
-                  <span className="min-w-0 flex-1 truncate font-medium text-slate-700">{o.label}</span>
-                  <span className="shrink-0 text-xs text-slate-400">{zoneName(o.zone)}</span>
+                  <span className="arc-vt min-w-0 flex-1 truncate text-[#e8e8f5]">{o.label}</span>
+                  <span className="arc-vt shrink-0 text-[#6a6a82]">{zoneName(o.zone).toUpperCase()}</span>
                 </button>
               )
             })}
         </div>
       </section>
 
-      <p className="px-1 text-center text-xs text-slate-400">
-        Inferred from photos — dimensions and positions are a first draft. Tell me what to fix.
+      <p className="arc-vt px-1 text-center text-[#5a5a70]">
+        INFERRED FROM PHOTOS — POSITIONS ARE A DRAFT. TELL ME WHAT TO FIX.
       </p>
     </div>
   )

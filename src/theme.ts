@@ -26,6 +26,22 @@ export const zoneColors: Record<ZoneId | 'car', { fill: string; stroke: string }
   car: { fill: '#94a3b8', stroke: '#1e293b' },
 }
 
+/** Arcade neon color + label per decision. */
+export const arcDecision: Record<Decision, { label: string; color: string }> = {
+  undecided: { label: 'UNDECIDED', color: '#8a8aa6' },
+  keep: { label: 'KEEP', color: '#2bd14a' },
+  move: { label: 'MOVE', color: '#36e0e0' },
+  donate: { label: 'DONATE', color: '#ff3ca6' },
+  trash: { label: 'TRASH', color: '#ff5a5a' },
+}
+
+/** Arcade neon color per person (hex), for bars/dots/leaderboard. */
+export const arcPerson: Record<PersonId, string> = {
+  john: '#36e0e0',
+  griffin: '#ffd23f',
+  lj: '#ff3ca6',
+}
+
 export const personMeta: Record<
   PersonId,
   { bar: string; dot: string; soft: string; text: string; ring: string }

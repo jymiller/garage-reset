@@ -3,7 +3,7 @@ import type { ZoneId } from '../types'
 import { useStore } from '../store'
 import { zones, personName } from '../data'
 import { progress } from '../lib'
-import { decisionMeta, personMeta } from '../theme'
+import { arcDecision, arcPerson } from '../theme'
 import { ProgressBar } from '../components/ProgressBar'
 import { TaskCard } from '../components/TaskCard'
 import { ChevronIcon } from '../components/icons'
@@ -15,8 +15,8 @@ export function Zones() {
   return (
     <div className="space-y-5">
       <header>
-        <h1 className="text-2xl font-bold tracking-tight">Zones</h1>
-        <p className="text-sm text-slate-500">Tap a zone to see its tasks and items.</p>
+        <h1 className="font-pixel text-sm text-[#2bd14a]">ZONES</h1>
+        <p className="arc-vt mt-1 text-[#8a8aa6]">SELECT A ZONE TO INSPECT.</p>
       </header>
 
       <div className="space-y-2.5">
@@ -25,25 +25,25 @@ export function Zones() {
           const zoneItems = items.filter((i) => i.zone === z.id)
           const pr = progress(zoneTasks)
           const isOpen = open === z.id
+          const cleared = pr.total > 0 && pr.done === pr.total
 
           return (
-            <div key={z.id} className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-100">
-              <button
-                onClick={() => setOpen(isOpen ? null : z.id)}
-                className="flex w-full items-center gap-3 p-4 text-left"
-              >
+            <div className="arc-panel" key={z.id} style={cleared ? { borderColor: '#ffd23f' } : undefined}>
+              <button onClick={() => setOpen(isOpen ? null : z.id)} className="flex w-full items-center gap-3 p-3 text-left">
                 <div className="min-w-0 flex-1">
-                  <p className="font-semibold text-slate-800">{z.name}</p>
-                  <p className="mt-0.5 text-xs text-slate-400">
-                    {pr.done}/{pr.total} tasks · {zoneItems.length} item{zoneItems.length === 1 ? '' : 's'}
+                  <p className="arc-vt text-lg text-[#e8e8f5]">
+                    {z.name.toUpperCase()} {cleared && <span className="text-[#ffd23f]">★</span>}
                   </p>
-                  {pr.total > 0 && <ProgressBar pct={pr.pct} className="mt-2 h-2" />}
+                  <p className="arc-vt mt-0.5 text-[#8a8aa6]">
+                    {pr.done}/{pr.total} QUESTS · {zoneItems.length} LOOT
+                  </p>
+                  {pr.total > 0 && <ProgressBar pct={pr.pct} className="mt-2" />}
                 </div>
-                <ChevronIcon className={`h-5 w-5 shrink-0 text-slate-400 transition ${isOpen ? 'rotate-180' : ''}`} />
+                <ChevronIcon className={`h-5 w-5 shrink-0 text-[#2bd14a] transition ${isOpen ? 'rotate-180' : ''}`} />
               </button>
 
               {isOpen && (
-                <div className="space-y-3 border-t border-slate-100 bg-slate-50/60 p-4">
+                <div className="space-y-3 border-t-2 border-[#1d1d2e] p-3">
                   {zoneTasks.length > 0 && (
                     <div className="space-y-2">
                       {zoneTasks.map((t) => (
@@ -54,17 +54,19 @@ export function Zones() {
 
                   {zoneItems.length > 0 && (
                     <div className="space-y-1.5">
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Items</p>
+                      <p className="font-pixel text-[8px] text-[#ff3ca6]">LOOT</p>
                       {zoneItems.map((i) => (
-                        <div
-                          key={i.id}
-                          className="flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm ring-1 ring-slate-100"
-                        >
-                          {i.owner && <span className={`h-2 w-2 shrink-0 rounded-full ${personMeta[i.owner].dot}`} />}
-                          <span className="min-w-0 flex-1 truncate text-slate-700">{i.name}</span>
-                          {i.owner && <span className="text-xs text-slate-400">{personName(i.owner)}</span>}
-                          <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${decisionMeta[i.decision].chip}`}>
-                            {decisionMeta[i.decision].label}
+                        <div key={i.id} className="arc-panel arc-panel-dim flex items-center gap-2 px-3 py-2">
+                          {i.owner && (
+                            <span className="h-2.5 w-2.5 shrink-0" style={{ background: arcPerson[i.owner] }} />
+                          )}
+                          <span className="arc-vt min-w-0 flex-1 truncate text-[#e8e8f5]">{i.name}</span>
+                          {i.owner && <span className="arc-vt text-[#8a8aa6]">{personName(i.owner).toUpperCase()}</span>}
+                          <span
+                            className="font-pixel px-1.5 py-1 text-[7px] text-[#07070e]"
+                            style={{ background: arcDecision[i.decision].color }}
+                          >
+                            {arcDecision[i.decision].label}
                           </span>
                         </div>
                       ))}
@@ -72,7 +74,7 @@ export function Zones() {
                   )}
 
                   {zoneTasks.length === 0 && zoneItems.length === 0 && (
-                    <p className="text-center text-sm text-slate-400">Nothing here yet.</p>
+                    <p className="arc-vt text-center text-[#6a6a82]">EMPTY ZONE.</p>
                   )}
                 </div>
               )}

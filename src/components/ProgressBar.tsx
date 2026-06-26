@@ -1,17 +1,21 @@
 export function ProgressBar({
   pct,
-  bar = 'bg-emerald-500',
+  color = '#2bd14a',
   className = '',
 }: {
   pct: number
-  bar?: string
+  color?: string
   className?: string
 }) {
   return (
-    <div className={`h-3 w-full overflow-hidden rounded-full bg-slate-200 ${className}`}>
+    <div className={`arc-bar ${className}`} style={{ borderColor: color }}>
       <div
-        className={`h-full rounded-full ${bar} transition-all duration-500 ease-out`}
-        style={{ width: `${Math.max(pct, pct > 0 ? 6 : 0)}%` }}
+        className="h-full"
+        style={{
+          width: `${pct}%`,
+          background: `repeating-linear-gradient(90deg, ${color} 0 9px, #0d0d18 9px 12px)`,
+          transition: 'width 0.4s steps(8)',
+        }}
       />
     </div>
   )

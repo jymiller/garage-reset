@@ -3,7 +3,8 @@ import type { PersonId } from '../types'
 import { useStore } from '../store'
 import { people } from '../data'
 import { progress } from '../lib'
-import { personMeta } from '../theme'
+import { xp, level } from '../game'
+import { arcPerson } from '../theme'
 import { ProgressBar } from '../components/ProgressBar'
 import { TaskCard } from '../components/TaskCard'
 
@@ -11,16 +12,16 @@ export function People() {
   const { tasks } = useStore()
   const [active, setActive] = useState<PersonId>('john')
 
-  const theirs = tasks
-    .filter((t) => t.person === active)
-    .sort((a, b) => a.order - b.order)
+  const theirs = tasks.filter((t) => t.person === active).sort((a, b) => a.order - b.order)
   const pr = progress(tasks, active)
+  const px = xp(tasks, active)
+  const lv = level(px)
+  const color = arcPerson[active]
 
   return (
     <div className="space-y-5">
       <header>
-        <h1 className="text-2xl font-bold tracking-tight">People</h1>
-        <p className="text-sm text-slate-500">Tap a name to see their tasks.</p>
+        <h1 className="font-pixel text-sm text-[#2bd14a]">PLAYERS</h1>
       </header>
 
       <div className="flex gap-2">
@@ -30,24 +31,34 @@ export function People() {
             <button
               key={p.id}
               onClick={() => setActive(p.id)}
-              className={`flex-1 rounded-2xl py-2.5 text-sm font-semibold transition ${
-                on
-                  ? `${personMeta[p.id].soft} ${personMeta[p.id].text} ring-2 ${personMeta[p.id].ring}`
-                  : 'bg-white text-slate-500 ring-1 ring-slate-100'
-              }`}
+              className="arc-panel flex-1 py-2.5 text-center transition"
+              style={{
+                borderColor: arcPerson[p.id],
+                background: on ? arcPerson[p.id] : '#0d0d18',
+              }}
             >
-              {p.name}
+              <span
+                className="arc-vt text-lg"
+                style={{ color: on ? '#07070e' : arcPerson[p.id] }}
+              >
+                {p.name.toUpperCase()}
+              </span>
             </button>
           )
         })}
       </div>
 
-      <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
-        <div className="mb-2 flex items-center justify-between text-sm">
-          <span className="font-medium text-slate-600">{pr.done} of {pr.total} done</span>
-          <span className="tabular-nums text-slate-400">{pr.pct}%</span>
+      <section className="arc-panel p-4" style={{ borderColor: color }}>
+        <div className="flex items-end justify-between">
+          <p className="font-pixel text-sm" style={{ color }}>
+            LV.{lv.lvl}
+          </p>
+          <p className="arc-vt text-xl text-[#ffd23f]">{px} XP</p>
         </div>
-        <ProgressBar pct={pr.pct} bar={personMeta[active].bar} />
+        <ProgressBar pct={pr.pct} color={color} className="mt-2" />
+        <p className="arc-vt mt-2 text-[#8a8aa6]">
+          {pr.done}/{pr.total} QUESTS CLEARED · {pr.pct}%
+        </p>
       </section>
 
       <section className="space-y-2">

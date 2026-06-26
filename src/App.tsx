@@ -13,7 +13,7 @@ export function App() {
   const [tab, setTab] = useState<Tab>('dashboard')
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col bg-slate-50 text-slate-900">
+    <div className="mx-auto flex min-h-screen w-full max-w-md flex-col">
       <main className="flex-1 px-4 pb-28 pt-6">
         {tab === 'dashboard' && <Dashboard onNavigate={setTab} />}
         {tab === 'people' && <People />}

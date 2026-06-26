@@ -1,31 +1,35 @@
 import type { Tab } from '../App'
 import { HomeIcon, UsersIcon, GridIcon, BoltIcon, PlusIcon, MapIcon } from './icons'
+import { sound } from '../sound'
 
 const items: { id: Tab; label: string; Icon: typeof HomeIcon }[] = [
-  { id: 'dashboard', label: 'Home', Icon: HomeIcon },
-  { id: 'people', label: 'People', Icon: UsersIcon },
-  { id: 'snowball', label: 'Snowball', Icon: BoltIcon },
-  { id: 'layout', label: 'Layout', Icon: MapIcon },
-  { id: 'zones', label: 'Zones', Icon: GridIcon },
-  { id: 'capture', label: 'Capture', Icon: PlusIcon },
+  { id: 'dashboard', label: 'HUD', Icon: HomeIcon },
+  { id: 'people', label: 'PLAYERS', Icon: UsersIcon },
+  { id: 'snowball', label: 'PLAY', Icon: BoltIcon },
+  { id: 'layout', label: 'MAP', Icon: MapIcon },
+  { id: 'zones', label: 'ZONES', Icon: GridIcon },
+  { id: 'capture', label: 'LOOT', Icon: PlusIcon },
 ]
 
 export function BottomNav({ tab, onChange }: { tab: Tab; onChange: (tab: Tab) => void }) {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-10 border-t border-slate-200 bg-white/90 backdrop-blur">
-      <div className="pb-safe mx-auto flex max-w-md items-stretch justify-around px-2 pt-2">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-[#2bd14a] bg-[#07070e]">
+      <div className="pb-safe mx-auto flex max-w-md items-stretch justify-around px-1 pt-2">
         {items.map(({ id, label, Icon }) => {
           const active = tab === id
           return (
             <button
               key={id}
-              onClick={() => onChange(id)}
-              className={`flex flex-1 flex-col items-center gap-1 rounded-xl py-1.5 text-[11px] font-medium transition ${
-                active ? 'text-emerald-600' : 'text-slate-400'
+              onClick={() => {
+                sound.tap()
+                onChange(id)
+              }}
+              className={`flex flex-1 flex-col items-center gap-1 py-1 transition ${
+                active ? 'text-[#2bd14a]' : 'text-[#4f4f66]'
               }`}
             >
-              <Icon className={`h-6 w-6 ${active ? 'scale-110' : ''} transition`} />
-              {label}
+              <Icon className={`h-5 w-5 ${active ? 'scale-110' : ''} transition`} />
+              <span className="font-pixel text-[7px] tracking-tight">{label}</span>
             </button>
           )
         })}

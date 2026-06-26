@@ -1,51 +1,104 @@
+import { useState } from 'react'
 import type { Tab } from '../App'
 import { useStore } from '../store'
-import { people } from '../data'
-import { nextTasks, progress, cheer } from '../lib'
-import { personMeta } from '../theme'
+import { sound } from '../sound'
+import { nextTasks, progress } from '../lib'
+import { xp, level, leaderboard, achievements } from '../game'
+import { arcPerson } from '../theme'
 import { ProgressBar } from '../components/ProgressBar'
 import { TaskCard } from '../components/TaskCard'
-import { BoltIcon } from '../components/icons'
+
+const RANK = ['1ST', '2ND', '3RD']
+
+function tagline(pct: number) {
+  if (pct >= 100) return 'BOSS DEFEATED!'
+  if (pct === 0) return 'INSERT COIN — PRESS PLAY'
+  if (pct < 34) return 'COMBO BUILDING...'
+  if (pct < 67) return 'NICE RUN. KEEP GOING'
+  return 'FINAL STRETCH!'
+}
 
 export function Dashboard({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
-  const { tasks, resetAll } = useStore()
+  const { tasks, items, streak, resetAll } = useStore()
+  const [muted, setMuted] = useState(sound.isMuted())
   const overall = progress(tasks)
+  const totalXp = xp(tasks)
+  const lv = level(totalXp)
+  const board = leaderboard(tasks)
+  const trophies = achievements(tasks, items, streak)
   const upNext = nextTasks(tasks, 3)
 
   return (
-    <div className="space-y-6">
-      <header>
-        <p className="text-sm font-medium text-emerald-600">Garage Reset</p>
-        <h1 className="mt-0.5 text-2xl font-bold tracking-tight text-slate-900">{cheer(overall.pct)}</h1>
+    <div className="space-y-5">
+      <header className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="font-pixel text-base leading-relaxed text-[#2bd14a]">GARAGE RESET</h1>
+          <p className="arc-vt mt-1 text-[#ffd23f]">{tagline(overall.pct)}</p>
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-1.5">
+          <button
+            onClick={() => {
+              sound.toggle()
+              setMuted(sound.isMuted())
+            }}
+            className="font-pixel text-[7px]"
+            style={{ color: muted ? '#5a5a70' : '#2bd14a' }}
+            aria-label="Toggle sound"
+          >
+            {muted ? 'SFX OFF' : 'SFX ON'}
+          </button>
+          <div className="arc-panel arc-panel-yellow px-2 py-1.5 text-center">
+            <p className="font-pixel text-[7px] text-[#ffd23f]">STREAK</p>
+            <p className="arc-vt mt-0.5 text-2xl leading-none text-[#ffd23f]">{streak}</p>
+          </div>
+        </div>
       </header>
 
-      <section className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
+      <section className="arc-panel p-4">
         <div className="flex items-end justify-between">
-          <div>
-            <p className="text-sm text-slate-500">Overall progress</p>
-            <p className="text-4xl font-bold tabular-nums text-slate-900">{overall.pct}%</p>
-          </div>
-          <p className="pb-1 text-sm text-slate-400">
-            {overall.done} of {overall.total} done
-          </p>
+          <p className="font-pixel text-sm text-[#2bd14a]">LV.{lv.lvl}</p>
+          <p className="arc-vt text-xl text-[#ffd23f]">{totalXp} XP</p>
         </div>
-        <ProgressBar pct={overall.pct} className="mt-3" />
+        <ProgressBar pct={lv.pct} className="mt-2" />
+        <p className="arc-vt mt-2 text-[#8a8aa6]">
+          {overall.done}/{overall.total} CLEARED · {overall.pct}% · {lv.per - lv.into} XP TO LV.{lv.lvl + 1}
+        </p>
       </section>
 
       <button
-        onClick={() => onNavigate('snowball')}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-500 py-4 text-lg font-semibold text-white shadow-sm transition active:scale-[0.98]"
+        onClick={() => {
+          sound.start()
+          onNavigate('snowball')
+        }}
+        className="arc-btn w-full py-4 text-base"
       >
-        <BoltIcon className="h-6 w-6" />
-        Start a Snowball
+        ▶ PLAY
       </button>
 
       <section>
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">Next up</h2>
+        <h2 className="font-pixel mb-2 text-[10px] text-[#ff3ca6]">LEADERBOARD</h2>
+        <div className="arc-panel space-y-3 p-4">
+          {board.map((p, i) => (
+            <button key={p.id} onClick={() => onNavigate('people')} className="block w-full text-left">
+              <div className="mb-1 flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <span className="font-pixel text-[8px] text-[#8a8aa6]">{RANK[i]}</span>
+                  <span className="arc-vt text-lg" style={{ color: arcPerson[p.id] }}>
+                    {p.name.toUpperCase()}
+                  </span>
+                </span>
+                <span className="arc-vt text-lg text-[#ffd23f]">{p.points} XP</span>
+              </div>
+              <ProgressBar pct={p.total ? Math.round((p.done / p.total) * 100) : 0} color={arcPerson[p.id]} />
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="font-pixel mb-2 text-[10px] text-[#36e0e0]">NEXT QUESTS</h2>
         {upNext.length === 0 ? (
-          <p className="rounded-2xl bg-white p-4 text-center text-sm text-slate-500 ring-1 ring-slate-100">
-            Nothing left in the queue. Nice work.
-          </p>
+          <p className="arc-panel arc-vt p-4 text-center text-[#6cf08a]">ALL QUESTS CLEAR. GG.</p>
         ) : (
           <div className="space-y-2">
             {upNext.map((t) => (
@@ -56,38 +109,30 @@ export function Dashboard({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
       </section>
 
       <section>
-        <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">By person</h2>
-        <div className="space-y-3 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
-          {people.map((p) => {
-            const pr = progress(tasks, p.id)
-            return (
-              <button
-                key={p.id}
-                onClick={() => onNavigate('people')}
-                className="block w-full text-left"
-              >
-                <div className="mb-1 flex items-center justify-between text-sm">
-                  <span className="flex items-center gap-2 font-medium text-slate-700">
-                    <span className={`h-2.5 w-2.5 rounded-full ${personMeta[p.id].dot}`} />
-                    {p.name}
-                  </span>
-                  <span className="tabular-nums text-slate-400">{pr.pct}%</span>
-                </div>
-                <ProgressBar pct={pr.pct} bar={personMeta[p.id].bar} />
-              </button>
-            )
-          })}
+        <h2 className="font-pixel mb-2 text-[10px] text-[#ffd23f]">TROPHIES</h2>
+        <div className="grid grid-cols-2 gap-2">
+          {trophies.map((a) => (
+            <div
+              key={a.id}
+              className={`arc-panel p-2.5 ${a.unlocked ? 'arc-panel-yellow' : 'arc-panel-dim opacity-60'}`}
+            >
+              <p className={`font-pixel text-[8px] ${a.unlocked ? 'text-[#ffd23f]' : 'text-[#5a5a70]'}`}>
+                {a.unlocked ? a.name.toUpperCase() : '???'}
+              </p>
+              <p className="arc-vt mt-1 text-[#8a8aa6]">{a.desc}</p>
+            </div>
+          ))}
         </div>
       </section>
 
-      <footer className="pt-2 text-center">
+      <footer className="pt-1 text-center">
         <button
           onClick={() => {
-            if (confirm('Reset all tasks and items back to the starting set?')) resetAll()
+            if (confirm('RESET ALL PROGRESS?')) resetAll()
           }}
-          className="text-xs text-slate-400 underline-offset-2 hover:underline"
+          className="font-pixel text-[8px] text-[#4f4f66]"
         >
-          Reset all data
+          RESET GAME
         </button>
       </footer>
     </div>
