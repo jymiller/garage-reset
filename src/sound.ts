@@ -82,10 +82,11 @@ export const sound = {
     this.setMuted(!muted)
   },
 
-  /** Task completed — coin / power-up pickup. */
-  done() {
+  /** Task completed — coin pickup; escalates with quest weight (1-3). */
+  done(weight = 1) {
     if (muted) return
-    seq([988, 1319], 0.07, 0.12, 'square', 0.16)
+    const notes = [988, 1319, 1568, 1976].slice(0, Math.max(2, Math.min(4, weight + 1)))
+    seq(notes, 0.06, 0.11, 'square', 0.16)
   },
   /** Level up — rising fanfare. */
   levelUp() {
@@ -152,5 +153,10 @@ export const sound = {
   comeback() {
     if (muted) return
     seq([659, 880, 1319], 0.09, 0.15, 'square', 0.16)
+  },
+  /** Weekly team goal cleared. */
+  weeklyClear() {
+    if (muted) return
+    seq([523, 784, 1047, 1568, 1047, 1568], 0.09, 0.16, 'square', 0.18)
   },
 }

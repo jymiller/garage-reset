@@ -4,10 +4,28 @@ import { people, zones } from './data'
 export const XP_PER_TASK = 50
 const PER_LEVEL = 150 // 3 tasks per level-up
 
-const doneCount = (tasks: Task[], person?: PersonId) =>
-  tasks.filter((t) => t.status === 'done' && (!person || t.person === person)).length
+const doneTasks = (tasks: Task[], person?: PersonId) =>
+  tasks.filter((t) => t.status === 'done' && (!person || t.person === person))
 
-export const xp = (tasks: Task[], person?: PersonId) => doneCount(tasks, person) * XP_PER_TASK
+const doneCount = (tasks: Task[], person?: PersonId) => doneTasks(tasks, person).length
+
+/** A task's XP = effort weight (1-3) × 50. */
+export const taskXp = (t: Task) => (t.weight ?? 1) * XP_PER_TASK
+
+export const xp = (tasks: Task[], person?: PersonId) =>
+  doneTasks(tasks, person).reduce((sum, t) => sum + taskXp(t), 0)
+
+export const allCleared = (tasks: Task[]) => tasks.length > 0 && tasks.every((t) => t.status === 'done')
+
+export const WEEKLY_GOAL = 5
+
+/** Year + week number, resets weekly. */
+export const weekKey = (date = new Date()) => {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  const jan1 = new Date(d.getFullYear(), 0, 1)
+  const week = Math.ceil(((d.getTime() - jan1.getTime()) / 86400000 + jan1.getDay() + 1) / 7)
+  return `${d.getFullYear()}-W${week}`
+}
 
 export function level(totalXp: number) {
   const lvl = Math.floor(totalXp / PER_LEVEL) + 1

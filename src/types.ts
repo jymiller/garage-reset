@@ -29,6 +29,7 @@ export interface Task {
   zone: ZoneId
   status: TaskStatus
   order: number
+  weight?: number // 1-3 effort tier → 50/100/150 XP (defaults to 1)
 }
 
 export interface Item {

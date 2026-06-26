@@ -3,7 +3,18 @@ import type { Tab } from '../App'
 import { useStore } from '../store'
 import { sound } from '../sound'
 import { nextTasks, progress } from '../lib'
-import { xp, level, leaderboard, achievements, rankTitle, dailyMission, todayKey, MISSION_BONUS } from '../game'
+import {
+  xp,
+  level,
+  leaderboard,
+  achievements,
+  rankTitle,
+  dailyMission,
+  todayKey,
+  MISSION_BONUS,
+  WEEKLY_GOAL,
+  allCleared,
+} from '../game'
 import { arcPerson } from '../theme'
 import { ProgressBar } from '../components/ProgressBar'
 import { TaskCard } from '../components/TaskCard'
@@ -19,8 +30,10 @@ function tagline(pct: number) {
 }
 
 export function Dashboard({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
-  const { tasks, items, streak, bonusXp, resetAll } = useStore()
+  const { tasks, items, streak, bonusXp, weekDone, resetAll } = useStore()
   const [muted, setMuted] = useState(sound.isMuted())
+  const weekPct = Math.min(100, Math.round((weekDone / WEEKLY_GOAL) * 100))
+  const cleared = allCleared(tasks)
   const overall = progress(tasks)
   const totalXp = xp(tasks) + bonusXp
   const lv = level(totalXp)
@@ -82,15 +95,31 @@ export function Dashboard({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
         </section>
       )}
 
-      <button
-        onClick={() => {
-          sound.start()
-          onNavigate('snowball')
-        }}
-        className="arc-btn w-full py-4 text-base"
-      >
-        ▶ PLAY
-      </button>
+      <section className="arc-panel arc-panel-dim p-3">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="font-pixel text-[8px] text-[#36e0e0]">WEEKLY GOAL</p>
+          <p className="arc-vt text-[#36e0e0]">
+            {weekDone >= WEEKLY_GOAL ? 'CLEARED ★' : `${weekDone}/${WEEKLY_GOAL} QUESTS`}
+          </p>
+        </div>
+        <ProgressBar pct={weekPct} color="#36e0e0" />
+      </section>
+
+      {cleared ? (
+        <button onClick={() => onNavigate('results')} className="arc-btn w-full py-4 text-base">
+          ★ FINAL STANDINGS
+        </button>
+      ) : (
+        <button
+          onClick={() => {
+            sound.start()
+            onNavigate('snowball')
+          }}
+          className="arc-btn w-full py-4 text-base"
+        >
+          ▶ PLAY
+        </button>
+      )}
 
       <section>
         <h2 className="font-pixel mb-2 text-[10px] text-[#ff3ca6]">LEADERBOARD</h2>

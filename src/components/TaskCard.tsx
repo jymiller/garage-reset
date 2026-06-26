@@ -32,6 +32,11 @@ export function TaskCard({ task, showZone = true }: { task: Task; showZone?: boo
       <div className="min-w-0 flex-1">
         <p className={`arc-vt text-[#e8e8f5] ${done ? 'text-[#6cf08a] line-through' : ''}`}>{task.title}</p>
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
+          <span className="flex items-center gap-0.5" aria-label={`effort ${task.weight ?? 1}`} title="effort">
+            {Array.from({ length: task.weight ?? 1 }).map((_, i) => (
+              <span key={i} className="h-2 w-2 bg-[#ffd23f]" />
+            ))}
+          </span>
           {showZone && (
             <span className="font-pixel bg-[#ffd23f] px-1.5 py-1 text-[7px] text-[#4a3a00]">
               {zoneName(task.zone).toUpperCase()}
