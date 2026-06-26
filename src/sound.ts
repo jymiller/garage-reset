@@ -17,6 +17,23 @@ function ac(): AudioContext | null {
     if (!ctx) {
       const Ctor = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
       ctx = new Ctor()
+      // iOS: declare playback audio so the hardware silent switch doesn't mute us.
+      try {
+        const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession
+        if (session) session.type = 'playback'
+      } catch {
+        /* not supported on this OS */
+      }
+      // iOS unlock: play a 1-sample silent buffer inside the user gesture.
+      try {
+        const buf = ctx.createBuffer(1, 1, 22050)
+        const src = ctx.createBufferSource()
+        src.buffer = buf
+        src.connect(ctx.destination)
+        src.start(0)
+      } catch {
+        /* ignore */
+      }
     }
     if (ctx.state === 'suspended') void ctx.resume()
     return ctx
@@ -47,6 +64,10 @@ function seq(notes: number[], step: number, dur: number, type: OscillatorType, v
 }
 
 export const sound = {
+  /** Unlock/prime the audio engine on the first user gesture (iOS). */
+  prime() {
+    ac()
+  },
   isMuted: () => muted,
   setMuted(m: boolean) {
     muted = m
