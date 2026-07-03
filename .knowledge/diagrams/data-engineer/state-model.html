@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>State Model — Garage Reset KB</title>
+<style>
+  :root { --bg:#0f1117; --surface:#1a1d27; --surface2:#232733; --border:#2e3345; --text:#e1e4ed;
+    --text-dim:#8b90a0; --accent:#6c8aff; --accent2:#a78bfa; --green:#4ade80; --orange:#fb923c;
+    --red:#f87171; --cyan:#22d3ee; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:'Inter',-apple-system,sans-serif; line-height:1.6; }
+  a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
+  code { font-family:'JetBrains Mono',monospace; background:var(--surface2); padding:1px 5px; border-radius:4px; font-size:0.85em; }
+  .nav { background:var(--surface); border-bottom:1px solid var(--border); padding:0.75rem 2rem;
+    display:flex; gap:1rem; align-items:center; position:sticky; top:0; z-index:10; flex-wrap:wrap; }
+  .nav a { padding:0.35rem 0.9rem; border-radius:6px; background:var(--surface2); color:var(--text-dim); font-size:0.85rem; }
+  .nav a:hover { background:var(--accent); color:#fff; text-decoration:none; }
+  .nav .sep { flex:1; } .nav .title { font-weight:600; color:var(--text); }
+  .wrap { max-width:1000px; margin:0 auto; padding:2rem 1.5rem 4rem; }
+  h1 { font-size:1.7rem; margin:0 0 0.3rem; } .lede { color:var(--text-dim); margin:0 0 2rem; }
+  .figure { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.25rem; overflow-x:auto; }
+  h2 { font-size:1.15rem; margin:2.5rem 0 0.75rem; }
+  ul { color:var(--text-dim); } ul b { color:var(--text); }
+  .legend { display:flex; gap:1.5rem; flex-wrap:wrap; font-size:0.85rem; color:var(--text-dim); margin-top:2rem;
+    border-top:1px solid var(--border); padding-top:1rem; }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+  a[href$=".md"]::after { content:''; display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--green); margin-left:5px; vertical-align:middle; }
+  a[href$=".html"]::after { content:''; display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--accent); margin-left:5px; vertical-align:middle; }
+  .nav a::after, a[href^="http"]::after, .legend a::after { content:none !important; }
+</style>
+</head>
+<body>
+<nav class="nav">
+  <span class="title">State Model</span>
+  <a href="../../index.html">Home</a>
+  <a href="completion-pipeline.html">Completion pipeline</a>
+  <span class="sep"></span>
+  <a href="../../atlas/data-model.md">Data model (MD)</a>
+</nav>
+<div class="wrap">
+  <h1>State model</h1>
+  <p class="lede">The whole "database" is one JSON object under <code>localStorage['garage-reset-v1']</code>.
+     Blue = persisted state · green = reference data (in code) · orange = derived (never stored).</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 960 600" xmlns="http://www.w3.org/2000/svg" width="100%" role="img" aria-label="State model diagram">
+      <defs>
+        <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6c8aff"/></marker>
+        <marker id="ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#fb923c"/></marker>
+      </defs>
+
+      <!-- State root -->
+      <rect x="330" y="24" width="300" height="150" rx="10" fill="#232733" stroke="#6c8aff" stroke-width="2"/>
+      <text x="480" y="48" text-anchor="middle" fill="#6c8aff" font-size="13" font-weight="700" font-family="Inter">State  ·  garage-reset-v1</text>
+      <line x1="340" y1="58" x2="620" y2="58" stroke="#2e3345"/>
+      <text x="348" y="78" fill="#e1e4ed" font-size="11.5" font-family="JetBrains Mono, monospace">tasks: Task[]</text>
+      <text x="348" y="97" fill="#e1e4ed" font-size="11.5" font-family="JetBrains Mono, monospace">items: Item[]</text>
+      <text x="348" y="116" fill="#8b90a0" font-size="11.5" font-family="JetBrains Mono, monospace">streak · lastDay · bonusXp</text>
+      <text x="348" y="135" fill="#8b90a0" font-size="11.5" font-family="JetBrains Mono, monospace">missionDay · weekTag · weekDone</text>
+      <text x="348" y="154" fill="#8b90a0" font-size="11.5" font-family="JetBrains Mono, monospace">combo · lastDoneAt</text>
+
+      <!-- Task -->
+      <rect x="40" y="230" width="290" height="170" rx="10" fill="#232733" stroke="#6c8aff" stroke-width="1.5"/>
+      <text x="185" y="254" text-anchor="middle" fill="#6c8aff" font-size="13" font-weight="700" font-family="Inter">Task</text>
+      <line x1="50" y1="264" x2="320" y2="264" stroke="#2e3345"/>
+      <text x="58" y="284" fill="#e1e4ed" font-size="11.5" font-family="JetBrains Mono, monospace">id · title · order</text>
+      <text x="58" y="303" fill="#e1e4ed" font-size="11.5" font-family="JetBrains Mono, monospace">person: PersonId</text>
+      <text x="58" y="322" fill="#e1e4ed" font-size="11.5" font-family="JetBrains Mono, monospace">zone: ZoneId</text>
+      <text x="58" y="341" fill="#e1e4ed" font-size="11.5" font-family="JetBrains Mono, monospace">status: TaskStatus</text>
+      <text x="58" y="360" fill="#e1e4ed" font-size="11.5" font-family="JetBrains Mono, monospace">weight?: 1|2|3</text>
+      <text x="58" y="379" fill="#8b90a0" font-size="11.5" font-family="JetBrains Mono, monospace">steps? · stepDone?</text>
+      <line x1="360" y1="120" x2="332" y2="255" stroke="#6c8aff" stroke-width="1.5" marker-end="url(#a)"/>
+      <text x="300" y="200" fill="#8b90a0" font-size="10" font-family="Inter">1 : N</text>
+
+      <!-- Item -->
+      <rect x="630" y="230" width="290" height="150" rx="10" fill="#232733" stroke="#6c8aff" stroke-width="1.5"/>
+      <text x="775" y="254" text-anchor="middle" fill="#6c8aff" font-size="13" font-weight="700" font-family="Inter">Item (loot)</text>
+      <line x1="640" y1="264" x2="910" y2="264" stroke="#2e3345"/>
+      <text x="648" y="284" fill="#e1e4ed" font-size="11.5" font-family="JetBrains Mono, monospace">id · name · createdAt</text>
+      <text x="648" y="303" fill="#e1e4ed" font-size="11.5" font-family="JetBrains Mono, monospace">owner: PersonId | null</text>
+      <text x="648" y="322" fill="#e1e4ed" font-size="11.5" font-family="JetBrains Mono, monospace">zone: ZoneId | null</text>
+      <text x="648" y="341" fill="#e1e4ed" font-size="11.5" font-family="JetBrains Mono, monospace">decision: Decision</text>
+      <text x="648" y="365" fill="#8b90a0" font-size="10.5" font-family="Inter">keep · move · donate · trash · undecided</text>
+      <line x1="600" y1="120" x2="628" y2="255" stroke="#6c8aff" stroke-width="1.5" marker-end="url(#a)"/>
+      <text x="628" y="200" fill="#8b90a0" font-size="10" font-family="Inter">1 : N</text>
+
+      <!-- Reference data -->
+      <rect x="40" y="440" width="290" height="120" rx="10" fill="rgba(74,222,128,0.06)" stroke="#4ade80" stroke-width="1.5" stroke-dasharray="5 3"/>
+      <text x="185" y="464" text-anchor="middle" fill="#4ade80" font-size="12" font-weight="700" font-family="Inter">Reference data (data.ts, in code)</text>
+      <text x="185" y="490" text-anchor="middle" fill="#e1e4ed" font-size="11.5" font-family="Inter">people: John · Griffin · LJ</text>
+      <text x="185" y="512" text-anchor="middle" fill="#e1e4ed" font-size="11.5" font-family="Inter">zones: 6 (workshop … exit-zone)</text>
+      <text x="185" y="534" text-anchor="middle" fill="#8b90a0" font-size="10.5" font-family="Inter">seedTasks() builds the 10 starting quests</text>
+      <line x1="185" y1="400" x2="185" y2="438" stroke="#4ade80" stroke-width="1.2" stroke-dasharray="4 3"/>
+
+      <!-- Derived -->
+      <rect x="380" y="440" width="540" height="120" rx="10" fill="rgba(251,146,60,0.06)" stroke="#fb923c" stroke-width="1.5" stroke-dasharray="5 3"/>
+      <text x="650" y="464" text-anchor="middle" fill="#fb923c" font-size="12" font-weight="700" font-family="Inter">Derived (game.ts · never stored)</text>
+      <text x="650" y="490" text-anchor="middle" fill="#e1e4ed" font-size="11.5" font-family="Inter">totalXp · level · rankTitle · flameTier</text>
+      <text x="650" y="512" text-anchor="middle" fill="#e1e4ed" font-size="11.5" font-family="Inter">leaderboard · achievements · dailyMission</text>
+      <text x="650" y="534" text-anchor="middle" fill="#8b90a0" font-size="10.5" font-family="Inter">recomputed each render from tasks + counters</text>
+      <line x1="480" y1="174" x2="560" y2="438" stroke="#fb923c" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#ao)"/>
+    </svg>
+  </div>
+
+  <h2>Second key</h2>
+  <ul>
+    <li><code>localStorage['arcade-muted']</code> — <code>"0"</code>/<code>"1"</code>, owned entirely by <code>sound.ts</code>.</li>
+  </ul>
+
+  <h2>What this means for a backend</h2>
+  <ul>
+    <li><b>Small sync surface.</b> Only <code>tasks</code>, <code>items</code>, and the scalar counters are authoritative — the derived layer never needs to sync.</li>
+    <li><b>No identity.</b> The blob has no user/device id and no <code>version</code> — the first thing to add for multiplayer.</li>
+    <li><b>Single writer.</b> One effect in <code>store.tsx</code> is the only writer, so the seam is singular. See <a href="../../migration/readiness-overview.md">readiness overview</a>.</li>
+  </ul>
+
+  <div class="legend">
+    <span><span class="dot" style="background:var(--accent)"></span>Blue dot = HTML page</span>
+    <span><span class="dot" style="background:var(--green)"></span>Green dot = Markdown doc</span>
+  </div>
+</div>
+</body>
+</html>

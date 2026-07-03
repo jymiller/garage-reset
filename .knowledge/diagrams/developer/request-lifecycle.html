@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Request Lifecycle — Garage Reset KB</title>
+<style>
+  :root { --bg:#0f1117; --surface:#1a1d27; --surface2:#232733; --border:#2e3345; --text:#e1e4ed;
+    --text-dim:#8b90a0; --accent:#6c8aff; --accent2:#a78bfa; --green:#4ade80; --orange:#fb923c;
+    --red:#f87171; --cyan:#22d3ee; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif; line-height:1.6; }
+  a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
+  code { font-family:'JetBrains Mono',monospace; background:var(--surface2); padding:1px 5px; border-radius:4px; font-size:0.85em; }
+  .nav { background:var(--surface); border-bottom:1px solid var(--border); padding:0.75rem 2rem;
+    display:flex; gap:1rem; align-items:center; position:sticky; top:0; z-index:10; flex-wrap:wrap; }
+  .nav a { padding:0.35rem 0.9rem; border-radius:6px; background:var(--surface2); color:var(--text-dim); font-size:0.85rem; }
+  .nav a:hover { background:var(--accent); color:#fff; text-decoration:none; }
+  .nav .sep { flex:1; } .nav .title { font-weight:600; color:var(--text); }
+  .wrap { max-width:1000px; margin:0 auto; padding:2rem 1.5rem 4rem; }
+  h1 { font-size:1.7rem; margin:0 0 0.3rem; } .lede { color:var(--text-dim); margin:0 0 2rem; }
+  .figure { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.25rem; overflow-x:auto; }
+  h2 { font-size:1.15rem; margin:2.5rem 0 0.75rem; }
+  ul { color:var(--text-dim); } ul b { color:var(--text); }
+  .legend { display:flex; gap:1.5rem; flex-wrap:wrap; font-size:0.85rem; color:var(--text-dim); margin-top:2rem;
+    border-top:1px solid var(--border); padding-top:1rem; }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+  a[href$=".md"]::after { content:''; display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--green); margin-left:5px; vertical-align:middle; }
+  a[href$=".html"]::after { content:''; display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--accent); margin-left:5px; vertical-align:middle; }
+  .nav a::after, a[href^="http"]::after, .legend a::after { content:none !important; }
+</style>
+</head>
+<body>
+<nav class="nav">
+  <span class="title">Request Lifecycle</span>
+  <a href="../../index.html">Home</a>
+  <a href="code-patterns.html">Code patterns</a>
+  <a href="../data-engineer/completion-pipeline.html">Completion pipeline</a>
+  <span class="sep"></span>
+  <a href="../../atlas/data-flows.md">Data flows (MD)</a>
+</nav>
+<div class="wrap">
+  <h1>Request lifecycle</h1>
+  <p class="lede">There is no HTTP request. A "request" is a user gesture that travels through
+     React → the store → pure rules → persistence → re-render, entirely in the browser.</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 940 560" xmlns="http://www.w3.org/2000/svg" width="100%" role="img" aria-label="Request lifecycle diagram">
+      <defs>
+        <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6c8aff"/></marker>
+        <marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#4ade80"/></marker>
+        <marker id="ac" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#22d3ee"/></marker>
+      </defs>
+      <!-- lanes -->
+      <text x="20" y="30" fill="#8b90a0" font-size="11" font-weight="700" font-family="Inter">1 · GESTURE</text>
+      <rect x="20" y="42" width="900" height="58" rx="8" fill="#232733" stroke="#fb923c" stroke-width="1.5"/>
+      <text x="470" y="67" text-anchor="middle" fill="#e1e4ed" font-size="13" font-weight="600" font-family="Inter">User taps DONE on a quest (Snowball) or a sub-step checkbox (TaskCard)</text>
+      <text x="470" y="86" text-anchor="middle" fill="#8b90a0" font-size="11" font-family="Inter">onClick → setTaskStatus(id,'done')  /  toggleStep(id, i)</text>
+
+      <line x1="470" y1="100" x2="470" y2="128" stroke="#6c8aff" stroke-width="1.5" marker-end="url(#a)"/>
+
+      <text x="20" y="150" fill="#8b90a0" font-size="11" font-weight="700" font-family="Inter">2 · STORE — side-effects (outside setState)</text>
+      <rect x="20" y="162" width="900" height="62" rx="8" fill="#232733" stroke="#22d3ee" stroke-width="1.5"/>
+      <text x="470" y="187" text-anchor="middle" fill="#e1e4ed" font-size="13" font-weight="600" font-family="Inter">playCompletionSfx(state, id) — reads the render-time snapshot</text>
+      <text x="470" y="207" text-anchor="middle" fill="#8b90a0" font-size="11" font-family="Inter">compares before/after level · rank · achievements · mission · weekly · combo → fires sound.*</text>
+
+      <line x1="470" y1="224" x2="470" y2="252" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#ac)"/>
+      <line x1="820" y1="193" x2="884" y2="193" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#ac)"/>
+      <rect x="884" y="150" width="52" height="86" rx="8" fill="#1a1d27" stroke="#22d3ee" stroke-width="1"/>
+      <text x="910" y="188" text-anchor="middle" fill="#22d3ee" font-size="10" font-family="Inter" transform="rotate(90 910 188)">sound.ts</text>
+
+      <text x="20" y="274" fill="#8b90a0" font-size="11" font-weight="700" font-family="Inter">3 · STORE — pure transition (inside setState)</text>
+      <rect x="20" y="286" width="900" height="62" rx="8" fill="#232733" stroke="#6c8aff" stroke-width="2"/>
+      <text x="470" y="311" text-anchor="middle" fill="#e1e4ed" font-size="13" font-weight="600" font-family="Inter">applyCompletion(s, id) — pure functional updater</text>
+      <text x="470" y="331" text-anchor="middle" fill="#8b90a0" font-size="11" font-family="Inter">mark task done · bumpStreak · += mission/combo bonus · roll weekTag/weekDone/combo/lastDoneAt</text>
+
+      <line x1="250" y1="348" x2="250" y2="392" stroke="#6c8aff" stroke-width="1.5" marker-end="url(#a)"/>
+      <text x="150" y="374" fill="#8b90a0" font-size="10" font-family="Inter">derive from</text>
+      <rect x="60" y="404" width="380" height="60" rx="8" fill="rgba(108,138,255,0.06)" stroke="#6c8aff" stroke-width="1" stroke-dasharray="6 3"/>
+      <text x="250" y="429" text-anchor="middle" fill="#e1e4ed" font-size="12" font-weight="600" font-family="Inter">game.ts · lib.ts (pure rules)</text>
+      <text x="250" y="448" text-anchor="middle" fill="#8b90a0" font-size="10.5" font-family="Inter">xp · level · rank · streak · leaderboard · achievements</text>
+
+      <line x1="690" y1="348" x2="690" y2="392" stroke="#4ade80" stroke-width="1.5" marker-end="url(#ag)"/>
+      <text x="700" y="374" fill="#8b90a0" font-size="10" font-family="Inter">persist effect</text>
+      <rect x="500" y="404" width="380" height="60" rx="8" fill="#232733" stroke="#4ade80" stroke-width="1.5"/>
+      <text x="690" y="429" text-anchor="middle" fill="#e1e4ed" font-size="12" font-weight="600" font-family="Inter">localStorage['garage-reset-v1']</text>
+      <text x="690" y="448" text-anchor="middle" fill="#8b90a0" font-size="10.5" font-family="Inter">useEffect([state]) writes the whole blob</text>
+
+      <line x1="250" y1="464" x2="470" y2="508" stroke="#6c8aff" stroke-width="1.5" marker-end="url(#a)"/>
+      <text x="20" y="504" fill="#8b90a0" font-size="11" font-weight="700" font-family="Inter">4 · RE-RENDER</text>
+      <rect x="20" y="516" width="900" height="34" rx="8" fill="#232733" stroke="#fb923c" stroke-width="1.5"/>
+      <text x="470" y="538" text-anchor="middle" fill="#e1e4ed" font-size="12" font-family="Inter">HUD / leaderboard / bars recompute from derived values — no stored aggregates to sync</text>
+    </svg>
+  </div>
+
+  <h2>Why the two-step split (2 then 3)?</h2>
+  <ul>
+    <li><b>Side-effects before <code>setState</code>, state inside it.</b> React <code>StrictMode</code>
+        double-invokes updaters in dev; firing sound inside would double-play and could double-count combos.</li>
+    <li><b>The store picks the sound</b> because only it knows the full before/after (level vs. rank,
+        mission, weekly, combo) — a component can't. See <a href="../../decisions/0005-sound-fired-from-store.md">ADR-0005</a>.</li>
+    <li><b>XP is never stored</b> — step 4 recomputes it from <code>tasks</code>. See
+        <a href="../../decisions/0002-derived-progression.md">ADR-0002</a>.</li>
+  </ul>
+
+  <div class="legend">
+    <span><span class="dot" style="background:var(--accent)"></span>Blue dot = HTML page</span>
+    <span><span class="dot" style="background:var(--green)"></span>Green dot = Markdown doc</span>
+  </div>
+</div>
+</body>
+</html>

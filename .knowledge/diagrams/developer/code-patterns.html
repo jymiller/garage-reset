@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Code Patterns — Garage Reset KB</title>
+<style>
+  :root { --bg:#0f1117; --surface:#1a1d27; --surface2:#232733; --border:#2e3345; --text:#e1e4ed;
+    --text-dim:#8b90a0; --accent:#6c8aff; --accent2:#a78bfa; --green:#4ade80; --orange:#fb923c;
+    --red:#f87171; --cyan:#22d3ee; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:'Inter',-apple-system,sans-serif; line-height:1.6; }
+  a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
+  .nav { background:var(--surface); border-bottom:1px solid var(--border); padding:0.75rem 2rem;
+    display:flex; gap:1rem; align-items:center; position:sticky; top:0; z-index:10; flex-wrap:wrap; }
+  .nav a { padding:0.35rem 0.9rem; border-radius:6px; background:var(--surface2); color:var(--text-dim); font-size:0.85rem; }
+  .nav a:hover { background:var(--accent); color:#fff; text-decoration:none; }
+  .nav .sep { flex:1; } .nav .title { font-weight:600; color:var(--text); }
+  .wrap { max-width:1000px; margin:0 auto; padding:2rem 1.5rem 4rem; }
+  h1 { font-size:1.7rem; margin:0 0 0.3rem; } .lede { color:var(--text-dim); margin:0 0 2rem; }
+  .pat { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.25rem 1.4rem; margin-bottom:1.25rem; }
+  .pat h3 { margin:0 0 0.2rem; font-size:1.1rem; }
+  .pat .where { font-size:0.8rem; color:var(--text-dim); margin-bottom:0.75rem; }
+  .pat .where code { background:var(--surface2); padding:1px 5px; border-radius:4px; }
+  pre { background:#0c0e14; border:1px solid var(--border); border-radius:8px; padding:1rem; overflow-x:auto;
+    font-family:'JetBrains Mono',monospace; font-size:0.8rem; line-height:1.65; color:#c5cad6; margin:0; }
+  .k { color:#a78bfa; } .s { color:#4ade80; } .c { color:#5f6675; } .f { color:#6c8aff; } .n { color:#fb923c; }
+  .why { margin-top:0.75rem; font-size:0.88rem; color:var(--text-dim); }
+  .why b { color:var(--text); }
+  .tag { display:inline-block; font-size:0.66rem; text-transform:uppercase; letter-spacing:0.05em; padding:2px 7px;
+    border-radius:4px; font-weight:600; margin-left:0.5rem; vertical-align:middle; }
+  .tag-clean { background:rgba(74,222,128,0.15); color:var(--green); }
+  .tag-keep { background:rgba(108,138,255,0.15); color:var(--accent); }
+  .legend { display:flex; gap:1.5rem; flex-wrap:wrap; font-size:0.85rem; color:var(--text-dim); margin-top:1rem;
+    border-top:1px solid var(--border); padding-top:1rem; }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+  a[href$=".md"]::after { content:''; display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--green); margin-left:5px; vertical-align:middle; }
+  a[href$=".html"]::after { content:''; display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--accent); margin-left:5px; vertical-align:middle; }
+  .nav a::after, a[href^="http"]::after, .legend a::after { content:none !important; }
+</style>
+</head>
+<body>
+<nav class="nav">
+  <span class="title">Code Patterns</span>
+  <a href="../../index.html">Home</a>
+  <a href="request-lifecycle.html">Request lifecycle</a>
+  <span class="sep"></span>
+  <a href="../../migration/pattern-inventory.md">Pattern inventory (MD)</a>
+</nav>
+<div class="wrap">
+  <h1>Code patterns</h1>
+  <p class="lede">The handful of shapes you'll see repeated across the codebase. Match these when
+     adding code. Full catalog in the <a href="../../migration/pattern-inventory.md">pattern inventory</a>.</p>
+
+  <div class="pat">
+    <h3>1 · Pure derivation function <span class="tag tag-clean">extractable</span></h3>
+    <div class="where">Everywhere in <code>game.ts</code> / <code>lib.ts</code> — no React, no storage.</div>
+<pre><span class="c">// game.ts — a value computed from state, never stored</span>
+<span class="k">export const</span> <span class="f">xp</span> = (tasks: Task[], person?: PersonId) =&gt;
+  <span class="f">doneTasks</span>(tasks, person).<span class="f">reduce</span>((sum, t) =&gt; sum + <span class="f">taskXp</span>(t), <span class="n">0</span>)</pre>
+    <div class="why"><b>Why:</b> one source of truth, trivially testable, forward-compatible saves. Start any test suite here.</div>
+  </div>
+
+  <div class="pat">
+    <h3>2 · Compute-SFX-outside / mutate-inside <span class="tag tag-keep">preserve this</span></h3>
+    <div class="where"><code>store.tsx</code> — <code>setTaskStatus</code>, <code>toggleStep</code>.</div>
+<pre><span class="c">// side-effects read the render-time snapshot, BEFORE setState</span>
+<span class="k">if</span> (completing) <span class="f">playCompletionSfx</span>(state, id)
+<span class="c">// the updater is pure — StrictMode double-invokes it in dev</span>
+<span class="f">setState</span>((s) =&gt; <span class="f">applyCompletion</span>(s, id))</pre>
+    <div class="why"><b>Why:</b> firing sound inside the updater would double-play and could double-count combos.
+       See <a href="../../decisions/0005-sound-fired-from-store.md">ADR-0005</a>.</div>
+  </div>
+
+  <div class="pat">
+    <h3>3 · Presentational screen reading <code>useStore()</code></h3>
+    <div class="where">All <code>src/screens/*</code> except Garage / SoundTest / TitleScreen.</div>
+<pre><span class="k">const</span> { tasks, setTaskStatus } = <span class="f">useStore</span>()
+<span class="c">// read derived values, render, call actions — no local persistence</span>
+<span class="k">const</span> top = <span class="f">nextTasks</span>(tasks, <span class="n">1</span>, who)[<span class="n">0</span>]</pre>
+    <div class="why"><b>Why:</b> views stay dumb; a backend swap behind the store leaves them untouched.</div>
+  </div>
+
+  <div class="pat">
+    <h3>4 · Extend-don't-migrate state growth</h3>
+    <div class="where"><code>store.tsx</code> <code>initialState()</code> — every feature wave.</div>
+<pre><span class="c">// new counters hydrate with a fallback; old saves never break</span>
+combo: parsed.combo ?? <span class="n">0</span>,
+lastDoneAt: parsed.lastDoneAt ?? <span class="k">null</span>,
+<span class="c">// steps[] are re-attached from the seed by task id on load</span></pre>
+    <div class="why"><b>Why:</b> mechanics were added wave after wave with zero destructive migrations.</div>
+  </div>
+
+  <div class="pat">
+    <h3>5 · Lazy-loaded heavy subtree <span class="tag tag-clean">good practice</span></h3>
+    <div class="where"><code>Garage.tsx</code> defers <code>Plan3D</code> (and all of three.js).</div>
+<pre><span class="k">const</span> Plan3D = <span class="f">lazy</span>(() =&gt; <span class="f">import</span>(<span class="s">'../garage/Plan3D'</span>))
+<span class="c">// three.js only downloads when the MAP tab is opened</span>
+&lt;<span class="f">Suspense</span> fallback={&lt;div&gt;LOADING 3D…&lt;/div&gt;}&gt;&lt;Plan3D … /&gt;&lt;/<span class="f">Suspense</span>&gt;</pre>
+    <div class="why"><b>Why:</b> keeps the initial bundle small for players who never open the map.
+       See <a href="../../decisions/0003-spatial-model-silo.md">ADR-0003</a>.</div>
+  </div>
+
+  <div class="legend">
+    <span><span class="dot" style="background:var(--accent)"></span>Blue dot = HTML page</span>
+    <span><span class="dot" style="background:var(--green)"></span>Green dot = Markdown doc</span>
+  </div>
+</div>
+</body>
+</html>

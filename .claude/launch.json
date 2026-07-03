@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev"],
       "port": 5173
+    },
+    {
+      "name": "knowledge-base",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [".knowledge/_server.js"],
+      "port": 4600
     }
   ]
 }

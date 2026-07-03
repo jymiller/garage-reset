@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Completion Pipeline — Garage Reset KB</title>
+<style>
+  :root { --bg:#0f1117; --surface:#1a1d27; --surface2:#232733; --border:#2e3345; --text:#e1e4ed;
+    --text-dim:#8b90a0; --accent:#6c8aff; --accent2:#a78bfa; --green:#4ade80; --orange:#fb923c;
+    --red:#f87171; --cyan:#22d3ee; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:'Inter',-apple-system,sans-serif; line-height:1.6; }
+  a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
+  code { font-family:'JetBrains Mono',monospace; background:var(--surface2); padding:1px 5px; border-radius:4px; font-size:0.85em; }
+  .nav { background:var(--surface); border-bottom:1px solid var(--border); padding:0.75rem 2rem;
+    display:flex; gap:1rem; align-items:center; position:sticky; top:0; z-index:10; flex-wrap:wrap; }
+  .nav a { padding:0.35rem 0.9rem; border-radius:6px; background:var(--surface2); color:var(--text-dim); font-size:0.85rem; }
+  .nav a:hover { background:var(--accent); color:#fff; text-decoration:none; }
+  .nav .sep { flex:1; } .nav .title { font-weight:600; color:var(--text); }
+  .wrap { max-width:1000px; margin:0 auto; padding:2rem 1.5rem 4rem; }
+  h1 { font-size:1.7rem; margin:0 0 0.3rem; } .lede { color:var(--text-dim); margin:0 0 2rem; }
+  .figure { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:1.25rem; overflow-x:auto; }
+  h2 { font-size:1.15rem; margin:2.5rem 0 0.75rem; }
+  ul { color:var(--text-dim); } ul b { color:var(--text); }
+  .legend { display:flex; gap:1.5rem; flex-wrap:wrap; font-size:0.85rem; color:var(--text-dim); margin-top:2rem;
+    border-top:1px solid var(--border); padding-top:1rem; }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+  a[href$=".md"]::after { content:''; display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--green); margin-left:5px; vertical-align:middle; }
+  a[href$=".html"]::after { content:''; display:inline-block; width:7px; height:7px; border-radius:50%; background:var(--accent); margin-left:5px; vertical-align:middle; }
+  .nav a::after, a[href^="http"]::after, .legend a::after { content:none !important; }
+</style>
+</head>
+<body>
+<nav class="nav">
+  <span class="title">Completion Pipeline</span>
+  <a href="../../index.html">Home</a>
+  <a href="state-model.html">State model</a>
+  <a href="../developer/request-lifecycle.html">Request lifecycle</a>
+  <span class="sep"></span>
+  <a href="../../atlas/data-flows.md">Data flows (MD)</a>
+</nav>
+<div class="wrap">
+  <h1>Completion pipeline</h1>
+  <p class="lede">What one quest completion computes. A single <code>status → 'done'</code> flip fans
+     out into every progression counter and the right celebration sound.</p>
+
+  <div class="figure">
+    <svg viewBox="0 0 960 540" xmlns="http://www.w3.org/2000/svg" width="100%" role="img" aria-label="Completion pipeline diagram">
+      <defs>
+        <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#6c8aff"/></marker>
+        <marker id="ac" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#22d3ee"/></marker>
+      </defs>
+
+      <!-- input -->
+      <rect x="360" y="20" width="240" height="52" rx="8" fill="#232733" stroke="#6c8aff" stroke-width="2"/>
+      <text x="480" y="43" text-anchor="middle" fill="#e1e4ed" font-size="13" font-weight="600" font-family="Inter">task.status → 'done'</text>
+      <text x="480" y="61" text-anchor="middle" fill="#8b90a0" font-size="10" font-family="Inter">(direct, or last sub-step ticked)</text>
+
+      <!-- fan out lines -->
+      <line x1="480" y1="72" x2="120" y2="120" stroke="#6c8aff" stroke-width="1.2" marker-end="url(#a)"/>
+      <line x1="480" y1="72" x2="340" y2="120" stroke="#6c8aff" stroke-width="1.2" marker-end="url(#a)"/>
+      <line x1="480" y1="72" x2="560" y2="120" stroke="#6c8aff" stroke-width="1.2" marker-end="url(#a)"/>
+      <line x1="480" y1="72" x2="780" y2="120" stroke="#6c8aff" stroke-width="1.2" marker-end="url(#a)"/>
+
+      <!-- row 1: the six computations -->
+      <g font-family="Inter">
+        <rect x="20" y="124" width="200" height="70" rx="8" fill="#1a1d27" stroke="#6c8aff" stroke-width="1"/>
+        <text x="120" y="150" text-anchor="middle" fill="#e1e4ed" font-size="12" font-weight="600">+ weighted XP</text>
+        <text x="120" y="170" text-anchor="middle" fill="#8b90a0" font-size="10">taskXp = weight×50</text>
+        <text x="120" y="184" text-anchor="middle" fill="#8b90a0" font-size="10">(derived, not stored)</text>
+
+        <rect x="240" y="124" width="200" height="70" rx="8" fill="#1a1d27" stroke="#6c8aff" stroke-width="1"/>
+        <text x="340" y="150" text-anchor="middle" fill="#e1e4ed" font-size="12" font-weight="600">streak</text>
+        <text x="340" y="170" text-anchor="middle" fill="#8b90a0" font-size="10">bumpStreak(streak,lastDay)</text>
+        <text x="340" y="184" text-anchor="middle" fill="#8b90a0" font-size="10">→ flameTier</text>
+
+        <rect x="460" y="124" width="200" height="70" rx="8" fill="#1a1d27" stroke="#6c8aff" stroke-width="1"/>
+        <text x="560" y="150" text-anchor="middle" fill="#e1e4ed" font-size="12" font-weight="600">combo</text>
+        <text x="560" y="170" text-anchor="middle" fill="#8b90a0" font-size="10">within 3 min? ×1→×3</text>
+        <text x="560" y="184" text-anchor="middle" fill="#8b90a0" font-size="10">bonusXp += (n-1)×25</text>
+
+        <rect x="680" y="124" width="200" height="70" rx="8" fill="#1a1d27" stroke="#6c8aff" stroke-width="1"/>
+        <text x="780" y="150" text-anchor="middle" fill="#e1e4ed" font-size="12" font-weight="600">daily mission</text>
+        <text x="780" y="170" text-anchor="middle" fill="#8b90a0" font-size="10">is this the mission?</text>
+        <text x="780" y="184" text-anchor="middle" fill="#8b90a0" font-size="10">bonusXp += 25 (once/day)</text>
+      </g>
+
+      <!-- row 2 -->
+      <g font-family="Inter">
+        <rect x="130" y="224" width="200" height="70" rx="8" fill="#1a1d27" stroke="#6c8aff" stroke-width="1"/>
+        <text x="230" y="250" text-anchor="middle" fill="#e1e4ed" font-size="12" font-weight="600">weekly goal</text>
+        <text x="230" y="270" text-anchor="middle" fill="#8b90a0" font-size="10">weekDone += 1 (of 5)</text>
+        <text x="230" y="284" text-anchor="middle" fill="#8b90a0" font-size="10">reset by weekKey()</text>
+
+        <rect x="350" y="224" width="200" height="70" rx="8" fill="#1a1d27" stroke="#6c8aff" stroke-width="1"/>
+        <text x="450" y="250" text-anchor="middle" fill="#e1e4ed" font-size="12" font-weight="600">level / rank</text>
+        <text x="450" y="270" text-anchor="middle" fill="#8b90a0" font-size="10">level(totalXp)</text>
+        <text x="450" y="284" text-anchor="middle" fill="#8b90a0" font-size="10">rankIndex band change?</text>
+
+        <rect x="570" y="224" width="200" height="70" rx="8" fill="#1a1d27" stroke="#6c8aff" stroke-width="1"/>
+        <text x="670" y="250" text-anchor="middle" fill="#e1e4ed" font-size="12" font-weight="600">achievements</text>
+        <text x="670" y="270" text-anchor="middle" fill="#8b90a0" font-size="10">7 predicates re-evaluated</text>
+        <text x="670" y="284" text-anchor="middle" fill="#8b90a0" font-size="10">newly unlocked?</text>
+      </g>
+
+      <!-- converge to sound -->
+      <line x1="230" y1="294" x2="360" y2="340" stroke="#22d3ee" stroke-width="1.2" marker-end="url(#ac)"/>
+      <line x1="450" y1="294" x2="470" y2="340" stroke="#22d3ee" stroke-width="1.2" marker-end="url(#ac)"/>
+      <line x1="670" y1="294" x2="600" y2="340" stroke="#22d3ee" stroke-width="1.2" marker-end="url(#ac)"/>
+      <rect x="300" y="344" width="360" height="66" rx="8" fill="#232733" stroke="#22d3ee" stroke-width="1.5"/>
+      <text x="480" y="370" text-anchor="middle" fill="#e1e4ed" font-size="13" font-weight="600" font-family="Inter">pick ONE celebration sound</text>
+      <text x="480" y="390" text-anchor="middle" fill="#8b90a0" font-size="10.5" font-family="Inter">rankUp &gt; levelUp &gt; mission &gt; unlock  (+ done, combo, weeklyClear)</text>
+
+      <line x1="480" y1="410" x2="480" y2="446" stroke="#6c8aff" stroke-width="1.5" marker-end="url(#a)"/>
+      <rect x="300" y="450" width="360" height="60" rx="8" fill="#232733" stroke="#4ade80" stroke-width="1.5"/>
+      <text x="480" y="476" text-anchor="middle" fill="#e1e4ed" font-size="12.5" font-weight="600" font-family="Inter">setState → persist blob → re-render HUD</text>
+      <text x="480" y="495" text-anchor="middle" fill="#8b90a0" font-size="10.5" font-family="Inter">leaderboard &amp; bars recompute from the new state</text>
+    </svg>
+  </div>
+
+  <h2>The one subtle rule</h2>
+  <ul>
+    <li>The six computations run <b>twice</b>: once as a read (to choose the sound, before <code>setState</code>)
+        and once as the pure state transition (inside <code>setState</code>). This split is what keeps sound
+        correct and StrictMode-safe. See <a href="../developer/request-lifecycle.html">request lifecycle</a>
+        and <a href="../../decisions/0005-sound-fired-from-store.md">ADR-0005</a>.</li>
+    <li>Only <b>bonuses</b> (mission, combo) are stored as XP (<code>bonusXp</code>); base XP is always derived
+        from <code>tasks</code>.</li>
+  </ul>
+
+  <div class="legend">
+    <span><span class="dot" style="background:var(--accent)"></span>Blue dot = HTML page</span>
+    <span><span class="dot" style="background:var(--green)"></span>Green dot = Markdown doc</span>
+  </div>
+</div>
+</body>
+</html>

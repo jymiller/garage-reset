@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Garage Reset — Knowledge Base</title>
+<style>
+  :root {
+    --bg: #0f1117; --surface: #1a1d27; --surface2: #232733; --border: #2e3345;
+    --text: #e1e4ed; --text-dim: #8b90a0; --accent: #6c8aff; --accent2: #a78bfa;
+    --green: #4ade80; --orange: #fb923c; --red: #f87171; --cyan: #22d3ee;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    line-height: 1.6; -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  code, pre { font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 1.5rem; }
+  h1, h2, h3 { line-height: 1.25; }
+
+  /* Hero */
+  .hero { text-align: center; padding: 4.5rem 1.5rem 2.5rem; border-bottom: 1px solid var(--border);
+    background: radial-gradient(120% 100% at 50% 0%, rgba(108,138,255,0.10), transparent 60%); }
+  .hero .badge { display: inline-block; font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--accent2); background: rgba(167,139,250,0.12); border: 1px solid rgba(167,139,250,0.3);
+    padding: 3px 12px; border-radius: 999px; margin-bottom: 1.25rem; }
+  .hero h1 { font-size: 2.7rem; margin: 0 0 0.5rem; letter-spacing: -0.02em; }
+  .hero p { color: var(--text-dim); max-width: 640px; margin: 0 auto; font-size: 1.05rem; }
+  .stats { display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; margin-top: 2.25rem; }
+  .stat { min-width: 120px; }
+  .stat .n { font-size: 1.9rem; font-weight: 700; color: var(--text); }
+  .stat .l { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-dim); }
+
+  section { padding: 3rem 0; border-bottom: 1px solid var(--border); }
+  .divider { font-size: 0.72rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent);
+    display: flex; align-items: center; gap: 0.9rem; margin-bottom: 1.5rem; }
+  .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+  h2.big { font-size: 1.6rem; margin: 0 0 0.4rem; }
+  .lede { color: var(--text-dim); margin: 0 0 1.75rem; max-width: 720px; }
+
+  .grid { display: grid; gap: 1rem; }
+  .g2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .g3 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .g4 { grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    padding: 1.4rem; transition: border-color 0.2s, transform 0.2s; }
+  .card:hover { border-color: var(--accent); }
+  .card h3 { margin: 0 0 0.5rem; font-size: 1.05rem; }
+  .card p { margin: 0 0 0.75rem; color: var(--text-dim); font-size: 0.9rem; }
+  .card.role { border-top: 3px solid var(--accent); }
+  .card.role.dev { border-top-color: var(--accent); }
+  .card.role.data { border-top-color: var(--green); }
+  .card.role.design { border-top-color: var(--orange); }
+  .card.role.agent { border-top-color: var(--accent2); }
+  ol.path { margin: 0; padding-left: 1.1rem; font-size: 0.88rem; color: var(--text); }
+  ol.path li { margin: 0.3rem 0; }
+
+  .tag { display: inline-block; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em;
+    padding: 2px 8px; border-radius: 4px; font-weight: 600; }
+  .tag-core { background: rgba(108,138,255,0.15); color: var(--accent); }
+  .tag-clean { background: rgba(74,222,128,0.15); color: var(--green); }
+  .tag-partial { background: rgba(251,146,60,0.15); color: var(--orange); }
+  .tag-infra { background: rgba(251,146,60,0.15); color: var(--orange); }
+  .tag-audio { background: rgba(34,211,238,0.15); color: var(--cyan); }
+
+  .score-bar { height: 6px; border-radius: 3px; background: var(--surface2); margin-top: 0.75rem; overflow: hidden; }
+  .score-fill { height: 100%; border-radius: 3px; }
+  .meta { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-dim); margin-top: 0.5rem; }
+
+  .lens ul { list-style: none; margin: 0.75rem 0 0; padding: 0; }
+  .lens li { margin: 0.4rem 0; font-size: 0.9rem; }
+
+  .figure { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem;
+    overflow-x: auto; }
+  .pills { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.25rem; }
+  .pill { background: var(--surface2); color: var(--text-dim); border-radius: 6px; padding: 0.35rem 0.85rem;
+    font-size: 0.82rem; }
+  .pill b { color: var(--text); }
+
+  details { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 0.5rem 1rem;
+    margin-top: 1rem; }
+  details summary { cursor: pointer; font-weight: 600; padding: 0.5rem 0; }
+  details p, details ul { color: var(--text-dim); font-size: 0.9rem; }
+
+  .ref-col h3 { font-size: 0.95rem; margin: 0 0 0.6rem; }
+  .ref-col ul { list-style: none; margin: 0; padding: 0; font-size: 0.88rem; }
+  .ref-col li { margin: 0.35rem 0; }
+
+  .legend { display: flex; gap: 1.5rem; flex-wrap: wrap; font-size: 0.85rem; color: var(--text-dim); }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  footer { text-align: center; padding: 2.5rem 1.5rem; color: var(--text-dim); font-size: 0.85rem; }
+
+  /* link-type indicators */
+  a[href$=".md"]::after { content: ''; display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--green); margin-left: 5px; vertical-align: middle; }
+  a[href$=".html"]::after { content: ''; display: inline-block; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--accent); margin-left: 5px; vertical-align: middle; }
+  a[href^="http"]::after, a.plain::after, .legend a::after { content: none !important; }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="badge">Knowledge Base · Local-first · 8-bit</div>
+  <h1>Garage Reset</h1>
+  <p>A local-first, arcade-styled web app that turns cleaning out a shared family garage into a
+     game — quests, XP, ranks, streaks, combos, a leaderboard, and a 3D floor plan. This is its
+     layered knowledge base for humans and agents.</p>
+  <div class="stats">
+    <div class="stat"><div class="n">24</div><div class="l">Source files</div></div>
+    <div class="stat"><div class="n">~2.5k</div><div class="l">Lines of TS/TSX</div></div>
+    <div class="stat"><div class="n">5</div><div class="l">Domains</div></div>
+    <div class="stat"><div class="n">2</div><div class="l">localStorage keys</div></div>
+    <div class="stat"><div class="n">0</div><div class="l">Backend services</div></div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ABOUT -->
+  <section id="about">
+    <div class="divider">About</div>
+    <div class="grid g2">
+      <div class="card">
+        <h3>What it is</h3>
+        <p>A single-page React 19 app. Three players (John, Griffin, LJ) clear cleanup
+           <b>quests</b>; finishing them earns weighted XP that drives an arcade progression
+           system and a friendly leaderboard. A separate 3D view models the physical garage.
+           Everything runs in the browser — there is no server and no database.</p>
+      </div>
+      <div class="card">
+        <h3>Why this knowledge base</h3>
+        <p>To let a newcomer (or an AI agent) understand the whole app fast, and to map its
+           readiness for the likely next chapter: moving from single-device
+           <code>localStorage</code> to a shared, real-time <b>backend/multiplayer</b> future.
+           Markdown is the source of truth; these HTML pages are the visual layer.</p>
+      </div>
+    </div>
+    <details>
+      <summary>Design constraints &amp; how to maintain this KB</summary>
+      <ul>
+        <li><b>MD is source of truth.</b> Edit the <code>.md</code> files; these HTML pages are derived, hand-built views.</li>
+        <li><b>Self-contained HTML.</b> All CSS/SVG is inline — no CDNs, works offline via <code>file://</code> or the server.</li>
+        <li><b>Relative links only</b>, so navigation works both from disk and the dev server.</li>
+        <li><b>Progressive disclosure:</b> 30,000 ft (overview) → 5,000 ft (domains) → ground level (file cards).</li>
+        <li><b>Read the app's own docs too:</b> <a href="../DESIGN.md">DESIGN.md</a>, <a href="../docs/ROADMAP.md">ROADMAP.md</a>, <a href="../docs/ASSETS.md">ASSETS.md</a>.</li>
+      </ul>
+    </details>
+  </section>
+
+  <!-- START HERE -->
+  <section id="start">
+    <div class="divider">Start here</div>
+    <h2 class="big">Pick a reading path</h2>
+    <p class="lede">Four ways in, by what you're here to do.</p>
+    <div class="grid g4">
+      <div class="card role dev">
+        <h3>👩‍💻 Developer</h3>
+        <p>Understand the code and change it safely.</p>
+        <ol class="path">
+          <li><a href="atlas/overview.md">System overview</a></li>
+          <li><a href="atlas/bootstrap-chain.md">Bootstrap chain</a></li>
+          <li><a href="diagrams/developer/request-lifecycle.html">Request lifecycle</a></li>
+          <li><a href="diagrams/developer/code-patterns.html">Code patterns</a></li>
+          <li><a href="maps/quests-progression/index.md">Core domain map</a></li>
+        </ol>
+      </div>
+      <div class="card role data">
+        <h3>📊 Data / State</h3>
+        <p>Learn the state shape and how it flows.</p>
+        <ol class="path">
+          <li><a href="atlas/data-model.md">Data model</a></li>
+          <li><a href="diagrams/data-engineer/state-model.html">State model</a></li>
+          <li><a href="diagrams/data-engineer/completion-pipeline.html">Completion pipeline</a></li>
+          <li><a href="atlas/data-flows.md">Traced data flows</a></li>
+        </ol>
+      </div>
+      <div class="card role design">
+        <h3>🎨 Designer</h3>
+        <p>The screens, nav, and 8-bit design system.</p>
+        <ol class="path">
+          <li><a href="diagrams/designer/sitemap.html">Screen sitemap</a></li>
+          <li><a href="../DESIGN.md">DESIGN.md (style guide)</a></li>
+          <li><a href="cards/arcade-shell/theme.md">Color tokens</a></li>
+          <li><a href="../docs/ASSETS.md">Art asset spec</a></li>
+        </ol>
+      </div>
+      <div class="card role agent">
+        <h3>🤖 AI Agent</h3>
+        <p>Structured context, lookup order.</p>
+        <ol class="path">
+          <li><a href="index.md">Agent entry point</a></li>
+          <li><a href="atlas/overview.md">Module inventory</a></li>
+          <li><a href="atlas/conventions.md">Conventions</a></li>
+          <li><a href="migration/readiness-overview.md">Evolution readiness</a></li>
+        </ol>
+      </div>
+    </div>
+  </section>
+
+  <!-- 30,000 FT -->
+  <section id="architecture">
+    <div class="divider">30,000 ft — Architecture</div>
+    <h2 class="big">One store, pure rules, dumb views</h2>
+    <p class="lede">Every user action calls a store action → pure recompute → <code>setState</code>
+       → auto-persist → re-render. No server round-trips.</p>
+    <div class="figure">
+      <svg viewBox="0 0 1000 470" xmlns="http://www.w3.org/2000/svg" width="100%" role="img" aria-label="Architecture diagram">
+        <defs>
+          <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0 0L10 5L0 10z" fill="#6c8aff"/>
+          </marker>
+          <marker id="arwg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0 0L10 5L0 10z" fill="#4ade80"/>
+          </marker>
+        </defs>
+
+        <!-- shell cluster -->
+        <rect x="20" y="20" width="960" height="120" rx="12" fill="rgba(251,146,60,0.05)" stroke="#fb923c" stroke-width="1" stroke-dasharray="6 3"/>
+        <text x="36" y="44" fill="#fb923c" font-size="12" font-weight="700" font-family="Inter">ARCADE SHELL</text>
+        <rect x="40" y="58" width="150" height="60" rx="8" fill="#232733" stroke="#fb923c" stroke-width="1.5"/>
+        <text x="115" y="84" text-anchor="middle" fill="#e1e4ed" font-size="13" font-weight="600" font-family="Inter">index.html</text>
+        <text x="115" y="102" text-anchor="middle" fill="#8b90a0" font-size="10" font-family="Inter">fonts · #root</text>
+        <rect x="215" y="58" width="150" height="60" rx="8" fill="#232733" stroke="#fb923c" stroke-width="1.5"/>
+        <text x="290" y="84" text-anchor="middle" fill="#e1e4ed" font-size="13" font-weight="600" font-family="Inter">main.tsx</text>
+        <text x="290" y="102" text-anchor="middle" fill="#8b90a0" font-size="10" font-family="Inter">mount · audio unlock</text>
+        <rect x="390" y="58" width="150" height="60" rx="8" fill="#232733" stroke="#fb923c" stroke-width="1.5"/>
+        <text x="465" y="84" text-anchor="middle" fill="#e1e4ed" font-size="13" font-weight="600" font-family="Inter">App.tsx</text>
+        <text x="465" y="102" text-anchor="middle" fill="#8b90a0" font-size="10" font-family="Inter">tab router · gate</text>
+        <rect x="565" y="58" width="395" height="60" rx="8" fill="#232733" stroke="#fb923c" stroke-width="1.5"/>
+        <text x="762" y="82" text-anchor="middle" fill="#e1e4ed" font-size="13" font-weight="600" font-family="Inter">6 screens: HUD · PLAYERS · PLAY · MAP · ZONES · LOOT</text>
+        <text x="762" y="102" text-anchor="middle" fill="#8b90a0" font-size="10" font-family="Inter">presentational · read state, call actions</text>
+
+        <line x1="190" y1="88" x2="212" y2="88" stroke="#6c8aff" stroke-width="1.5" marker-end="url(#arw)"/>
+        <line x1="365" y1="88" x2="387" y2="88" stroke="#6c8aff" stroke-width="1.5" marker-end="url(#arw)"/>
+        <line x1="540" y1="88" x2="562" y2="88" stroke="#6c8aff" stroke-width="1.5" marker-end="url(#arw)"/>
+
+        <!-- store -->
+        <rect x="300" y="185" width="400" height="70" rx="8" fill="#232733" stroke="#6c8aff" stroke-width="2"/>
+        <text x="500" y="212" text-anchor="middle" fill="#e1e4ed" font-size="14" font-weight="700" font-family="Inter">store.tsx — React Context state hub</text>
+        <text x="500" y="233" text-anchor="middle" fill="#8b90a0" font-size="10.5" font-family="Inter">State + actions · fires SFX on completion · the only data-layer seam</text>
+        <line x1="465" y1="118" x2="490" y2="183" stroke="#6c8aff" stroke-width="1.5" marker-end="url(#arw)"/>
+        <text x="512" y="160" fill="#8b90a0" font-size="10" font-family="Inter">useStore()</text>
+
+        <!-- pure core -->
+        <rect x="40" y="315" width="300" height="120" rx="12" fill="rgba(108,138,255,0.05)" stroke="#6c8aff" stroke-width="1" stroke-dasharray="6 3"/>
+        <text x="56" y="339" fill="#6c8aff" font-size="12" font-weight="700" font-family="Inter">PURE CORE (no React / no storage)</text>
+        <rect x="58" y="352" width="120" height="30" rx="6" fill="#1a1d27" stroke="#6c8aff" stroke-width="1"/>
+        <text x="118" y="372" text-anchor="middle" fill="#e1e4ed" font-size="11" font-family="Inter">game.ts</text>
+        <rect x="188" y="352" width="120" height="30" rx="6" fill="#1a1d27" stroke="#6c8aff" stroke-width="1"/>
+        <text x="248" y="372" text-anchor="middle" fill="#e1e4ed" font-size="11" font-family="Inter">lib.ts</text>
+        <rect x="58" y="392" width="120" height="30" rx="6" fill="#1a1d27" stroke="#6c8aff" stroke-width="1"/>
+        <text x="118" y="412" text-anchor="middle" fill="#e1e4ed" font-size="11" font-family="Inter">data.ts (seed)</text>
+        <rect x="188" y="392" width="120" height="30" rx="6" fill="#1a1d27" stroke="#6c8aff" stroke-width="1"/>
+        <text x="248" y="412" text-anchor="middle" fill="#e1e4ed" font-size="11" font-family="Inter">types.ts</text>
+        <line x1="360" y1="230" x2="250" y2="313" stroke="#6c8aff" stroke-width="1.5" marker-end="url(#arw)"/>
+        <text x="250" y="278" fill="#8b90a0" font-size="10" font-family="Inter">derive</text>
+
+        <!-- persistence -->
+        <rect x="400" y="330" width="200" height="60" rx="8" fill="#232733" stroke="#4ade80" stroke-width="1.5"/>
+        <text x="500" y="356" text-anchor="middle" fill="#e1e4ed" font-size="12" font-weight="600" font-family="Inter">localStorage</text>
+        <text x="500" y="374" text-anchor="middle" fill="#8b90a0" font-size="10" font-family="Inter">garage-reset-v1 · arcade-muted</text>
+        <line x1="500" y1="257" x2="500" y2="328" stroke="#4ade80" stroke-width="1.5" marker-end="url(#arwg)"/>
+        <text x="512" y="298" fill="#8b90a0" font-size="10" font-family="Inter">persist</text>
+
+        <!-- audio -->
+        <rect x="660" y="330" width="140" height="60" rx="8" fill="#232733" stroke="#22d3ee" stroke-width="1.5"/>
+        <text x="730" y="356" text-anchor="middle" fill="#e1e4ed" font-size="12" font-weight="600" font-family="Inter">sound.ts</text>
+        <text x="730" y="374" text-anchor="middle" fill="#8b90a0" font-size="10" font-family="Inter">chiptune singleton</text>
+        <line x1="640" y1="240" x2="720" y2="328" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arw)" opacity="0.8"/>
+        <text x="690" y="292" fill="#8b90a0" font-size="10" font-family="Inter">SFX</text>
+
+        <!-- spatial silo -->
+        <rect x="830" y="315" width="150" height="120" rx="12" fill="rgba(74,222,128,0.05)" stroke="#4ade80" stroke-width="1" stroke-dasharray="6 3"/>
+        <text x="846" y="339" fill="#4ade80" font-size="11" font-weight="700" font-family="Inter">SPATIAL (silo)</text>
+        <rect x="848" y="352" width="114" height="30" rx="6" fill="#1a1d27" stroke="#4ade80" stroke-width="1"/>
+        <text x="905" y="372" text-anchor="middle" fill="#e1e4ed" font-size="11" font-family="Inter">garage/model</text>
+        <rect x="848" y="392" width="114" height="30" rx="6" fill="#1a1d27" stroke="#4ade80" stroke-width="1"/>
+        <text x="905" y="412" text-anchor="middle" fill="#e1e4ed" font-size="11" font-family="Inter">Plan3D (lazy)</text>
+        <text x="905" y="305" text-anchor="middle" fill="#8b90a0" font-size="9.5" font-family="Inter">reads no store</text>
+      </svg>
+    </div>
+    <div class="pills">
+      <span class="pill"><b>React</b> 19</span>
+      <span class="pill"><b>TypeScript</b> 5.6 strict</span>
+      <span class="pill"><b>Vite</b> 6</span>
+      <span class="pill"><b>Tailwind</b> v4</span>
+      <span class="pill"><b>three.js</b> 0.185 (lazy)</span>
+      <span class="pill"><b>0</b> tests</span>
+      <span class="pill"><b>No</b> backend / DB / auth</span>
+      <span class="pill">See <a href="atlas/tech-stack.md">tech stack →</a></span>
+    </div>
+  </section>
+
+  <!-- 5,000 FT -->
+  <section id="lenses">
+    <div class="divider">5,000 ft — Three lenses</div>
+    <h2 class="big">Explore by concern</h2>
+    <p class="lede">The same system through a code lens, a data/state lens, and an evolution lens.</p>
+    <div class="grid g3">
+      <div class="card lens">
+        <h3>🧩 Code architecture</h3>
+        <ul>
+          <li><a href="atlas/overview.md">System overview</a></li>
+          <li><a href="atlas/bootstrap-chain.md">Bootstrap chain</a></li>
+          <li><a href="atlas/conventions.md">Conventions</a></li>
+          <li><a href="diagrams/developer/request-lifecycle.html">Request lifecycle</a></li>
+          <li><a href="diagrams/developer/code-patterns.html">Code patterns</a></li>
+        </ul>
+      </div>
+      <div class="card lens">
+        <h3>🗄️ Data &amp; state</h3>
+        <ul>
+          <li><a href="atlas/data-model.md">Data model (the "database")</a></li>
+          <li><a href="atlas/data-flows.md">Traced data flows</a></li>
+          <li><a href="diagrams/data-engineer/state-model.html">State model diagram</a></li>
+          <li><a href="diagrams/data-engineer/completion-pipeline.html">Completion pipeline</a></li>
+        </ul>
+      </div>
+      <div class="card lens">
+        <h3>🚀 Evolution planning</h3>
+        <ul>
+          <li><a href="migration/readiness-overview.md">Readiness overview</a></li>
+          <li><a href="migration/domain-boundaries.md">Domain boundaries</a></li>
+          <li><a href="migration/dependency-analysis.md">Dependency analysis</a></li>
+          <li><a href="migration/pattern-inventory.md">Pattern inventory</a></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- GROUND LEVEL -->
+  <section id="domains">
+    <div class="divider">Ground level — Domains</div>
+    <h2 class="big">The five domains</h2>
+    <p class="lede">Grouped by what they do for the player. Bars show
+       <b>evolution coupling</b> (0 = drop-in extractable, 1 = entangled).</p>
+    <div class="grid g3">
+      <div class="card">
+        <h3>Quests &amp; Progression <span class="tag tag-core">core</span></h3>
+        <p>The game loop: tasks → XP → levels, ranks, streaks, combos, missions, weekly goals,
+           leaderboard, achievements. 11 files.</p>
+        <a class="plain" href="maps/quests-progression/index.md">Open map →</a>
+        <div class="score-bar"><div class="score-fill" style="width:35%;background:var(--green)"></div></div>
+        <div class="meta"><span>coupling 0.35 · partial</span><span>effort: large</span></div>
+      </div>
+      <div class="card">
+        <h3>Capture &amp; Inventory <span class="tag tag-clean">clean</span></h3>
+        <p>Log physical "loot" and set each item's fate: keep / move / donate / trash. 1 screen,
+           3 CRUD actions.</p>
+        <a class="plain" href="maps/capture-inventory/index.md">Open map →</a>
+        <div class="score-bar"><div class="score-fill" style="width:25%;background:var(--green)"></div></div>
+        <div class="meta"><span>coupling 0.25 · clean</span><span>effort: small</span></div>
+      </div>
+      <div class="card">
+        <h3>Spatial Garage <span class="tag tag-clean">clean</span></h3>
+        <p>A standalone 2D/3D floor plan (NOW vs. PLAN). Reuses types but reads no game state.
+           3 files, three.js lazy-loaded.</p>
+        <a class="plain" href="maps/spatial-garage/index.md">Open map →</a>
+        <div class="score-bar"><div class="score-fill" style="width:15%;background:var(--green)"></div></div>
+        <div class="meta"><span>coupling 0.15 · clean</span><span>effort: medium</span></div>
+      </div>
+      <div class="card">
+        <h3>Arcade Shell <span class="tag tag-partial">partial</span></h3>
+        <p>App mount, title screen, tab routing, bottom nav, and the 8-bit design system. 8 files.
+           The composition root.</p>
+        <a class="plain" href="maps/arcade-shell/index.md">Open map →</a>
+        <div class="score-bar"><div class="score-fill" style="width:50%;background:var(--orange)"></div></div>
+        <div class="meta"><span>coupling 0.50 · partial</span><span>effort: medium</span></div>
+      </div>
+      <div class="card">
+        <h3>Audio Engine <span class="tag tag-audio">clean</span></h3>
+        <p>A self-contained Web Audio chiptune synth (<code>sound</code> singleton) + sound-test
+           screen. No audio files. 2 files.</p>
+        <a class="plain" href="maps/audio-engine/index.md">Open map →</a>
+        <div class="score-bar"><div class="score-fill" style="width:10%;background:var(--green)"></div></div>
+        <div class="meta"><span>coupling 0.10 · clean</span><span>effort: small</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- REFERENCE -->
+  <section id="reference">
+    <div class="divider">Reference</div>
+    <div class="grid g3">
+      <div class="ref-col">
+        <h3>Decisions (ADRs)</h3>
+        <ul>
+          <li><a href="decisions/0001-single-context-store.md">0001 · Single Context store</a></li>
+          <li><a href="decisions/0002-derived-progression.md">0002 · Derived progression</a></li>
+          <li><a href="decisions/0003-spatial-model-silo.md">0003 · Spatial silo</a></li>
+          <li><a href="decisions/0004-family-friendly-only-bonus.md">0004 · Only-ever-bonus</a></li>
+          <li><a href="decisions/0005-sound-fired-from-store.md">0005 · SFX from the store</a></li>
+          <li><a href="decisions/0006-web-audio-chiptune.md">0006 · Runtime chiptune</a></li>
+        </ul>
+      </div>
+      <div class="ref-col">
+        <h3>Diagrams</h3>
+        <ul>
+          <li><a href="diagrams/developer/request-lifecycle.html">Request lifecycle</a></li>
+          <li><a href="diagrams/developer/code-patterns.html">Code patterns</a></li>
+          <li><a href="diagrams/data-engineer/state-model.html">State model</a></li>
+          <li><a href="diagrams/data-engineer/completion-pipeline.html">Completion pipeline</a></li>
+          <li><a href="diagrams/designer/sitemap.html">Screen sitemap</a></li>
+        </ul>
+      </div>
+      <div class="ref-col">
+        <h3>Key file cards</h3>
+        <ul>
+          <li><a href="cards/quests-progression/store.md">store.tsx</a></li>
+          <li><a href="cards/quests-progression/game.md">game.ts</a></li>
+          <li><a href="cards/audio-engine/sound.md">sound.ts</a></li>
+          <li><a href="cards/spatial-garage/model.md">garage/model.ts</a></li>
+          <li><a href="cards/arcade-shell/theme.md">theme.ts</a></li>
+          <li><a href="index.md">Agent entry point</a></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- LEGEND -->
+  <section id="legend">
+    <div class="divider">Link legend</div>
+    <div class="legend">
+      <span><span class="dot" style="background:var(--accent)"></span>Blue dot = HTML page (visual, interactive)</span>
+      <span><span class="dot" style="background:var(--green)"></span>Green dot = Markdown doc (structured, agent-readable)</span>
+    </div>
+  </section>
+</div>
+
+<footer>
+  Garage Reset knowledge base · built 2026-07-03 · 5 domains · 6 atlas docs · 5 maps · 15 cards ·
+  6 ADRs · 4 migration docs · 5 diagrams<br>
+  Markdown is the source of truth — run <code>node .knowledge/_server.js</code> to browse the docs rendered.
+</footer>
+
+</body>
+</html>
