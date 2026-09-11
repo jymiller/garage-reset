@@ -1,0 +1,10 @@
+node_modules
+.git
+dist
+.garage-data
+.env*
+public/evidence
+garage-photos
+garage-scan
+garage-video
+public/art/ui/enid image.png

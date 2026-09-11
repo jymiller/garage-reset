@@ -4,14 +4,17 @@ import './index.css'
 import { App } from './App'
 import { StoreProvider } from './store'
 import { sound } from './sound'
+import { FamilyAccess } from './access/FamilyAccess'
 
 // Prime audio on the first interaction so iOS unlocks Web Audio (and ignores the silent switch).
 window.addEventListener('pointerdown', () => sound.prime(), { once: true })
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <StoreProvider>
-      <App />
-    </StoreProvider>
+    <FamilyAccess>
+      <StoreProvider>
+        <App />
+      </StoreProvider>
+    </FamilyAccess>
   </StrictMode>,
 )

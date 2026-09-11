@@ -3,11 +3,12 @@ import { HomeIcon, UsersIcon, GridIcon, BoltIcon, PlusIcon, MapIcon } from './ic
 import { sound } from '../sound'
 
 const items: { id: Tab; label: string; Icon: typeof HomeIcon }[] = [
+  { id: 'pickup', label: 'PICKUP', Icon: MapIcon },
   { id: 'dashboard', label: 'HUD', Icon: HomeIcon },
   { id: 'people', label: 'PLAYERS', Icon: UsersIcon },
-  { id: 'snowball', label: 'PLAY', Icon: BoltIcon },
+  { id: 'play', label: 'PLAY', Icon: BoltIcon },
   { id: 'layout', label: 'MAP', Icon: MapIcon },
-  { id: 'zones', label: 'ZONES', Icon: GridIcon },
+  { id: 'crates', label: 'CRATES', Icon: GridIcon },
   { id: 'capture', label: 'LOOT', Icon: PlusIcon },
 ]
 

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "vite",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/garage.js": {
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/access",
+      "destination": "/api/garage?route=access"
+    },
+    {
+      "source": "/api/workspace",
+      "destination": "/api/garage?route=workspace"
+    },
+    {
+      "source": "/api/photos",
+      "destination": "/api/garage?route=photos"
+    },
+    {
+      "source": "/api/photos/:name",
+      "destination": "/api/garage?route=photo&name=:name"
+    },
+    {
+      "source": "/evidence/:path(.*)",
+      "destination": "/api/garage?route=evidence&name=:path"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "no-referrer"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        }
+      ]
+    }
+  ]
+}

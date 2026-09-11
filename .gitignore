@@ -42,3 +42,11 @@ Thumbs.db
 garage-photos/
 garage-scan/
 garage-video/
+
+# Private shared inventory and evidence
+.garage-data/
+public/evidence/
+
+# Local Vercel project linkage
+.vercel/
+.env*

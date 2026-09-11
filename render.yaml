@@ -1,0 +1,22 @@
+# Provision only after approving Render's recurring hosting cost.
+services:
+  - type: web
+    name: garage-reset-private
+    runtime: node
+    plan: 0.5c-512mb
+    region: oregon
+    numInstances: 1
+    autoDeployTrigger: off
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    disk:
+      name: garage-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GARAGE_DATA_DIR
+        value: /var/data/garage
+      - key: GARAGE_PASSWORD
+        sync: false

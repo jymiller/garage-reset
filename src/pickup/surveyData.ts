@@ -1,0 +1,126 @@
+/** September 9, 2026 photo observations. These are not measured positions or disposal decisions. */
+export const photoSurvey = [
+  {
+    id: 'IMG_1908',
+    src: '/evidence/2026-09-09/IMG_1908.jpg',
+    title: 'Bins and side-door approach',
+    observed: 'Green and blue bins stand beside the utility enclosure and side door. A rolled rug and loose leaning frame occupy nearby floor.',
+    nextStep: 'Stage the rug and frame away from the door approach, and keep access to the bins and utilities clear.',
+  },
+  {
+    id: 'IMG_1909',
+    src: '/evidence/2026-09-09/IMG_1909.jpg',
+    title: 'Wardrobe, bicycle and heater corner',
+    observed: 'A gray fabric wardrobe, bicycle and white shag bench sit near a black cabinet and water heater. A rolled rug and leaning frames are nearby.',
+    nextStep: 'Secure the leaning frames and clear loose floor items before moving larger objects. Keep the heater accessible.',
+  },
+  {
+    id: 'IMG_1910',
+    src: '/evidence/2026-09-09/IMG_1910.jpg',
+    title: 'The sack is inside the garage',
+    observed: 'An open yellow sack sits by the rear oak cabinets, under the garage roof. The SUV is at left; the wardrobe, bench and bicycle are at right.',
+    nextStep: 'Check the sack’s actual size and contents. Confirm an outdoor pickup spot before adding material; do not assume a loaded sack can be moved.',
+  },
+  {
+    id: 'IMG_1911',
+    src: '/evidence/2026-09-09/IMG_1911.jpg',
+    title: 'Sack and cabinet work area',
+    observed: 'The open yellow sack is beside the rear oak cabinets, with boxes, totes, chairs, a red toolbox and metal shelving around the work area.',
+    nextStep: 'Clear a working approach to the sack and cabinets. Separate items for decisions before treating anything as approved disposal.',
+  },
+  {
+    id: 'IMG_1912',
+    src: '/evidence/2026-09-09/IMG_1912.jpg',
+    title: 'Confirm the bag before filling',
+    observed: 'Yellowsack branding is visible on the open bag. Its sides are partly collapsed; buckets and mixed stored objects overlap the view, so size and load are not established.',
+    nextStep: 'Read the size label and inspect what is inside. Keep further filling paused until the pickup location is confirmed.',
+  },
+  {
+    id: 'IMG_1913',
+    src: '/evidence/2026-09-09/IMG_1913.jpg',
+    title: 'Rear door and carry route',
+    observed: 'Two gray folding chairs stand by the SUV nose near the rear glazed door and window. A shop vacuum, coiled cord and buckets sit near the sack; the approach is narrowed.',
+    nextStep: 'Fold and stage the chairs, then put the vacuum, cord and buckets clear of the door and carry route.',
+  },
+  {
+    id: 'IMG_1914',
+    src: '/evidence/2026-09-09/IMG_1914.jpg',
+    title: 'Window, cart and long tools',
+    observed: 'Low cabinets and a crowded rolling cart sit below the rear window. Long tools and boards lean beside the tall cupboard; folding chairs occupy nearby floor.',
+    nextStep: 'Clear the chairs from the route and secure the upright tools before sorting the cart and worktop.',
+  },
+  {
+    id: 'IMG_1915',
+    src: '/evidence/2026-09-09/IMG_1915.jpg',
+    title: 'Cupboard access',
+    observed: 'A chair, cartons and a stool with a black-and-orange electrical device occupy the gap between the car and tall wooden cupboard. Tool cases and mixed items cover the adjacent cart.',
+    nextStep: 'Stage the chair, cartons and stool to open access. Keep the electrical device and box contents undecided until reviewed.',
+  },
+  {
+    id: 'IMG_1916',
+    src: '/evidence/2026-09-09/IMG_1916.jpg',
+    title: 'Floor items in front of the cupboard',
+    observed: 'A folding chair, large cardboard carton and stool take floor in front of the cupboard. Folded tables or panels lean beside the red tool chest; an open banker box holds a cable.',
+    nextStep: 'Move the chair and carton to a staging area, then secure the leaning tables or panels. This is a route-clearing step, not a disposal decision.',
+  },
+  {
+    id: 'IMG_1917',
+    src: '/evidence/2026-09-09/IMG_1917.jpg',
+    title: 'Cords beside the SUV',
+    observed: 'The SUV sits close to the shelves and cupboard. Orange and pink cords hang into the car-side gap; folded tables or panels stand beside the tool chest.',
+    nextStep: 'Coil and secure the hanging cords and leaning panels before moving large objects or repositioning the vehicle.',
+  },
+  {
+    id: 'IMG_1918',
+    src: '/evidence/2026-09-09/IMG_1918.jpg',
+    title: 'The center floor is occupied',
+    observed: 'The SUV occupies the central floor, with shelves to the right and bins and a passage to the left. The vehicle entrance is visible in the distance behind it.',
+    nextStep: 'Coordinate with the driver to reposition the SUV for the carry-out work. Check the full route on foot; the photo does not establish a clear width.',
+  },
+] as const
+
+/** September 9, 2026, 13:49–13:50. The user identifies the white line as the parking clearance boundary. */
+export const latestPhotoSurvey = [
+  {
+    id: 'IMG_1927',
+    src: '/evidence/2026-09-09/IMG_1927.jpg',
+    title: 'Clear the cupboard approach',
+    observed: 'The oak cupboard, red tool chest and crowded cart line the wall. A folding chair, carton and stool holding a Jackery device project onto the floor; a pink cord lies at left.',
+    nextStep: 'Fold and stage the chair, relocate the carton and stool, and coil the floor cord. Keep the electrical device and box contents for individual decisions.',
+  },
+  {
+    id: 'IMG_1928',
+    src: '/evidence/2026-09-09/IMG_1928.jpg',
+    title: 'One shelf section at a time',
+    observed: 'The two rack sections hold labeled camping and Christmas totes, with loose gear above. Pink and orange cords hang from the shelves; folded tables stand beside the tool chest.',
+    nextStep: 'Secure the cords and folded tables, then sort one small batch of loose gear into the existing labeled containers. Keep the parking floor free of sorting piles.',
+  },
+  {
+    id: 'IMG_1929',
+    src: '/evidence/2026-09-09/IMG_1929.jpg',
+    title: 'Protect the parking boundary',
+    observed: 'Labeled totes and board games fill the wall racks, with long rods above and a pink cord on the floor. You identified the foreground white line as the parking clearance boundary.',
+    nextStep: 'Keep storage and work batches on the shelving side of that line. Clear the cord, then use a small wall-side work surface rather than the parking area.',
+  },
+  {
+    id: 'IMG_1930',
+    src: '/evidence/2026-09-09/IMG_1930.jpg',
+    title: 'Use the storage already in place',
+    observed: 'The rack fronts are visible, with labeled totes below loose gear, boxes and fishing rods. A pink cord lies at right; the foreground white line is your confirmed parking clearance boundary.',
+    nextStep: 'Coil the floor cord and keep the vehicle side of the line clear. Sort one exposed shelf section directly into existing containers without unloading the whole rack.',
+  },
+  {
+    id: 'IMG_1931',
+    src: '/evidence/2026-09-09/IMG_1931.jpg',
+    title: 'Park the tools off the route',
+    observed: 'The black cabinet and adjacent racks hold boxes, paper goods and totes. Floor jacks, an upright jack handle and cases occupy the floor along the rack fronts.',
+    nextStep: 'Store the jacks and cases at floor level on the storage side of the parking boundary, clear of the carry route. Finish that small area before opening a tote.',
+  },
+  {
+    id: 'IMG_1932',
+    src: '/evidence/2026-09-09/IMG_1932.jpg',
+    title: 'Check both parking spaces in person',
+    observed: 'One SUV is visible near the vehicle entrance and black cabinet. A plywood panel and concrete block sit along the adjacent wall; this view does not establish both car spaces or their clearances.',
+    nextStep: 'Check the two intended car positions and their door and driving routes in person. Secure the leaning panel and keep loose wall-side items out of those routes.',
+  },
+] as const

@@ -1,0 +1,17 @@
+.family-access{min-height:100vh;min-height:100dvh;display:grid;place-items:center;padding:28px 20px;background:radial-gradient(ellipse at 80% 0%,#38523f 0,transparent 55%),#15271f;color:#edf0dc;font-family:Inter,system-ui,sans-serif}
+.family-access-card{width:100%;max-width:460px;padding:38px;border:1px solid #536549;border-radius:18px;background:#1b3026;box-shadow:0 25px 90px #08160d66}
+.family-access-mark{display:grid;place-items:center;width:48px;height:48px;border-radius:12px;background:#e3cb76;color:#223c29;font-size:25px;letter-spacing:-3px;padding-right:3px}
+.family-access-brand{font-size:10px;letter-spacing:2.5px;color:#c4caa5;margin:25px 0 14px}
+.family-access-card h1{font-size:34px;font-weight:500;letter-spacing:-1.3px;line-height:1.12;margin:0 0 18px;color:#f0e4ac}
+.family-access-intro{font-size:13px;line-height:1.85;color:#aabea9;margin:0 0 25px}
+.family-access-card form{display:flex;flex-direction:column;gap:10px}
+.family-access-card label{font-size:11px;color:#cad4b7}
+.family-access-card input{width:100%;box-sizing:border-box;border:1px solid #5f7355;border-radius:7px;background:#14251d;color:#edf0dc;padding:13px 12px;font:inherit;font-size:14px;outline-offset:3px}
+.family-access-card input::placeholder{color:#859e87}
+.family-access-card button{cursor:pointer;border:1px solid #e3cb76;border-radius:7px;background:#e3cb76;color:#203a27;font-size:13px;font-weight:650;padding:13px 16px;margin-top:5px;display:flex;justify-content:space-between;align-items:center}
+.family-access-card button:disabled{opacity:.5;cursor:default}
+.family-access-card button.family-access-retry{background:transparent;color:#d9d8aa;border-color:#66734e;justify-content:center;width:100%;margin-top:12px}
+.family-access-message{font-size:12px;line-height:1.7;padding:12px 14px;background:#3a402b;border-left:3px solid #d6bd76;border-radius:0 5px 5px 0;color:#e4d6aa;margin:0 0 20px}
+.family-access-note{font-size:10px;line-height:1.8;color:#94ad94;margin:20px 0 0}
+.family-access-checking{font-size:12px;color:#d9d2a1;line-height:1.8;margin:28px 0 0}
+@media(max-width:500px){.family-access-card{padding:28px 24px}.family-access-card h1{font-size:30px}}

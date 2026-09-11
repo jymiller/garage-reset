@@ -119,6 +119,8 @@ export function Dashboard({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
         <ProgressBar pct={weekPct} color="#36e0e0" />
       </section>
 
+      <button onClick={()=>onNavigate('play')} className="arc-panel arc-panel-yellow w-full p-4 text-left"><span className="font-pixel text-[10px] text-[#ffd23f]">NEW: PHOTO MISSIONS ↗</span><p className="arc-vt mt-2 text-[#d0e6b4]">Before photo. One small batch. After photo. A round you can actually finish.</p></button>
+
       {cleared ? (
         <button onClick={() => onNavigate('results')} className="arc-btn w-full py-4 text-base">
           ★ FINAL STANDINGS
@@ -127,7 +129,7 @@ export function Dashboard({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
         <button
           onClick={() => {
             sound.start()
-            onNavigate('snowball')
+            onNavigate('play')
           }}
           className="arc-btn w-full py-4 text-base"
         >

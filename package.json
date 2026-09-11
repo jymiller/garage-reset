@@ -4,14 +4,24 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "dev": "node server/app.mjs --dev",
+    "build": "tsc --noEmit && vite build && node scripts/private-build.mjs",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:pickup": "node src/pickup/placement.test.mjs",
+    "start": "node server/app.mjs",
+    "test:crates": "node src/crates/model.test.mjs && node src/crates/sync.test.mjs",
+    "test:server": "node --test server/app.test.mjs",
+    "test:play": "node src/play/mission.test.mjs",
+    "test:layout": "node src/garage/scanGeometry.test.mjs && node src/garage/layoutDraft.test.mjs",
+    "test:spatial": "node src/garage/spatial.test.mjs",
+    "test:access": "node --test server/access.test.mjs && node src/access/access.test.mjs",
+    "test:vercel": "node --test server/vercel.test.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
+    "@vercel/blob": "^2.8.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "three": "^0.185.0"
@@ -25,5 +35,8 @@
     "tailwindcss": "^4.0.0",
     "typescript": "~5.6.3",
     "vite": "^6.0.0"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

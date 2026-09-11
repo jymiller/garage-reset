@@ -153,7 +153,7 @@ function Scene({ mode, selected, onSelect }: { mode: Mode; selected: string | nu
         <ObjectBox key={o.id} o={o} index={i} mode={mode} selected={selected === o.id} onSelect={(id) => onSelect(selected === id ? null : id)} />
       ))}
 
-      <OrbitControls enablePan={false} minDistance={14} maxDistance={55} maxPolarAngle={Math.PI / 2.05} />
+      <OrbitControls enablePan minDistance={14} maxDistance={120} maxPolarAngle={Math.PI / 2.05} />
     </>
   )
 }
@@ -168,8 +168,8 @@ export function Plan3D({
   onSelect: (id: string | null) => void
 }) {
   return (
-    <div className="h-[360px] w-full overflow-hidden rounded-2xl ring-1 ring-slate-200">
-      <Canvas shadows camera={{ position: [20, 19, 22], fov: 42 }} onPointerMissed={() => onSelect(null)}>
+    <div className="h-[420px] md:h-[600px] w-full overflow-hidden rounded-2xl ring-1 ring-slate-200">
+      <Canvas shadows camera={{ position: [38, 38, 42], fov: 42 }} onPointerMissed={() => onSelect(null)}>
         <Scene mode={mode} selected={selected} onSelect={onSelect} />
       </Canvas>
     </div>
