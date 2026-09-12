@@ -5,7 +5,7 @@ import { test } from 'node:test'
 import ts from 'typescript'
 import { validWorkspace as serverValidWorkspace } from '../../server/app.mjs'
 
-const compile = source => ts.transpileModule(source, {
+const compile = source => ts.transpileModule(source.replaceAll("'../rewards/contract.mjs'", JSON.stringify(new URL('../rewards/contract.mjs', import.meta.url).href)), {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
 }).outputText
 const asModule = source => `data:text/javascript;base64,${Buffer.from(source).toString('base64')}`

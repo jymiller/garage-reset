@@ -5,6 +5,7 @@ import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
 import { createGarageServer, validWorkspace } from './app.mjs'
+import { defaultRewards, assignMission, approveMission, markMissionPaid } from '../src/rewards/contract.mjs'
 
 const PASSWORD = 'test-only:password'
 const authorization = `Basic ${Buffer.from(`garage:${PASSWORD}`).toString('base64')}`
@@ -79,6 +80,42 @@ test('production requires a password before touching storage', async () => {
   await assert.rejects(createGarageServer({ dev: true, password: '', host: '0.0.0.0', dataDir: '/unused-for-test' }), /loopback/)
   await assert.rejects(createGarageServer({ password: PASSWORD, root: '/tmp/garage', dataDir: '/tmp/garage/public/private' }), /outside/)
   await assert.rejects(createGarageServer({ password: PASSWORD, root: '/tmp/garage', dataDir: '/tmp/garage/dist' }), /outside/)
+})
+
+test('rewards persist across restart and reject old-client removal and approved history changes', async t => {
+  const { base, server, start } = await fixture(t)
+  const data = assignMission(workspace({ missions: [finishedMission()], rewards: defaultRewards(1000) }), 'mission-one', 'griff')
+  assert.equal((await put(base, 0, data)).status, 200)
+  const dropped = { ...data }; delete dropped.rewards
+  assert.equal((await put(base, 0, dropped)).status, 409)
+  const removal = await put(base, 1, dropped)
+  assert.equal(removal.status, 400)
+  assert.match((await removal.json()).error, /remove the shared rewards ledger/)
+  const approved = approveMission(data, 'mission-one', 1000001)
+  assert.equal((await put(base, 1, approved)).status, 200)
+  const changedEvidence = { ...approved, missions: [finishedMission({ afterPhoto: '/api/photos/changed.jpg' })] }
+  assert.equal((await put(base, 2, changedEvidence)).status, 400)
+  assert.equal((await put(base, 2, { ...approved, rewards: { ...approved.rewards, missionsForGoal: 20 } })).status, 400)
+  const paid = markMissionPaid(approved, 'mission-one', 1000002)
+  assert.equal((await put(base, 2, paid)).status, 200)
+  assert.equal((await put(base, 3, approved)).status, 400)
+  await close(server)
+  const restarted = await start()
+  assert.deepEqual(await (await get(restarted.base, '/api/workspace')).json(), { revision: 3, data: paid })
+})
+
+test('invalid reward links, duplicates, unfinished approvals and unpaid approvals cannot overwrite storage', async t => {
+  const { base } = await fixture(t)
+  const data = assignMission(workspace({ missions: [finishedMission()], rewards: defaultRewards(1000) }), 'mission-one', 'griff')
+  assert.equal((await put(base, 0, data)).status, 200)
+  const candidates = [
+    { ...data, rewards: { ...data.rewards, entries: [...data.rewards.entries, data.rewards.entries[0]] } },
+    { ...data, rewards: { ...data.rewards, entries: [{ ...data.rewards.entries[0], playerId: 'missing' }] } },
+    { ...data, rewards: { ...data.rewards, entries: [{ ...data.rewards.entries[0], paidAt: 1000002 }] } },
+    { ...data, missions: [mission()], rewards: { ...data.rewards, entries: [{ ...data.rewards.entries[0], approvedAt: 1000001 }] } },
+  ]
+  for (const candidate of candidates) assert.equal((await put(base, 1, candidate)).status, 400)
+  assert.deepEqual(await (await get(base, '/api/workspace')).json(), { revision: 1, data })
 })
 
 test('authentication covers the app, static evidence, workspace, and photos', async t => {
@@ -366,7 +403,7 @@ test('production evidence comes from authenticated private storage with safe nes
 
 test('server validation accepts current client model records and rejects the same invalid fields', async () => {
   const ts = await import('typescript')
-  const source = await fs.readFile(new URL('../src/crates/model.ts', import.meta.url), 'utf8')
+  const source = (await fs.readFile(new URL('../src/crates/model.ts', import.meta.url), 'utf8')).replaceAll("'../rewards/contract.mjs'", JSON.stringify(new URL('../src/rewards/contract.mjs', import.meta.url).href))
   const compiled = ts.default.transpileModule(source, { compilerOptions: { target: ts.default.ScriptTarget.ES2022, module: ts.default.ModuleKind.ESNext } }).outputText
   const model = await import(`data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`)
   const examples = [model.emptyWorkspace(), workspace(), workspace({ crates: [crate({ photo: '/api/photos/123-valid.png' })] }),

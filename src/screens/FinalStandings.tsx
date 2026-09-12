@@ -23,7 +23,7 @@ export function FinalStandings({ onNavigate }: { onNavigate: (tab: Tab) => void 
     return () => clearTimeout(timer)
   }, [cleared])
 
-  return <ToolPage title="Team standings" icon="trophy" localData description="See each person’s contribution to the task list on this device.">
+  return <ToolPage title="Team standings" icon="trophy" localData description="See each person’s contribution to the task list on this device." actions={<button className="tool-button" onClick={() => onNavigate('score')}>Photo points & cash →</button>}>
     <div className="tool-stack task-progress-page">
       <section className="tool-card task-standings-summary">
         <GarageIcon name={cleared ? 'trophy' : 'crew'} />

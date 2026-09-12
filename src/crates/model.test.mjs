@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
 import ts from 'typescript'
 
-const source = await readFile(new URL('./model.ts', import.meta.url), 'utf8')
+const source = (await readFile(new URL('./model.ts', import.meta.url), 'utf8')).replaceAll("'../rewards/contract.mjs'", JSON.stringify(new URL('../rewards/contract.mjs', import.meta.url).href))
 const compiled = ts.transpileModule(source, {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
 }).outputText

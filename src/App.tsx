@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { BottomNav } from './components/BottomNav'
 import { Home } from './home/Home'
+import { Score } from './rewards/Score'
 import { More } from './home/More'
 import { Dashboard } from './screens/Dashboard'
 import { People } from './screens/People'
@@ -15,8 +16,8 @@ import { CrateWorkspace } from './crates/CrateWorkspace'
 import './home/home.css'
 import { parseCrateLabelHash } from './crates/labelLinks'
 
-export type Tab = 'home' | 'more' | 'dashboard' | 'people' | 'zones' | 'snowball' | 'capture' | 'layout' | 'sound' | 'results' | 'pickup' | 'crates' | 'play'
-const tabs: Tab[] = ['home', 'more', 'pickup', 'crates', 'play', 'dashboard', 'people', 'zones', 'snowball', 'capture', 'layout', 'sound', 'results']
+export type Tab = 'home' | 'more' | 'score' | 'dashboard' | 'people' | 'zones' | 'snowball' | 'capture' | 'layout' | 'sound' | 'results' | 'pickup' | 'crates' | 'play'
+const tabs: Tab[] = ['home', 'more', 'score', 'pickup', 'crates', 'play', 'dashboard', 'people', 'zones', 'snowball', 'capture', 'layout', 'sound', 'results']
 const readTab = (): Tab => {
   const hash = window.location.hash.slice(1).split('?')[0] as Tab
   return tabs.includes(hash) ? hash : 'home'
@@ -56,6 +57,7 @@ export function App() {
   let screen
   if (tab === 'home') screen = <Home onNavigate={goTo} onOpenCrate={(id, step) => openCrate(id, step)} />
   else if (tab === 'more') screen = <More onNavigate={goTo} />
+  else if (tab === 'score') screen = <Score onNavigate={goTo} />
   else if (tab === 'layout') screen = <Garage onNavigate={goTo} onOpenCrate={id => openCrate(id)} />
   else if (tab === 'pickup') screen = <PickupPlanner onNavigate={goTo} />
   else if (tab === 'crates') screen = <CrateWorkspace key={labelCode ?? "workspace"} labelCode={labelCode} onNavigate={goTo} initialCrateId={crateFocus} initialStep={crateInitialStep} onPlayCrate={id => { setPlayCrateId(id); setCrateFocus(null); navigate('play') }} />

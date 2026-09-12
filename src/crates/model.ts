@@ -1,3 +1,6 @@
+import { validateRewardBook } from '../rewards/contract.mjs'
+import type { RewardBook } from '../rewards/contract.mjs'
+
 export type Crate = {
   id: string
   code: string
@@ -73,6 +76,7 @@ export type Workspace = {
   notes: string
   missions?: CleanupMission[]
   spatialItems?: SpatialItem[]
+  rewards?: RewardBook
 }
 
 // Fixed photo-survey groups are reference geometry, not shared inventory records.
@@ -252,6 +256,7 @@ export function validateWorkspace(raw: unknown): boolean {
       if (item.crateId !== null) linkedCrates.add(item.crateId)
     }
   }
+  if ('rewards' in value && !validateRewardBook(value.rewards, Array.isArray(value.missions) ? value.missions : [])) return false
   return true
 }
 
@@ -382,6 +387,7 @@ export function sanitizeWorkspace(raw: unknown): Workspace {
       if (item.crateId !== null) linkedCrates.add(item.crateId)
     }
   }
+  if ('rewards' in value && validateRewardBook(value.rewards, result.missions ?? [])) result.rewards = structuredClone(value.rewards)
   return result
 }
 

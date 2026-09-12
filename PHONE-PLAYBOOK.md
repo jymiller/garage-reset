@@ -5,10 +5,10 @@ Open the existing family link on each device. New visits start at Home; existing
 ## The five destinations
 
 - **Home:** the next small mission, resume an unfinished round, the next crate needing attention, photo-mission XP, and the registered-volume goal.
-- **Missions:** choose Clear a floor area, Sort a shelf, or Sort a crate; choose 5, 10, or 15 minutes; take a before photo; sort and count; take an after photo; confirm parking clearance; finish for 100 XP. Camera and existing-photo controls are separate. One unfinished round is resumed before another is created.
+- **Missions:** choose Clear a floor area, Sort a shelf, or Sort a crate; choose 5, 10, or 15 minutes; take a before photo; sort and count; take an after photo; confirm parking clearance; finish for 100 XP. Camera and existing-photo controls are separate. With a reward plan, each player can have one unfinished round; choose who is playing so friends can work separately.
 - **Crates:** register a container, give it a shelf address and photo, record its contents, assign decisions/destinations, and confirm the repacked fill. The phone puts the working container ahead of the volume report. Home directs unfinished repacks to their fill check and unrecorded occupied crates to their contents step.
 - **Garage:** the photo-linked 3D model and spatial catalog. The laptop retains its larger planning workbench.
-- **More:** Yellow Sack pickup, Crew, Task board, Item list, Task progress, Team standings, Sound controls, and the phone playbook.
+- **More:** Score & cash, Yellow Sack pickup, Crew, Task board, Item list, Task progress, Team standings, Sound controls, and the phone playbook.
 
 The game shell uses system fonts, clear touch controls, a bottom bar on phones, and a top bar on laptops. Illustrated icons show a house, mission camera, smiling crate, garage, and toolbox; every destination keeps its text label. Phone navigation icons are 38px with 74px minimum-height buttons. Home tool icons are 54px, and mission choices show a broom, shelf, or crate at 44–48px. Navigation participates in browser Back/Forward. Returning to an active mission or crate preserves its local view; the mission board and All containers controls return to their respective lists.
 
@@ -32,7 +32,7 @@ Those task and loose-item records still use the existing device-local store. Cra
 
 ## What the numbers mean
 
-Photo-mission XP comes only from validated completed rounds: 100 XP per round, three rounds per level. It does not use the original game’s device-local scores and does not trigger cash payouts.
+Photo-mission XP comes only from validated completed rounds: 100 XP per round, three rounds per level. Individual reward scores use the missions explicitly assigned to that player. It does not use the original game’s device-local scores and does not send money. Open **Score & cash** to assign missions to players, set a $100 reward plan, review earned cash, and record payments made outside the app.
 
 The 50% goal uses registered container capacity × fill estimates. Home suppresses volume-progress claims while any crate is being sorted and labels an unlocked baseline as in progress. Missing contents records do not imply an empty crate. The goal is not a measured whole-garage result until the baseline covers the intended storage.
 

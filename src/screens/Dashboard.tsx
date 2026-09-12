@@ -36,11 +36,12 @@ export function Dashboard({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
   const upNext = nextTasks(tasks, 3)
   const mission = dailyMission(tasks, todayKey())
 
-  return <ToolPage title="Task progress" icon="board" localData description="A clear view of your task list, small wins, and the next thing to do." actions={
+  return <ToolPage title="Task progress" icon="board" localData description="A clear view of your task list, small wins, and the next thing to do." actions={<>
+    <button className="tool-button" onClick={() => onNavigate('score')}>Photo points & cash →</button>
     <button className="tool-button secondary" aria-pressed={!muted} onClick={() => { sound.toggle(); setMuted(sound.isMuted()) }}>
       <GarageIcon name="sound" />Sound {muted ? 'off' : 'on'}
     </button>
-  }>
+  </>}>
     <div className="tool-stack task-progress-page">
       <section className="tool-card task-progress-overview" aria-labelledby="task-list-heading">
         <div className="tool-row task-progress-heading"><div><p className="tool-muted">Your local task list</p><h2 id="task-list-heading">{cleared ? 'Every listed task is complete.' : overall.done ? 'One task at a time.' : 'Start with one manageable task.'}</h2></div><GarageIcon name={cleared ? 'trophy' : 'board'} /></div>

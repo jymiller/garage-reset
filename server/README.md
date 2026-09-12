@@ -26,7 +26,7 @@ Visible hosted workspace screens refresh every 30 seconds. Loopback uses four se
 - The browser converts accepted source photos to JPEG and progressively compresses or resizes them to at most **3,500,000 bytes** before uploading on either runtime. It shows a smaller-image message if no encoding fits. This portable cap is separate from the local server's larger raw request limit.
 - `GET /api/photos/:filename` and `HEAD` return an uploaded image after authorization. `/evidence/<relative path>` serves original reference images through the protected runtime. There is no photo deletion endpoint.
 
-The schema matches `src/crates/model.ts`; the backend additionally rejects unknown object properties. Notes and labels must be trimmed. Optional `missions` and `spatialItems` preserve compatibility with older workspaces that omit them. Missions record user-confirmed sessions; spatial records associate a photo rectangle with a named box and optional crate link. Neither changes occupied contents-volume progress automatically.
+The schema matches `src/crates/model.ts`; the backend additionally rejects unknown object properties. Notes and labels must be trimmed. Optional `missions`, `spatialItems`, and `rewards` preserve compatibility with older workspaces that omit them. Missions record user-confirmed sessions; spatial records associate a photo rectangle with a named box and optional crate link. Neither changes occupied contents-volume progress automatically.
 
 Photo files are separate from workspace revisions: a successful upload followed by a canceled edit can leave an unused private image. Invalid stored state is preserved instead of silently reset. Exporting workspace JSON does not include image bytes; back up private workspace, photo and evidence objects separately.
 
@@ -44,3 +44,5 @@ This Basic Auth server is separate from the selected family-link hosted runtime.
 - `npm run build` checks TypeScript, the production bundle and the private-evidence postbuild guard.
 
 `createGarageServer(options)` is an async factory returning an unbound Node HTTP server. Tests or integrations should bind it explicitly and call `await server.closeGarage()` to close its listener and development middleware.
+
+The optional rewards ledger assigns photo missions to named players and stores manual approval/payment timestamps. Both storage adapters enforce the same reward contract: unique attribution, fixed $100 caps, no duplicate payments, immutable approved mission evidence and records, and no removal by an older client. After the first approval the cash rate and budget mode are fixed. Stale writes still return 409; an otherwise current write that removes or rewrites protected rewards returns 400. Everyone with family access shares the same controls; there is no separate parent role or money transfer. See REWARDS.md.

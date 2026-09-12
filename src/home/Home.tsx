@@ -1,9 +1,12 @@
 import type { Tab } from '../App'
+import { useState } from 'react'
 import { useWorkspace } from '../crates/useWorkspace'
 import { volumeStats } from '../crates/model'
 import { missionProgress } from '../play/mission'
 import { BoltIcon } from '../components/icons'
 import { GarageIcon } from '../components/GarageIcons'
+import { rewardSummary } from '../rewards/model'
+import { openMissionsForPlayer } from '../play/playerMissions'
 
 const statusLabels = { connecting: 'Connecting · showing saved progress…', shared: 'Synced across your devices', saving: 'Saving your progress…', offline: 'Offline · showing this device’s draft', conflict: 'Your draft needs review', error: 'Save needs attention' }
 const liters = (value: number) => new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value)
@@ -11,11 +14,15 @@ const liters = (value: number) => new Intl.NumberFormat(undefined, { maximumFrac
 export function Home({ onNavigate, onOpenCrate }: { onNavigate: (tab: Tab) => void; onOpenCrate: (id: string, step: 'locate' | 'sort' | 'repack') => void }) {
   const workspace = useWorkspace()
   const { data } = workspace
+  const [devicePlayer] = useState(() => { try { return localStorage.getItem('garage-reset-current-player-v1') } catch { return null } })
+  const currentPlayer = data.rewards?.players.find(player => player.id === devicePlayer)
+  const playerScore = rewardSummary(data).players.find(player => player.id === currentPlayer?.id)
+  const money = (cents: number) => new Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD', maximumFractionDigits: 0}).format(cents / 100)
   const missions = data.missions ?? []
   const score = missionProgress(missions)
   const volume = volumeStats(data)
   const pendingFill = data.crates.some(crate => crate.status === 'sorting')
-  const open = missions.find(mission => mission.phase !== 'complete')
+  const open = openMissionsForPlayer(data, currentPlayer?.id ?? null)[0]
   const recordedCrates = new Set(data.items.map(item => item.crateId))
   const nextCrate = data.crates.find(crate => crate.status === 'sorting') ?? data.crates.find(crate => crate.status === 'unopened') ?? data.crates.find(crate => crate.currentFill > 0 && !recordedCrates.has(crate.id))
   const nextCrateStep = nextCrate?.status === 'sorting' ? 'repack' : nextCrate?.status === 'repacked' ? 'sort' : 'locate'
@@ -26,10 +33,13 @@ export function Home({ onNavigate, onOpenCrate }: { onNavigate: (tab: Tab) => vo
   const attention = workspace.status === 'conflict' || workspace.status === 'error' || workspace.storageError
 
   return <main className="reset-home">
-    <header className="home-heading"><div><p className="home-eyebrow">GARAGE RESET</p><h1>Let’s make<br className="home-mobile-break"/> some room.</h1><p>Choose one small area. Sort it. See your progress.</p></div><div className="home-level" aria-label={`Photo mission level ${score.level}`}><span>LEVEL</span><strong>{score.level}</strong><span>{score.points} XP</span></div></header>
+    <header className="home-heading"><div><p className="home-eyebrow">GARAGE RESET</p><h1>Let’s make<br className="home-mobile-break"/> some room.</h1><p>Choose one small area. Sort it. See your progress.</p></div><button className="home-level" aria-label={`Open score and cash. Team level ${score.level}, ${score.points} points`} onClick={() => onNavigate('score')}><span>LEVEL</span><strong>{score.level}</strong><span>{score.points} XP</span></button></header>
     <div className={`home-sync ${workspace.status}`} role="status"><i/>{workspace.storageError ? 'Device backup unavailable · open Crates for help' : statusLabels[workspace.status]}</div>
     {attention && <div className="home-save-alert"><p>{workspace.error || 'Open Crates to review your draft and backup options.'}</p><button onClick={() => onNavigate('crates')}>Review saved progress →</button></div>}
 
+    <button className="home-cash-link" onClick={() => onNavigate('score')}>
+      <GarageIcon name="trophy"/><span><strong>Score & cash</strong><small>{playerScore ? `${playerScore.name}: ${playerScore.points} points · ${money(playerScore.approvedCents)} approved` : data.rewards ? 'Choose your player. See your points and cash.' : 'Griff + friends · set up your path to $100.'}</small></span><span aria-hidden="true">→</span>
+    </button>
     <div className="home-grid">
       <section className="home-mission" aria-labelledby="home-mission-title">
         <div className="home-mission-photo"><img src={open?.beforePhoto ?? '/evidence/2026-09-09/IMG_1930.jpg'} alt={open?.beforePhoto ? `Before your mission: ${open.area}` : 'The garage storage shelves in the September 9 reference photo'} fetchPriority="high"/><div className="home-photo-shade"/><span className="home-photo-caption">{open?.beforePhoto ? 'YOUR MISSION / BEFORE' : 'YOUR GARAGE / SEPT 9 REFERENCE'}</span><span className="home-xp-stamp"><BoltIcon className="home-small-icon"/>100 XP<span>per finished round</span></span></div>

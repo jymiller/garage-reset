@@ -3,12 +3,17 @@ import { test } from 'node:test'
 import http from 'node:http'
 import { createBlobStorage, createVercelHandler } from './vercel.mjs'
 import { handleAccess, isAuthorized } from './access.mjs'
+import { defaultRewards, assignMission, approveMission, markMissionPaid } from '../src/rewards/contract.mjs'
 
 const WORKSPACE_KEY = 'garage/workspace.json'
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aVXcAAAAASUVORK5CYII=', 'base64')
 const empty = () => ({ schemaVersion: 1, crates: [], items: [], baselineLocked: false, notes: '' })
 const workspace = (notes = '') => ({ ...empty(), notes })
 const headers = { 'x-test-access': 'yes' }
+const rewardMission = (id = 'mission-one') => ({ id, title: 'One shelf', area: 'Right rack', kind: 'shelf', crateId: null,
+  phase: 'complete', beforePhoto: '/api/photos/before.jpg', afterPhoto: '/api/photos/after.jpg', plannedMinutes: 10,
+  elapsedSeconds: 100, runningSince: null, createdAt: 1000, completedAt: 2000, kept: 0, bagged: 0,
+  donated: 0, ask: 0, summary: 'Grouped the shelf contents.', parkingClear: true })
 
 function fakeStorage() {
   const objects = new Map(), writes = []
@@ -83,6 +88,40 @@ test('access handler runs before authorization and private API routes fail close
   assert.equal(accessCalls, 5)
   assert.equal(authCalls, 4)
   assert.equal(storage.writes.length, 0)
+})
+
+test('Blob rewards persist across handlers and CAS protects duplicate approvals, payments and ledger history', async t => {
+  const first = await fixture(t)
+  const data = assignMission({ ...empty(), missions: [rewardMission()], rewards: defaultRewards(1000) }, 'mission-one', 'griff')
+  assert.equal((await first.put(0, data)).status, 200)
+  const second = await fixture(t, { storage: first.storage })
+  const dropped = { ...data }; delete dropped.rewards
+  assert.equal((await second.put(0, dropped)).status, 409)
+  assert.equal((await second.put(1, dropped)).status, 400)
+  const approved = approveMission(data, 'mission-one', 3000)
+  first.storage.synchronizeReads(2)
+  const approvals = await Promise.all([first.put(1, approved), second.put(1, approved)])
+  assert.deepEqual(approvals.map(response => response.status).sort(), [200, 409])
+  const paid = markMissionPaid(approved, 'mission-one', 4000)
+  assert.equal((await second.put(2, paid)).status, 200)
+  assert.equal((await first.put(2, paid)).status, 409)
+  assert.equal((await first.put(3, approved)).status, 400)
+  assert.equal((await first.put(3, { ...paid, missions: [{ ...rewardMission(), summary: 'Changed evidence' }] })).status, 400)
+  assert.equal((await first.put(3, { ...paid, rewards: { ...paid.rewards, budgetMode: 'shared' } })).status, 400)
+  assert.deepEqual(await (await first.get()).json(), { revision: 3, data: paid })
+})
+
+test('Blob validation rejects malformed rewards and payment for a zero-value capped mission', async t => {
+  const { put, get } = await fixture(t)
+  let data = { ...empty(), missions: Array.from({ length: 11 }, (_, i) => rewardMission(`m${i}`)), rewards: defaultRewards(1000) }
+  for (const mission of data.missions) data = assignMission(data, mission.id, 'griff')
+  for (let i = 0; i < 11; i++) data = approveMission(data, `m${i}`, 3000 + i)
+  assert.equal((await put(0, data)).status, 200)
+  const invalidPaid = { ...data, rewards: { ...data.rewards, entries: data.rewards.entries.map(entry => entry.missionId === 'm10' ? { ...entry, paidAt: 4000 } : entry) } }
+  assert.equal((await put(1, invalidPaid)).status, 400)
+  const duplicated = { ...data, rewards: { ...data.rewards, entries: [...data.rewards.entries, data.rewards.entries[0]] } }
+  assert.equal((await put(1, duplicated)).status, 400)
+  assert.deepEqual(await (await get()).json(), { revision: 1, data })
 })
 
 test('workspace persists without a process cache and stale revisions cannot overwrite it', async t => {

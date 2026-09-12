@@ -6,6 +6,7 @@ import path from 'node:path'
 import os from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { pipeline } from 'node:stream/promises'
+import { validateRewardBook, rewardsTransitionError } from '../src/rewards/contract.mjs'
 
 const APP_ROOT = fileURLToPath(new URL('..', import.meta.url))
 const WORKSPACE_LIMIT = 2 * 1024 * 1024
@@ -55,7 +56,7 @@ function number(value, min, max) {
 
 /** Mirrors src/crates/model.ts. The integration test checks the shared contract. */
 export function validWorkspace(data) {
-  if (!exactObject(data, ['schemaVersion', 'crates', 'items', 'baselineLocked', 'notes'], ['missions', 'spatialItems'])
+  if (!exactObject(data, ['schemaVersion', 'crates', 'items', 'baselineLocked', 'notes'], ['missions', 'spatialItems', 'rewards'])
     || data.schemaVersion !== 1 || !Array.isArray(data.crates) || !Array.isArray(data.items)
     || typeof data.baselineLocked !== 'boolean' || !text(data.notes, 4000)) return false
   const ids = new Set(), codes = new Set(), itemIds = new Set()
@@ -98,6 +99,7 @@ export function validWorkspace(data) {
       if (item.crateId !== null) linkedCrates.add(item.crateId)
     }
   }
+  if (Object.hasOwn(data, 'rewards') && !validateRewardBook(data.rewards, data.missions ?? [])) return false
   return true
 }
 
@@ -316,6 +318,8 @@ export async function createGarageServer({
         if (!validEnvelope(body)) throw new HttpError(400, 'Invalid workspace or revision.')
         const write = writeQueue.then(async () => {
           if (body.revision !== state.revision) return { status: 409, value: state }
+          const rewardsError = rewardsTransitionError(state.data, body.data)
+          if (rewardsError) throw new HttpError(400, rewardsError)
           if (state.revision === Number.MAX_SAFE_INTEGER) throw new Error('Revision limit reached.')
           const next = { revision: state.revision + 1, data: body.data }
           await atomicWrite(stateFile, `${JSON.stringify(next)}\n`)
