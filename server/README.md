@@ -12,7 +12,7 @@ The local server stores workspace and photos under `GARAGE_DATA_DIR`, defaulting
 
 ## Hosted family access and storage
 
-On Vercel, `GET /api/access` returns `{ authorized: true | false }`. A private family bookmark supplies a fragment key that the browser exchanges with `POST /api/access` as `{ key }`. A valid exchange sets a signed, one-year `HttpOnly; Secure; SameSite=Lax` device cookie. The client confirms the cookie and clears the fragment to `#layout` before opening the app. Keys and storage tokens stay in server environment settings, not source or local storage.
+On Vercel, `GET /api/access` returns `{ authorized: true | false }`. A private family bookmark supplies a fragment key that the browser exchanges with `POST /api/access` as `{ key }`. A valid exchange sets a signed, one-year `HttpOnly; Secure; SameSite=Lax` device cookie. The client confirms the cookie and clears the fragment to `#home` before opening the app. Keys and storage tokens stay in server environment settings, not source or local storage.
 
 Workspace, uploaded photos and original evidence require that cookie. The 22 reference files were transferred privately to Blob storage; the public repository and build do not contain the images. The runtime reads the authoritative workspace without CDN caching and saves conditionally against its ETag. A create race or stale conditional write returns the latest revision as a conflict. Separate function instances do not rely on a shared local file or in-memory lock.
 

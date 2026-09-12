@@ -17,7 +17,7 @@ export function FamilyAccess({ children }: { children: ReactNode }) {
     if (result.state === 'authorized') {
       setEntry('')
       if (clearFragment) {
-        window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}#layout`)
+        window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}#home`)
       }
     }
     setState(result)

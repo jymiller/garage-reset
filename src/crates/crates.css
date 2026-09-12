@@ -10,3 +10,77 @@
 .content-item-heading label{flex:1;min-width:0;display:grid;gap:6px;font-size:11px;color:#9caf9d}.content-item-heading input{width:100%;min-width:0;font-size:14px}.content-item-heading .content-quantity{flex:0 0 86px}
 
 .crate-title-actions{display:flex;gap:10px;align-items:center}.crate-title-actions .crate-primary{padding:8px 12px;font-size:11px!important}@media(max-width:700px){.crate-detail-title{flex-wrap:wrap}.crate-title-actions{width:100%}.crate-title-actions .crate-primary{width:100%;min-height:44px}.crate-title-actions .crate-label-button{display:none}}
+
+/* Touch-sized controls, keyboard-safe forms and wrapping for real inventory labels. */
+.crate-app{min-width:0;max-width:100%;min-height:100svh;overflow-wrap:anywhere}
+.crate-app button{min-width:44px;min-height:44px;touch-action:manipulation}
+.crate-app input:not([type=file]):not([type=checkbox]),.crate-app select,.crate-app textarea{font-size:16px;min-height:44px}
+.crate-app input[type=range]{height:44px}
+.crate-app label,.crate-hero>*,.crate-field-pair>*,.repack-comparison>*,.crate-detail-title>div,.crate-title-actions,.content-controls>*{min-width:0}
+.crate-app input[type=checkbox]{width:22px;height:22px}
+.repack-confirm,.content-footer>label{min-height:44px;cursor:pointer}
+.crate-photo-button{position:relative;min-height:48px;display:flex!important;align-items:center;justify-content:center;touch-action:manipulation}
+.crate-photo-button input{display:block;position:absolute;opacity:0;width:1px;height:1px;padding:0;border:0;clip-path:inset(50%)}
+.crate-photo-button:focus-within{outline:2px solid #e7cc6e;outline-offset:-3px}
+.crate-photo-button.busy{opacity:.5;cursor:wait}
+.crate-photo-button.crate-photo-library{background:none;border-top:1px solid #40553c;font-size:12px!important;text-decoration:underline;text-underline-offset:4px}
+.crate-modal-backdrop{z-index:1000;overscroll-behavior:contain}
+.crate-modal{overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.crate-modal-close{width:44px;height:44px;display:grid;place-items:center;right:8px;top:8px;padding:0}
+.crate-modal>.crate-eyebrow,.crate-modal>h2{padding-right:35px}
+
+@media(max-width:700px){
+  .crate-main{padding:24px max(14px,env(safe-area-inset-right)) calc(24px + env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))}
+  .crate-topbar{padding-top:max(12px,env(safe-area-inset-top));padding-left:max(15px,env(safe-area-inset-left));padding-right:max(15px,env(safe-area-inset-right))}
+  .crate-sync{line-height:1.5}
+  .crate-hero h1{font-size:clamp(30px,9vw,35px)}
+  .volume-numbers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+  .volume-numbers>span{min-width:0}
+  .volume-numbers strong{font-size:19px;line-height:1.3}
+  .volume-score>div:first-child{gap:12px}
+  .volume-score b{flex-shrink:0}
+  .crate-workspace-tools button{min-height:44px;font-size:12px}
+  .crate-workspace-tools>div+div{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:stretch}
+  .crate-roster-heading{gap:12px}
+  .crate-roster-heading button{flex-shrink:0;min-height:44px}
+  .crate-roster-item strong,.crate-roster-item small,.crate-code{overflow-wrap:anywhere}
+  .roster-volume{position:static;display:block;margin-top:10px}
+  .crate-back{min-height:44px;margin-bottom:14px;text-align:left}
+  .crate-step-tabs{gap:6px}
+  .crate-step-tabs button{min-width:0;min-height:58px;padding:9px 5px;font-size:12px}
+  .crate-step-tabs button span{font-size:10px}
+  .crate-field-pair,.repack-comparison{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .content-item-heading{gap:10px}
+  .content-item-heading .content-quantity{flex-basis:78px}
+  .content-controls input,.content-controls select,.move-item select{min-height:44px}
+  .content-footer>.move-item{flex-wrap:wrap;gap:8px}
+  .move-item select{width:min(100%,140px);max-width:100%}
+  .repack-counts{flex-wrap:wrap;gap:8px}
+  .repack-comparison>span{padding:13px 10px}
+  .repack-comparison strong{font-size:23px;line-height:1.3}
+  .repack-fill input{height:44px}
+  .crate-footer button{min-height:44px;text-align:left;font-size:12px}
+  .crate-modal-backdrop{padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
+  .crate-modal{max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));padding:25px 18px}
+}
+
+@media(max-width:360px){
+  .crate-detail{padding:20px 12px}
+  .crate-field-pair{grid-template-columns:1fr}
+  .content-item{padding:12px}
+  .content-item-heading{flex-wrap:wrap}
+  .content-item-heading>label:first-child{flex-basis:100%}
+  .content-item-heading .content-quantity{flex-basis:100%}
+  .volume-score{padding:15px}
+}
+
+/* Keep the working container first on a phone; the volume report follows it. */
+@media(max-width:760px){
+  .crate-main{display:flex;flex-direction:column}
+  .crate-main>.crate-alert{order:0}
+  .crate-main>.crate-workbench{order:1}
+  .crate-main>.crate-hero{order:2;margin-top:28px}
+  .crate-main>.crate-workspace-tools{order:3}
+  .crate-main>.baseline-note{order:4}
+  .crate-main>.crate-footer{order:5}
+}

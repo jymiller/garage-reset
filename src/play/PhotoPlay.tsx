@@ -99,7 +99,7 @@ export function PhotoPlay({onNavigate, initialCrateId, onOpenCrate}:{onNavigate:
 
   return <div className="play-app">
     <header className="play-nav">
-      <button className="play-logo" onClick={()=>onNavigate('pickup')}><span>G↗</span><b>GARAGE RESET</b></button>
+      <button className="play-logo" onClick={()=>onNavigate('home')} aria-label="Garage Reset home"><span>G↗</span><b>GARAGE RESET</b></button>
       <nav aria-label="Garage workspace"><button className="selected" onClick={goLobby}>Play</button><button onClick={()=>onNavigate('crates')}>Crate lab</button><button onClick={()=>onNavigate('pickup')}>Pickup</button></nav>
       <div className="play-level"><span>LV {score.level}</span><b>{score.points} XP</b></div>
     </header>
@@ -150,7 +150,7 @@ export function PhotoPlay({onNavigate, initialCrateId, onOpenCrate}:{onNavigate:
 
 function CameraIcon(){return <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M3 6.5h4l1.5-3h7l1.5 3h4v14H3z"/><circle cx="12" cy="13" r="4"/></svg>}
 function PhotoCapture({photo,label,title,subtitle,busy,onFile}:{photo:string|null;label:string;title:string;subtitle:string;busy:boolean;onFile:(file:File|undefined)=>void}){
-  return <div className={`play-photo-capture ${photo?'has-photo':''}`}>{photo?<img src={photo} alt={label}/>:<div className="play-camera-empty"><CameraIcon/><span>{label.toUpperCase()}</span><h2>{title}</h2><p>{subtitle}</p></div>}<div className="play-capture-controls"><label className={`play-primary ${busy?'busy':''}`}><CameraIcon/>{busy?'Saving photo…':photo?'Retake photo':'Take a photo'}<input aria-label={`${label} camera`} type="file" accept="image/*" capture="environment" disabled={busy} onChange={e=>{onFile(e.target.files?.[0]);e.target.value=''}}/></label><label className="play-photo-library">Choose from photos<input aria-label={`${label} library`} type="file" accept="image/*" disabled={busy} onChange={e=>{onFile(e.target.files?.[0]);e.target.value=''}}/></label><small>{photo?'Photo attached to this round':'Phone opens its camera or photo picker. Laptop opens files.'}</small></div></div>
+  return <div className={`play-photo-capture ${photo?'has-photo':''}`} aria-busy={busy}>{photo?<img src={photo} alt={label}/>:<div className="play-camera-empty"><CameraIcon/><span>{label.toUpperCase()}</span><h2>{title}</h2><p>{subtitle}</p></div>}<div className="play-capture-controls"><label className={`play-primary ${busy?'busy':''}`}><CameraIcon/>{busy?'Saving photo…':`${photo?'Retake':'Take'} ${label.toLowerCase()}`}<input aria-label={`${label} camera`} type="file" accept="image/*" capture="environment" disabled={busy} onChange={e=>{onFile(e.target.files?.[0]);e.target.value=''}}/></label><label className={`play-photo-library ${busy?'busy':''}`}>Choose from photos<input aria-label={`${label} library`} type="file" accept="image/*" disabled={busy} onChange={e=>{onFile(e.target.files?.[0]);e.target.value=''}}/></label><small>{photo?'Photo attached to this round':'Phone opens its camera or photo picker. Laptop opens files.'}</small></div></div>
 }
 function BeforeAfter({before,after}:{before:string;after:string}) {
   const [position,setPosition] = useState(50)

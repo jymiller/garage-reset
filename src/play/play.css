@@ -7,3 +7,65 @@
 .play-capture-controls label.play-photo-library{padding:5px;color:#bad09b;font-size:11px;justify-content:center;min-height:30px;text-decoration:underline;text-underline-offset:4px;background:none;border:0}
 
 .play-badges{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px}.play-badges:empty{display:none}.play-badges span{padding:7px 11px;font-size:10px;color:#d9e9b5;border:1px solid #677b4c;background:#293e28;border-radius:20px}
+
+/* Keep controls usable on touch screens without clipping longer saved labels. */
+.play-app{min-width:0;max-width:100%;min-height:100svh;overflow-wrap:anywhere}
+.play-app button{min-width:44px;min-height:44px;touch-action:manipulation}
+.play-app input:not([type=file]):not([type=checkbox]),.play-app select,.play-app textarea{font-size:16px;min-height:44px}
+.play-app input[type=range]{height:44px}
+.play-mode-grid>*,.play-win-grid>*,.play-setup>*,.play-round-grid>*,.play-active-grid>*,.play-side-photos>*,.play-round-title>div,.play-resume>div{min-width:0}
+.play-capture-controls label.play-photo-library{min-height:44px;padding:10px 12px;text-align:center;touch-action:manipulation}
+.play-status-row{gap:12px;align-items:center}
+.play-status-row>span{min-width:0}
+.play-status-row>button{flex-shrink:0}
+.play-parking-check{min-height:44px;cursor:pointer}
+
+@media(max-width:760px){
+  .play-main{padding:0 max(16px,env(safe-area-inset-right)) calc(25px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+  .play-nav{padding-top:max(14px,env(safe-area-inset-top));padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
+  .play-hero{display:none}
+  .play-selection{scroll-margin-top:16px;padding-top:18px}
+  .play-mode-grid{gap:8px}
+  .play-mode{display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:10px;min-height:64px;padding:12px}
+  .play-mode-top{position:static;display:flex;justify-content:center;margin:0}
+  .play-mode-top>b,.play-mode p{display:none}
+  .play-mode h3{font-size:17px;line-height:1.3;margin:0}
+  .play-mode-select{font-size:11px;line-height:1.4;margin:0;text-align:right}
+  .play-minutes{gap:8px}
+  .play-minutes button{min-width:0;min-height:48px;padding:10px 7px}
+  .play-minutes small{font-size:10px}
+  .play-round-heading{align-items:center;gap:10px}
+  .play-round-heading>span{min-width:0}
+  .play-steps{gap:8px}
+  .play-steps>div{flex:1;min-width:0;gap:5px;font-size:11px;align-items:flex-start;line-height:1.4}
+  .play-steps span{flex-shrink:0}
+  .play-counters{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .play-counter{min-width:0;padding:13px 11px}
+  .play-counter-label{font-size:12px;align-items:flex-start}
+  .play-counter-label i{flex-shrink:0}
+  .play-counter>div{display:grid;grid-template-columns:repeat(2,minmax(44px,1fr));gap:8px;margin-top:10px}
+  .play-counter b{grid-column:1/-1;grid-row:1;text-align:center;font-size:32px;line-height:1.2;min-width:0}
+  .play-counter button{grid-row:2;width:100%;min-width:44px;height:48px}
+  .play-capture-controls small{font-size:11px}
+  .play-time-ticket{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 16px}
+  .play-time-ticket>span{max-width:none;font-size:10px}
+  .play-time-ticket p{grid-column:1/-1;margin-left:0;font-size:12px}
+  .play-before-guide{gap:12px}
+  .play-before-guide img{width:30%;max-width:112px;flex-shrink:0}
+  .play-before-guide p{min-width:0}
+  .play-victory-banner>div:nth-child(2){min-width:0}
+  .play-compare-heading button{min-height:44px;font-size:11px}
+  .play-wipe-control input{min-height:44px}
+  .play-bottom-note p{min-width:0}
+  .play-bottom-note>button{white-space:normal;padding-left:0}
+  .play-alert button{margin-right:8px;margin-top:8px}
+}
+
+@media(max-width:360px){
+  .play-round-title{align-items:flex-start}
+  .play-round-title h1{font-size:30px}
+  .play-photo-capture>img{height:250px}
+  .play-camera-empty{min-height:250px;padding:22px 16px}
+  .play-timer b{font-size:70px}
+  .play-side-photos{grid-template-columns:1fr}
+}

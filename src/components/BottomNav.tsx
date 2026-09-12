@@ -1,40 +1,22 @@
 import type { Tab } from '../App'
-import { HomeIcon, UsersIcon, GridIcon, BoltIcon, PlusIcon, MapIcon } from './icons'
-import { sound } from '../sound'
+import { HomeIcon, GridIcon, BoltIcon, MapIcon } from './icons'
 
-const items: { id: Tab; label: string; Icon: typeof HomeIcon }[] = [
-  { id: 'pickup', label: 'PICKUP', Icon: MapIcon },
-  { id: 'dashboard', label: 'HUD', Icon: HomeIcon },
-  { id: 'people', label: 'PLAYERS', Icon: UsersIcon },
-  { id: 'play', label: 'PLAY', Icon: BoltIcon },
-  { id: 'layout', label: 'MAP', Icon: MapIcon },
-  { id: 'crates', label: 'CRATES', Icon: GridIcon },
-  { id: 'capture', label: 'LOOT', Icon: PlusIcon },
+function MoreIcon({className}: {className?: string}) {
+  return <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+}
+const items = [
+  { id: 'home' as Tab, label: 'Home', Icon: HomeIcon },
+  { id: 'play' as Tab, label: 'Missions', Icon: BoltIcon },
+  { id: 'crates' as Tab, label: 'Crates', Icon: GridIcon },
+  { id: 'layout' as Tab, label: 'Garage', Icon: MapIcon },
+  { id: 'more' as Tab, label: 'More', Icon: MoreIcon },
 ]
 
 export function BottomNav({ tab, onChange }: { tab: Tab; onChange: (tab: Tab) => void }) {
-  return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t-2 border-[#2bd14a] bg-[#07070e]">
-      <div className="pb-safe mx-auto flex max-w-md items-stretch justify-around px-1 pt-2">
-        {items.map(({ id, label, Icon }) => {
-          const active = tab === id
-          return (
-            <button
-              key={id}
-              onClick={() => {
-                sound.tap()
-                onChange(id)
-              }}
-              className={`flex flex-1 flex-col items-center gap-1 py-1 transition ${
-                active ? 'text-[#2bd14a]' : 'text-[#4f4f66]'
-              }`}
-            >
-              <Icon className={`h-5 w-5 ${active ? 'scale-110' : ''} transition`} />
-              <span className="font-pixel text-[7px] tracking-tight">{label}</span>
-            </button>
-          )
-        })}
-      </div>
-    </nav>
-  )
+  const activeTab = tab === 'snowball' ? 'play' : items.some(item => item.id === tab) ? tab : 'more'
+  return <nav className="garage-nav" aria-label="Main navigation">
+    <button className="garage-nav-brand" onClick={() => onChange('home')} aria-label="Garage Reset home"><span>G↗</span>Garage Reset</button>
+    <div className="garage-nav-items">{items.map(({ id, label, Icon }) => <button key={id} className={activeTab === id ? 'is-active' : ''} aria-current={activeTab === id ? 'page' : undefined} onClick={() => onChange(id)}><Icon className="garage-nav-icon"/><span>{label}</span></button>)}</div>
+    <span className="garage-nav-note">A little less stuff. A little more room.</span>
+  </nav>
 }

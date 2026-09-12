@@ -10,7 +10,7 @@ Each family device opens a privately shared bookmark whose fragment contains `ac
 
 1. The browser reads the fragment locally and exchanges only `{ key }` with same-origin `POST /api/access`. Pasted links never cause requests to another host.
 2. A valid exchange sets the signed `__Host-garage-family` cookie with `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/`, and a one-year maximum age.
-3. The browser confirms authorization with `GET /api/access`, replaces the fragment with `#layout`, and opens the app. An authorized browser can then use the ordinary address and normal screen links.
+3. The browser confirms authorization with `GET /api/access`, replaces the fragment with `#home`, and opens the app. An authorized browser can then use the ordinary address and normal screen links.
 
 Set `GARAGE_ACCESS_KEY` only in Vercel's server environment settings. The key is not kept in local storage or placed in the public bundle. Keep the actual family bookmark out of source, documentation and deployment output. Workspace and image requests require the signed cookie; the access screen and application code can load before authorization.
 
@@ -50,6 +50,6 @@ Bounding-box dimensions, crate contents-volume estimates and photo-mission point
 
 Run `npm run build`, `npm run test:access`, `npm run test:vercel`, and the relevant feature suites before pushing. The build includes the private-evidence postbuild guard. Tests exercise the runtime; they do not establish that a selected production deployment is healthy.
 
-After Vercel reports the deployment ready, check the production address in a fresh browser: the family-link screen should appear, and unauthorized workspace/evidence requests should be denied. Open the private bookmark without publishing it, confirm the fragment becomes `#layout`, and check a protected reference photo. Check persistence and conflicting edits from two authorized devices, then confirm a return visit works with the device cookie.
+After Vercel reports the deployment ready, check the production address in a fresh browser: the family-link screen should appear, and unauthorized workspace/evidence requests should be denied. Open the private bookmark without publishing it, confirm the fragment becomes `#home`, and check a protected reference photo. Check persistence and conflicting edits from two authorized devices, then confirm a return visit works with the device cookie.
 
 For loopback development and the standalone Node API, see [server/README.md](server/README.md).

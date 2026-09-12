@@ -105,7 +105,7 @@ export function Garage({ onNavigate, onOpenCrate }: { onNavigate: (tab: Tab) => 
 
   return <div className="layout-app">
     <header className="layout-topbar">
-      <button className="layout-brand" onClick={() => onNavigate('pickup')}><span>G↗</span> GARAGE RESET</button>
+      <button className="layout-brand" onClick={() => onNavigate('home')}><span>G↗</span> GARAGE RESET</button>
       <nav aria-label="Workspace">
         <button onClick={() => onNavigate('pickup')}>Pickup</button><button className="active" aria-current="page">Garage model</button><button onClick={() => onNavigate('crates')}>Crate lab</button><button onClick={() => onNavigate('play')}>Play</button>
       </nav>

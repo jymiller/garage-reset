@@ -9,7 +9,7 @@ const decisions: ContentItem['decision'][] = ['undecided', 'keep', 'donate', 'se
 const liters = (n: number) => `${Math.round(n * 10) / 10} L`
 const uid = () => crypto.randomUUID()
 
-export function CrateWorkspace({ onNavigate, initialCrateId, initialStep, onPlayCrate }: { onNavigate: (tab: Tab) => void; initialCrateId?: string|null; initialStep?: 'locate'|'repack'; onPlayCrate?: (id:string)=>void }) {
+export function CrateWorkspace({ onNavigate, initialCrateId, initialStep, onPlayCrate }: { onNavigate: (tab: Tab) => void; initialCrateId?: string|null; initialStep?: 'locate'|'sort'|'repack'; onPlayCrate?: (id:string)=>void }) {
   const workspace = useWorkspace()
   const { data, update } = workspace
   const [selected, setSelected] = useState<string | null>(initialCrateId || null)
@@ -49,7 +49,7 @@ export function CrateWorkspace({ onNavigate, initialCrateId, initialStep, onPlay
 
   return <div className="crate-app">
     <header className="crate-topbar">
-      <button className="crate-brand" onClick={() => onNavigate('pickup')}><span>G↗</span> GARAGE RESET</button>
+      <button className="crate-brand" onClick={() => onNavigate('home')} aria-label="Garage Reset home"><span>G↗</span> GARAGE RESET</button>
       <nav aria-label="Garage workspace"><button onClick={()=>onNavigate('play')}>Play</button><button onClick={() => onNavigate('pickup')}>Pickup</button><button className="active">Crate lab</button><button onClick={() => onNavigate('layout')}>Garage map</button></nav>
       <span className={`crate-sync ${workspace.status}`} role="status">● {workspace.storageError ? 'Device backup unavailable · export now' : statusLabels[workspace.status]}</span>
     </header>
@@ -77,7 +77,11 @@ export function CrateWorkspace({ onNavigate, initialCrateId, initialStep, onPlay
             <div className="crate-detail-title"><div><span className="crate-eyebrow">{crate.code} · {crate.owner || 'OWNER NOT ASSIGNED'}</span><h2>{crate.name}</h2><p>{crate.location || 'Record the shelf location below.'}</p></div><div className="crate-title-actions">{onPlayCrate&&<button className="crate-primary" onClick={()=>onPlayCrate(crate.id)}>▶ Play this crate</button>}<button className="crate-label-button" onClick={()=>window.print()}>Print label ↗</button></div></div>
             <div className="crate-step-tabs" role="group" aria-label="Crate session step">{(['locate','sort','repack'] as const).map((s,i)=><button key={s} aria-pressed={step===s} onClick={()=>setStep(s)}><span>0{i+1}</span>{s==='locate'?'Locate':s==='sort'?'Open & sort':'Repack'}</button>)}</div>
             {step==='locate' && <div className="crate-locate" key={crate.id}>
-              <div className="crate-photo">{crate.photo ? <img src={crate.photo} alt={`${crate.code}: ${crate.name}`} /> : <div><span>▧</span><p>Show the label and the open contents.</p></div>}<label className="crate-photo-button">{photoBusy?'Uploading…':crate.photo?'Replace photo':'Take / add photo'}<input aria-label="Crate photo" type="file" accept="image/*" capture="environment" disabled={photoBusy} onChange={e=>{void addPhoto(e.target.files?.[0]);e.target.value=''}} /></label></div>
+              <div className="crate-photo" aria-busy={photoBusy}>
+                {crate.photo ? <img src={crate.photo} alt={`${crate.code}: ${crate.name}`} /> : <div><span>▧</span><p>Show the label and the open contents.</p></div>}
+                <label className={`crate-photo-button ${photoBusy?'busy':''}`}>{photoBusy?'Uploading…':crate.photo?'Retake crate photo':'Take crate photo'}<input aria-label="Crate photo camera" type="file" accept="image/*" capture="environment" disabled={photoBusy} onChange={e=>{void addPhoto(e.target.files?.[0]);e.target.value=''}} /></label>
+                <label className={`crate-photo-button crate-photo-library ${photoBusy?'busy':''}`}>Choose from photos<input aria-label="Crate photo library" type="file" accept="image/*" disabled={photoBusy} onChange={e=>{void addPhoto(e.target.files?.[0]);e.target.value=''}} /></label>
+              </div>
               <div className="crate-fields"><label>Name<input key={`${crate.id}-name-${crate.name}`} defaultValue={crate.name} maxLength={160} onBlur={e=>{if(e.target.value.trim())patchCrate(crate.id,{name:e.target.value.trim()})}} /></label><label>Exact shelf / location<input key={`${crate.id}-location-${crate.location}`} defaultValue={crate.location} placeholder="Right rack · middle shelf · left" maxLength={160} onBlur={e=>patchCrate(crate.id,{location:e.target.value.trim()})} /></label><label>Owner<input key={`${crate.id}-owner-${crate.owner}`} defaultValue={crate.owner} placeholder="John / Griffin / LJ / shared / ask" maxLength={80} onBlur={e=>patchCrate(crate.id,{owner:e.target.value.trim()})} /></label><div className="crate-field-pair"><label>Container capacity (liters)<input type="number" min="1" max="2000" step="1" key={`${crate.id}-capacity-${crate.capacityLiters}`} defaultValue={crate.capacityLiters} disabled={data.baselineLocked} onBlur={e=>{const n=Number(e.target.value);if(n>0&&n<=2000)patchCrate(crate.id,{capacityLiters:n})}} /></label><label>Starting fill (%)<input type="number" min="0" max="100" step="5" key={`${crate.id}-baseline-${crate.baselineFill}`} defaultValue={crate.baselineFill} disabled={data.baselineLocked} onBlur={e=>{const n=Number(e.target.value);if(e.target.value!==''&&n>=0&&n<=100&&n!==crate.baselineFill)patchCrate(crate.id,{baselineFill:n,...(crate.status==='repacked'?{}:{currentFill:n})})}} /></label></div><p className="crate-fine">Use the capacity printed on the container, or estimate. A 60 L crate at 50% fill holds about 30 L. Reopen the baseline to correct locked estimates.</p><label>Notes<textarea key={`${crate.id}-notes-${crate.notes}`} defaultValue={crate.notes} rows={3} maxLength={4000} placeholder="What belongs here? Anything fragile or needing a decision?" onBlur={e=>patchCrate(crate.id,{notes:e.target.value.trim()})} /></label></div>
               <button className="crate-primary" onClick={()=>{if(crate.status==='unopened')patchCrate(crate.id,{status:'sorting'});setStep('sort')}}>Open this crate →</button>
             </div>}
