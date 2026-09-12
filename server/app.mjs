@@ -157,7 +157,7 @@ function validActivityCredit(value) {
 
 function validObservation(observation, crateIds, helperIds) {
   if (!exactObject(observation, ['id', 'kind', 'photo', 'notes', 'location', 'crateId', 'measurement', 'createdAt'], ['labelCode', 'photoRole', 'helperId'])
-    || !text(observation.id, 120, true) || !['crate', 'parking', 'measurement', 'placement'].includes(observation.kind)
+    || !text(observation.id, 120, true) || !['general', 'crate', 'parking', 'measurement', 'placement'].includes(observation.kind)
     || typeof observation.photo !== 'string' || !PHOTO_URL.test(observation.photo)
     || !text(observation.notes, 4000) || !text(observation.location, 160)
     || !(observation.crateId === null || text(observation.crateId, 120, true) && crateIds.has(observation.crateId))

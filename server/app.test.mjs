@@ -191,6 +191,18 @@ test('invalid photo awards cannot replace shared storage or manufacture duplicat
   assert.deepEqual(await (await get(base, '/api/workspace')).json(), { revision: 1, data })
 })
 
+test('general photos round trip without crate, label, helper or measurement and unknown kinds cannot replace them', async t => {
+  const { base, server, start } = await fixture(t)
+  const data = { ...empty(), observations: [observation({ kind: 'general' })] }
+  assert.equal((await put(base, 0, data)).status, 200)
+  assert.deepEqual(await (await get(base, '/api/workspace')).json(), { revision: 1, data })
+  const invalid = { ...data, observations: [observation({ kind: 'anything' })] }
+  assert.equal((await put(base, 1, invalid)).status, 400)
+  await close(server)
+  const restarted = await start()
+  assert.deepEqual(await (await get(restarted.base, '/api/workspace')).json(), { revision: 1, data })
+})
+
 test('quick observations persist across restart without registration and old clients cannot drop any photo ID', async t => {
   const { base, server, start } = await fixture(t)
   assert.equal((await put(base, 0, empty())).status, 200)
@@ -612,7 +624,7 @@ test('server validation accepts current client model records and rejects the sam
     workspace({ spatialItems: [spatialItem({ crateId: null }), spatialItem({ id: 'spatial-two', crateId: null })] }),
     workspace({ spatialItems: null }),
     { ...empty(), observations: [observation()] },
-    ...['crate', 'parking', 'measurement', 'placement'].map(kind => workspace({ observations: [observation({ kind })] })),
+    ...['general', 'crate', 'parking', 'measurement', 'placement', 'anything'].map(kind => workspace({ observations: [observation({ kind })] })),
     ...['cm', 'm', 'in', 'ft'].map(unit => workspace({ observations: [observation({ crateId: 'crate-one', measurement: observationMeasurement({ unit }) })] })),
     workspace({ observations: [] }), workspace({ observations: null }),
     workspace({ observations: [observation(), observation()] }),

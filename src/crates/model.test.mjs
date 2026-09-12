@@ -134,7 +134,7 @@ test('photo award recovery keeps valid immutable values without repairing a miss
 
 test('quick photos need no inventory, player, mission or measurement and preserve legacy absence', () => {
   assert.equal(Object.hasOwn(sanitizeWorkspace(emptyWorkspace()), 'observations'), false)
-  for (const kind of ['crate', 'parking', 'measurement', 'placement']) {
+  for (const kind of ['general', 'crate', 'parking', 'measurement', 'placement']) {
     const data = { ...emptyWorkspace(), observations: [observation({ kind })] }
     assert.equal(validateWorkspace(data), true)
     assert.deepEqual(sanitizeWorkspace(data), data)
@@ -143,6 +143,21 @@ test('quick photos need no inventory, player, mission or measurement and preserv
     assert.equal(Object.hasOwn(data, 'missions'), false)
     assert.equal(Object.hasOwn(data, 'rewards'), false)
   }
+})
+
+test('general photos preserve optional-free capture and reject unknown kinds during recovery', () => {
+  const photo = observation({ kind: 'general' })
+  assert.equal(validateObservation(photo), true)
+  for (const field of ['labelCode', 'photoRole', 'helperId']) assert.equal(Object.hasOwn(photo, field), false)
+  assert.equal(photo.crateId, null)
+  assert.equal(photo.measurement, null)
+  const data = { ...emptyWorkspace(), observations: [photo] }
+  assert.equal(validateWorkspace(data), true)
+  assert.deepEqual(sanitizeWorkspace(data), data)
+  const unknown = observation({ id: 'unknown', kind: 'anything' })
+  assert.equal(validateObservation(unknown), false)
+  assert.equal(validateWorkspace({ ...data, observations: [photo, unknown] }), false)
+  assert.deepEqual(sanitizeWorkspace({ ...data, observations: [photo, unknown] }), data)
 })
 
 test('quick photo measurements preserve explicit units and cannot change a linked crate capacity', () => {

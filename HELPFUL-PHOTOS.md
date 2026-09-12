@@ -1,10 +1,10 @@
 # Helpful photos: developer contract
 
-Home and the **Missions** navigation item open QuickCapture at #discover. #observations opens its collection directly. LabelQuest at #labels selects a printed ID and outside/contents role; timed cleanup missions remain at #play.
+Home's **Add photo** action and the **Add photo** navigation item open QuickCapture at #discover with kind:general. The camera and photo library are available immediately; a note, category, helper name, crate link, and measurements are optional. Specific crate, placement, parking, and measurement flows remain available. #observations opens the collection directly. LabelQuest at #labels selects a printed ID and outside/contents role; timed cleanup missions remain at #play.
 
 ## Data and meaning
 
-Workspace.observations is optional; legacy workspaces remain valid. Each record has an ID, kind (crate, placement, parking, or measurement), protected photo URL, notes, location, nullable crateId, nullable measurement, and capture timestamp. Optional metadata is labelCode, photoRole (outside/contents), and helperId. The model and both server adapters validate the records and their links.
+Workspace.observations is optional; legacy workspaces remain valid. Each record has an ID, kind (general, crate, placement, parking, or measurement), protected photo URL, notes, location, nullable crateId, nullable measurement, and capture timestamp. A general photo needs no category decision or related record: crateId and measurement can both be null, notes and location can be empty, and optional metadata can be absent. Optional metadata is labelCode, photoRole (outside/contents), and helperId. The model and both server adapters validate the records and their links. Unknown kinds are rejected; general is preserved as general during recovery and shared saves.
 
 A label identifies a physical box independently of full inventory. The printed set is C-001–C-032; supported canonical IDs are C-001–C-999, excluding C-000. Unknown labels can have crateId:null. Where both identifiers exist, QuickCapture and appendObservation require the crate’s canonical code to match. LabelQuest prefers explicit label identity over legacy crate-ID fallback.
 
@@ -28,7 +28,7 @@ Revision checks protect concurrent saves. Older clients cannot silently drop obs
 
 The explicit helper preference uses garage-reset-current-player-v1. Attribution resolves it against current shared players; anonymous capture remains valid. Joining reuses a normalized name or adds one, initializing the existing default rewards book when absent. Previous work is not retroactively assigned.
 
-Workspace.photoAwards separately stores observationId, helperId, points:25, and reviewedAt. One explicit review credits one known photo to one existing helper; the timestamp cannot precede capture. Awards are immutable. Score combines these points with sticker, inventory, and completed cleanup points and shows the breakdown.
+Workspace.photoAwards separately stores observationId, helperId, points:25, and reviewedAt. One explicit review credits one known photo to one existing helper; the timestamp cannot precede capture. This includes general uploads and requires the same useful-information review as other photos. Awards are immutable. Score combines these points with sticker, inventory, and completed cleanup points and shows the breakdown.
 
 No automatic points, cash approvals, or payment records come from capture or joining. Score currently collects points only. The legacy cash ledger remains intact and may be displayed read-only; no dollar conversion is set.
 

@@ -3,19 +3,41 @@ import type { Tab } from '../App'
 import { GarageIcon } from '../components/GarageIcons'
 import { InstallGuide } from './InstallGuide'
 import type { GarageIconName } from '../components/GarageIcons'
-const tools: {tab: Tab; icon: GarageIconName; title: string; detail: string}[] = [
-  {tab: 'labels', icon: 'crate', title: 'Label & photograph', detail: 'Use your printed labels. Two photos per box.'},
-  {tab: 'observations', icon: 'missions', title: 'Photos & measurements', detail: 'One helpful photo, a parking view, or a tape measurement.'},
-  {tab: 'play', icon: 'floor', title: 'Cleanup missions', detail: 'When you’re ready to sort: before photo, cleanup, after photo.'},
-  {tab: 'score', icon: 'trophy', title: 'Score & points', detail: 'Helpful photos, finished cleanups, and each player’s points.'},
-  {tab: 'pickup', icon: 'pickup', title: 'Yellow Sack pickup', detail: 'Bag placement, truck access and your filling plan.'},
-  {tab: 'people', icon: 'crew', title: 'The crew', detail: 'People and their assigned cleanup tasks.'},
-  {tab: 'zones', icon: 'board', title: 'Task board', detail: 'Cleanup tasks organized by garage area.'},
-  {tab: 'capture', icon: 'crate', title: 'Item list', detail: 'Loose items, owners, and decisions saved on this device.'},
-  {tab: 'dashboard', icon: 'trophy', title: 'Task progress', detail: 'Team scores, completed tasks, and achievements.'},
-  {tab: 'results', icon: 'trophy', title: 'Team standings', detail: 'Compare completed tasks and points for each person.'},
-  {tab: 'sound', icon: 'sound', title: 'Sound controls', detail: 'Turn sound on or off and try each effect.'},
+import './start.css'
+
+const tools: {tab: Tab; icon: GarageIconName; title: string}[] = [
+  {tab: 'labels', icon: 'crate', title: 'Label crates'},
+  {tab: 'observations', icon: 'missions', title: 'Your photos'},
+  {tab: 'play', icon: 'floor', title: 'Cleanup missions'},
+  {tab: 'score', icon: 'trophy', title: 'Points'},
+  {tab: 'pickup', icon: 'pickup', title: 'Yellow Sack pickup'},
+  {tab: 'people', icon: 'crew', title: 'The crew'},
 ]
+const extraTools: typeof tools = [
+  {tab: 'zones', icon: 'board', title: 'Task board'},
+  {tab: 'capture', icon: 'crate', title: 'Item list (this device)'},
+  {tab: 'dashboard', icon: 'trophy', title: 'Task progress'},
+  {tab: 'results', icon: 'trophy', title: 'Team standings'},
+  {tab: 'sound', icon: 'sound', title: 'Sounds'},
+]
+
 export function More({onNavigate}: {onNavigate: (tab: Tab) => void}) {
-  return <main className="reset-home home-more"><header className="home-heading"><div><p className="home-eyebrow">GARAGE RESET</p><h1>Tools and help.</h1><p>Pickup planning, people, and instructions.</p></div></header><ShareFamilyLink/><details className="more-install"><summary>Put the app on your iPhone Home Screen</summary><InstallGuide /></details><section className="home-more-tools" aria-label="More garage tools">{tools.map(tool => <button key={tool.tab} onClick={() => onNavigate(tool.tab)}><span className="home-tool-icon"><GarageIcon name={tool.icon}/></span><span><strong>{tool.title}</strong><small>{tool.detail}</small></span><span aria-hidden="true">→</span></button>)}</section><section className="home-guide" aria-labelledby="phone-guide"><p className="home-eyebrow">THE PHONE PLAYBOOK</p><h2 id="phone-guide">How to use this app.</h2><details open><summary>I just want to take a helpful photo</summary><p>Tap <b>Missions</b>. Choose <b>Crate</b>, <b>Object moved</b>, <b>Both cars</b>, or <b>Measure</b>. Take a photo and save it; a note and tape reading are optional. There’s no label, player or timer to set up. Your photos and measurements join the shared collection for planning on the laptop.</p><button onClick={() => onNavigate('discover')}>Take a helpful photo →</button></details><details><summary>I want to clear a little space</summary><p>Open <b>Cleanup missions</b> above. Choose a patch, shelf, or crate and a 5, 10, or 15 minute round. Take a before photo, start the timer, and sort. Finish with an after photo and a clear parking path. You can pause and return to the same round.</p><button onClick={() => onNavigate('play')}>Choose a mission →</button></details><details><summary>I printed labels. What next?</summary><p>Open <b>Label & photograph</b>. Stick one label on an easy-to-reach crate and enter its ID, or scan its QR with your iPhone Camera. Take an outside photo showing the label and its location. Then take a contents photo and say what you see using your keyboard’s microphone. Close the box and try another. The photos and your notes are saved under its ID; volume and sorting decisions can wait.</p><button onClick={() => onNavigate('crates')}>Open Crates →</button></details><details><summary>I want to plan on my laptop</summary><p>Tap <b>Garage</b> for the 3D view, source photos, and object details. Use <b>Yellow Sack pickup</b> here in More for the bag plan. Crates and photo missions share between devices; pickup settings and garage footprint corrections currently stay on the device where you edit them.</p><button onClick={() => onNavigate('layout')}>Open the garage plan →</button></details><details><summary>How do the points work?</summary><p>A completed cleanup mission earns <b>100 points</b>. A useful photo earns <b>25 points</b> after John reviews it. Contents, locations, parking and measurements all count when they add useful information. Collect points now; dollar values will be decided later. The 50% space goal is tracked separately using container capacities and confirmed repacking.</p><button onClick={() => onNavigate('score')}>Open Score →</button></details><details><summary>Where are my photos and changes?</summary><p>Use the same family link on phone and laptop. Wait for the saved or shared status before switching devices. A visible workspace refreshes about every 30 seconds. If you see a draft or conflict message, open Crates or Missions to review it and export a backup. Keep your original photos.</p></details></section><details className="more-print"><summary>Print container labels (optional)</summary><p>When you’re ready to give boxes a permanent ID, print these on ordinary Letter paper at 100% size. You can take useful photos before labeling anything.</p><a href="/print/garage-labels-avery-5163-crates-1-5.pdf" target="_blank" rel="noreferrer">Avery 5163/8163 test sheet · Crates 1–5 ↓</a><a href="/print/garage-labels-avery-5163-crates-6-32.pdf" target="_blank" rel="noreferrer">Avery 5163/8163 · Remaining crates 6–32 ↓</a><a href="/print/garage-container-labels.pdf" target="_blank" rel="noreferrer">Download 32 blank QR labels →</a></details></main>
+  const toolButton = (tool: typeof tools[number]) => <button key={tool.tab} onClick={() => onNavigate(tool.tab)}><span className="home-tool-icon"><GarageIcon name={tool.icon}/></span><strong>{tool.title}</strong><span aria-hidden="true">→</span></button>
+  return <main className="reset-home home-more">
+    <header className="home-heading"><div><h1>More</h1></div></header>
+    <section className="home-more-tools" aria-label="Garage tools">{tools.map(toolButton)}</section>
+    <details className="more-install"><summary>Invite someone</summary><ShareFamilyLink/></details>
+    <details className="more-install"><summary>Add to iPhone Home Screen</summary><InstallGuide /></details>
+    <details className="more-install"><summary>Other tools</summary><section className="home-more-tools" aria-label="Other garage tools">{extraTools.map(toolButton)}</section></details>
+    <section className="home-guide" aria-labelledby="phone-guide">
+      <h2 id="phone-guide">Help</h2>
+      <details><summary>Add a photo</summary><p>Tap <b>Add photo</b>. Take or choose any garage photo, then save. Notes are optional.</p><button onClick={() => onNavigate('discover')}>Add photo →</button></details>
+      <details><summary>Label a crate</summary><p>Stick on its label. Choose the ID or scan its QR code. Photograph the outside, then the contents.</p><button onClick={() => onNavigate('labels')}>Label crates →</button></details>
+      <details><summary>Clear some space</summary><p>Choose one small area. Take a before photo, sort, then take an after photo. Keep both car spaces clear.</p><button onClick={() => onNavigate('play')}>Start cleanup →</button></details>
+      <details><summary>Plan on your laptop</summary><p>Open <b>Garage</b> for the 3D view. Photos and crate inventory sync across devices. Pickup settings and layout edits stay on the device you use.</p><button onClick={() => onNavigate('layout')}>Garage plan →</button></details>
+      <details><summary>Earn points</summary><p>Stickers and new inventory batches: <b>25 points</b>. Useful photos: <b>25</b> after John’s review. Finished cleanups: <b>100</b>. Dollar values come later.</p><button onClick={() => onNavigate('score')}>View points →</button></details>
+      <details><summary>Save across devices</summary><p>Use the family link on each device. Wait for <b>Saved</b> before switching. If a draft needs review, export it before loading shared changes. Keep your original photos.</p></details>
+    </section>
+    <details className="more-print"><summary>Print labels</summary><p>Letter paper · Actual size / 100%.</p><a href="/print/garage-labels-avery-5163-crates-1-5.pdf" target="_blank" rel="noreferrer">Avery 5163/8163 · Crates 1–5 ↓</a><a href="/print/garage-labels-avery-5163-crates-6-32.pdf" target="_blank" rel="noreferrer">Avery 5163/8163 · Crates 6–32 ↓</a><a href="/print/garage-container-labels.pdf" target="_blank" rel="noreferrer">Plain paper · All 32 crates ↓</a></details>
+  </main>
 }

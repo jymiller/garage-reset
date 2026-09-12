@@ -209,6 +209,18 @@ test('Blob rejects malformed, orphaned and duplicate photo awards before storage
   assert.equal(storage.writes.length, 1)
 })
 
+test('Blob general photos round trip without setup and reject unknown kinds without changing the saved photo', async t => {
+  const first = await fixture(t)
+  const data = { ...empty(), observations: [observation({ kind: 'general' })] }
+  assert.equal((await first.put(0, data)).status, 200)
+  const second = await fixture(t, { storage: first.storage })
+  assert.deepEqual(await (await second.get()).json(), { revision: 1, data })
+  const invalid = { ...data, observations: [observation({ kind: 'anything' })] }
+  assert.equal((await second.put(1, invalid)).status, 400)
+  assert.deepEqual(await (await first.get()).json(), { revision: 1, data })
+  assert.equal(first.storage.writes.length, 1)
+})
+
 test('Blob quick photos survive fresh handlers and old clients cannot remove whole or partial observations', async t => {
   const first = await fixture(t)
   assert.equal((await first.put(0, empty())).status, 200)

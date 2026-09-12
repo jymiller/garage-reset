@@ -3,7 +3,7 @@ import { GarageIcon } from './GarageIcons'
 
 const items = [
   { id: 'home' as Tab, label: 'Home', icon: 'home' as const },
-  { id: 'discover' as Tab, label: 'Missions', icon: 'missions' as const },
+  { id: 'discover' as Tab, label: 'Add photo', icon: 'missions' as const },
   { id: 'crates' as Tab, label: 'Crates', icon: 'crate' as const },
   { id: 'layout' as Tab, label: 'Garage', icon: 'garage' as const },
   { id: 'more' as Tab, label: 'More', icon: 'more' as const },

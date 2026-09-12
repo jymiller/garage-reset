@@ -78,7 +78,7 @@ export type ObservationMeasurement = {
 /** A quick photo and optional human measurement, independent of inventory or missions. */
 export type Observation = {
   id: string
-  kind: 'crate' | 'parking' | 'measurement' | 'placement'
+  kind: 'general' | 'crate' | 'parking' | 'measurement' | 'placement'
   photo: string
   notes: string
   location: string
@@ -272,7 +272,7 @@ export function validSpatialItem(raw: unknown): raw is SpatialItem {
 export function validateObservation(raw: unknown): raw is Observation {
   const value = record(raw)
   if (!value || !exactKeys(value, ['id', 'kind', 'photo', 'notes', 'location', 'crateId', 'measurement', 'createdAt'], ['labelCode', 'photoRole', 'helperId'])
-    || !textIsValid(value.id, 120, true) || !['crate', 'parking', 'measurement', 'placement'].includes(value.kind as string)
+    || !textIsValid(value.id, 120, true) || !['general', 'crate', 'parking', 'measurement', 'placement'].includes(value.kind as string)
     || typeof value.photo !== 'string' || !PHOTO_PATH.test(value.photo)
     || !textIsValid(value.notes, 4000) || !textIsValid(value.location, 160)
     || !(value.crateId === null || textIsValid(value.crateId, 120, true))

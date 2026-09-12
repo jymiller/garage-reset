@@ -47,8 +47,8 @@ export function HelperIdentity({ workspace, selectedPlayerId, onSelectPlayer }: 
     const remembered = rememberHelperPlayerId(playerId)
     onSelectPlayer(playerId)
     setNotice({ type: 'selected', text: playerId === null
-      ? 'You can keep taking photos without a name.'
-      : `${newName ?? person!.name} is selected for your next mission.${remembered ? '' : ' This browser could not remember the choice; choose your name again when you return.'}` })
+      ? 'Photos will save without a name.'
+      : `${newName ?? person!.name} selected.${remembered ? '' : ' Choose again next visit; this browser could not remember.'}` })
   }
 
   function addName() {
@@ -56,7 +56,7 @@ export function HelperIdentity({ workspace, selectedPlayerId, onSelectPlayer }: 
     if (!entered || entered.length > 80 || saving.current) return
     const existing = players.find(player => normalizedName(player.name).toLowerCase() === entered.toLowerCase())
     if (existing) { choose(existing.id); setAdding(false); setName(''); return }
-    if (!canRegister) { setNotice({ type: 'error', text: 'Connect and finish any pending save before adding your name. You can still take photos.' }); return }
+    if (!canRegister) { setNotice({ type: 'error', text: 'Wait for the save, then try again. Photos still work.' }); return }
     saving.current = true
     try {
       const newId = crypto.randomUUID()
@@ -71,32 +71,31 @@ export function HelperIdentity({ workspace, selectedPlayerId, onSelectPlayer }: 
         return result.data
       })
       if (!accepted || !resolvedId) {
-        setNotice({ type: 'error', text: 'Your name was not added. Keep it here and try again after the shared save finishes.' })
+        setNotice({ type: 'error', text: 'Name not saved. Wait for the save, then try again.' })
         return
       }
       choose(resolvedId, resolvedName)
       if (changed) setNotice({ type: 'added', text: resolvedName, playerId: resolvedId })
       setAdding(false); setName('')
     } catch {
-      setNotice({ type: 'error', text: 'Your name could not be added. Your text is still here; try again.' })
+      setNotice({ type: 'error', text: 'Name not saved. Try again.' })
     } finally { saving.current = false }
   }
 
   const noticeText = notice?.type === 'added'
     ? workspace.status === 'shared' && !workspace.dirty && players.some(player => player.id === notice.playerId)
-      ? `${notice.text} is saved with the family and selected for your next mission.`
+      ? `${notice.text} selected and saved.`
       : workspace.conflict
-        ? `${notice.text} is in this device’s draft. Review the shared-save conflict before leaving.`
-        : `${notice.text} is in this device’s draft. Waiting to save with the family.`
+        ? `${notice.text} is on this device. Resolve the save conflict.`
+        : `Saving ${notice.text}…`
     : notice?.text
 
   return <section className="helper-identity" aria-labelledby={id + '-heading'}>
-    <div className="helper-identity-heading"><GarageIcon name="crew" /><div><h2 id={id + '-heading'}>Who’s helping?</h2><p>Choose your name for your next mission. You can take photos without choosing a name.</p></div></div>
+    <div className="helper-identity-heading"><GarageIcon name="crew" /><div><h2 id={id + '-heading'}>Your name</h2></div></div>
     <>
-      <div className="helper-identity-choice"><label htmlFor={id + '-player'}>Your name<select id={id + '-player'} value={selected?.id ?? ''} onChange={event => choose(event.target.value || null)}><option value="">Continue without a name</option>{players.map(player => <option key={player.id} value={player.id}>{player.name}</option>)}</select></label><button type="button" className="helper-identity-add" aria-expanded={adding} aria-controls={id + '-add'} onClick={() => { setAdding(value => !value); setNotice(null) }}>{adding ? 'Cancel' : 'Add my name'}</button></div>
-      {adding && <form id={id + '-add'} className="helper-identity-form" onSubmit={event => { event.preventDefault(); addName() }}><label htmlFor={id + '-name'}>What should we call you?<input id={id + '-name'} value={name} maxLength={80} autoComplete="given-name" autoCapitalize="words" onChange={event => setName(event.target.value)} placeholder="First name or nickname" required /></label><button type="submit" disabled={!normalizedName(name) || !canRegister}>Use this name</button>{!canRegister && <p>Wait for the family save to finish, or keep taking photos without a name.</p>}</form>}
+      <div className="helper-identity-choice"><label htmlFor={id + '-player'}><span className="helper-identity-sr-only">Choose your name</span><select id={id + '-player'} value={selected?.id ?? ''} onChange={event => choose(event.target.value || null)}><option value="">No name yet</option>{players.map(player => <option key={player.id} value={player.id}>{player.name}</option>)}</select></label><button type="button" className="helper-identity-add" aria-expanded={adding} aria-controls={id + '-add'} onClick={() => { setAdding(value => !value); setNotice(null) }}>{adding ? 'Cancel' : 'Add name'}</button></div>
+      {adding && <form id={id + '-add'} className="helper-identity-form" onSubmit={event => { event.preventDefault(); addName() }}><label htmlFor={id + '-name'}>Name<input id={id + '-name'} value={name} maxLength={80} autoComplete="given-name" autoCapitalize="words" onChange={event => setName(event.target.value)} placeholder="First name or nickname" required /></label><button type="submit" disabled={!normalizedName(name) || !canRegister}>Save</button>{!canRegister && <p>Waiting for the save…</p>}</form>}
     </>
-    <p className="helper-identity-optional">Your name will appear on Score. Collect points now; dollar values come later.</p>
     {noticeText && <p className={'helper-identity-notice ' + (notice?.type ?? '')} role={notice?.type === 'error' ? 'alert' : 'status'}>{noticeText}</p>}
   </section>
 }
