@@ -119,3 +119,20 @@
   .play-alert,.play-message{font-size:16px;line-height:1.6}
   .play-crate-bridge{align-items:flex-start}
 }
+
+/* Use the same pictured objects in the mission chooser and navigation. */
+.play-choice-icon{display:block;width:56px;height:56px;flex-shrink:0}
+.play-primary>svg{width:28px;height:28px;flex-shrink:0}
+.play-crate-bridge>.play-choice-icon{width:48px;height:48px}
+@media(max-width:760px){
+ .play-mode{grid-template-columns:48px minmax(0,1fr) auto;gap:10px;min-height:104px}
+ .play-choice-icon{width:48px;height:48px}
+ .play-mode-select{max-width:54px}
+}
+@media(max-width:360px){
+ .play-mode{grid-template-columns:44px minmax(0,1fr);column-gap:10px;row-gap:4px}
+ .play-mode-top{grid-column:1;grid-row:1/3}
+ .play-mode .play-choice-icon{width:44px;height:44px}
+ .play-mode h3{grid-column:2;grid-row:1}
+ .play-mode-select{grid-column:2;grid-row:2;max-width:none;text-align:left}
+}

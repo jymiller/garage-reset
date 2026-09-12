@@ -93,3 +93,5 @@
 }
 
 @media(max-width:760px){.crate-title-actions .crate-label-button{display:block}.crate-welcome li b{font-size:17px}.crate-welcome li span{font-size:16px}.crate-scan-result>span{font-size:12px}.crate-photo-button.crate-photo-library{font-size:16px!important}}
+
+.crate-empty-icon{display:block;width:76px;height:76px;margin:0 auto 15px}.crate-camera-icon{width:64px;height:64px;flex-shrink:0}

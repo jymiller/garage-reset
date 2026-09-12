@@ -10,7 +10,7 @@ Open the existing family link on each device. New visits start at Home; existing
 - **Garage:** the photo-linked 3D model and spatial catalog. The laptop retains its larger planning workbench.
 - **More:** Yellow Sack pickup, crew, original task board/inventory/game scores, sound controls, and the phone playbook.
 
-The game shell uses system fonts, clear touch controls, a bottom bar on phones, and a top bar on laptops. Navigation participates in browser Back/Forward. Returning to an active mission or crate preserves its local view; the mission board and All containers controls return to their respective lists.
+The game shell uses system fonts, clear touch controls, a bottom bar on phones, and a top bar on laptops. Illustrated icons show a house, mission camera, smiling crate, garage, and toolbox; every destination keeps its text label. Phone navigation icons are 38px with 74px minimum-height buttons. Home tool icons are 54px, and mission choices show a broom, shelf, or crate at 44–48px. Navigation participates in browser Back/Forward. Returning to an active mission or crate preserves its local view; the mission board and All containers controls return to their respective lists.
 
 ## Label boxes before sorting
 

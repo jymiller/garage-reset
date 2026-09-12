@@ -161,3 +161,22 @@ body.garage-modern::after{display:none}
  .home-more-tools strong{font-size:17px}.home-more-tools small{font-size:15px}.home-guide summary{font-size:17px}.home-guide details p{font-size:16px}.home-guide details button{font-size:16px}.home-guide h2{font-size:27px}
  .garage-shell .layout-heading>div>p,.garage-shell .layout-next p,.garage-shell .layout-parking-note,.garage-shell .layout-observation p,.garage-shell .layout-action p,.garage-shell .layout-roadmap p,.garage-shell .layout-capture-content>p,.garage-shell .layout-capture-grid p{font-size:16px!important}.garage-shell .layout-mobile-select{font-size:15px}.garage-shell .layout-local,.garage-shell .layout-badge,.garage-shell .layout-view-note,.garage-shell .layout-local-note,.garage-shell .layout-sources>div{font-size:12px}.garage-shell .layout-layer-tools label{font-size:14px}.garage-shell .layout-toolbar .layout-segment button,.garage-shell .layout-view-tools .layout-segment button{font-size:14px}.garage-shell .layout-eyebrow{font-size:11px}
 }
+
+/* Illustrated objects remain recognizable at phone navigation sizes. */
+.garage-nav-icon{width:34px;height:34px;flex-shrink:0}
+.garage-nav-items>button{gap:9px;padding:9px 13px}
+.home-tool-icon{width:66px;height:66px;border-radius:18px;background:#f0e5d1}
+.home-tool-icon svg{display:block;width:56px;height:56px}
+.home-round-icon{width:50px;height:50px;background:transparent}
+.home-round-icon svg{width:46px;height:46px}
+@media(max-width:760px){
+ .garage-shell{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+ .garage-nav-items>button{min-height:74px;gap:3px;padding:6px 2px 5px;font-size:12px}
+ .garage-nav-icon{width:38px;height:38px}
+ .home-tool-icon{width:64px;height:64px;border-radius:17px}
+ .home-tool-icon svg{width:54px;height:54px}
+ .home-more-tools>button{gap:12px;padding:16px}
+ .home-more-tools .home-tool-icon{width:58px;height:58px}
+ .home-more-tools .home-tool-icon svg{width:50px;height:50px}
+}
+@media(max-width:360px){.home-more-tools>button{gap:10px;padding:14px}.home-more-tools .home-tool-icon{width:52px;height:52px}.home-more-tools .home-tool-icon svg{width:46px;height:46px}}

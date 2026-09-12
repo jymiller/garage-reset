@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
+import { GarageIcon } from '../components/GarageIcons'
 import { ContainerLabel } from './ContainerLabel'
 import { findCrateByCode } from './labelLinks'
 import './labelActions.css'
@@ -78,7 +79,7 @@ export function CrateWorkspace({ onNavigate, initialCrateId, initialStep, onPlay
         <aside className="crate-roster">
           <div className="crate-roster-heading"><h2>Your containers</h2><button disabled={!registrationReady} onClick={() => setAdding(true)}>+ Add</button></div>
           <input aria-label="Find a crate" placeholder="Find by ID, contents label or shelf…" value={query} onChange={e=>setQuery(e.target.value)} />
-          {!data.crates.length && <div className="roster-empty"><span>01</span><p>Start with one real crate.<br />Give it a label you can find again.</p></div>}
+          {!data.crates.length && <div className="roster-empty"><GarageIcon name="crate" className="crate-empty-icon"/><p>Start with one real crate.<br />Give it a label you can find again.</p></div>}
           {filtered.map(c => <button key={c.id} className={`crate-roster-item ${selected===c.id?'selected':''}`} onClick={()=>openCrate(c.id)}><span className="crate-code">{c.code}</span><strong>{c.name}</strong><small>{c.location || 'Location not recorded'}</small><span className={`crate-state ${c.status}`}>{c.status}</span><span className="roster-volume">{liters(c.capacityLiters*(c.status==='repacked'?c.currentFill:c.baselineFill)/100)}</span></button>)}
           {data.crates.length>0 && !filtered.length && <p className="roster-empty">No matching containers.</p>}
         </aside>
@@ -89,7 +90,7 @@ export function CrateWorkspace({ onNavigate, initialCrateId, initialStep, onPlay
             <div className="crate-step-tabs" role="group" aria-label="Crate session step">{(['locate','sort','repack'] as const).map((s,i)=><button key={s} aria-pressed={step===s} onClick={()=>setStep(s)}><span>0{i+1}</span>{s==='locate'?'Locate':s==='sort'?'Open & sort':'Repack'}</button>)}</div>
             {step==='locate' && <div className="crate-locate" key={crate.id}>
               <div className="crate-photo" aria-busy={photoBusy}>
-                {crate.photo ? <img src={crate.photo} alt={`${crate.code}: ${crate.name}`} /> : <div><span>▧</span><p>Show the label and the open contents.</p></div>}
+                {crate.photo ? <img src={crate.photo} alt={`${crate.code}: ${crate.name}`} /> : <div><GarageIcon name="missions" className="crate-camera-icon"/><p>Show the label and the open contents.</p></div>}
                 <label className={`crate-photo-button ${photoBusy?'busy':''}`}>{photoBusy?'Uploading…':crate.photo?'Retake crate photo':'Take crate photo'}<input aria-label="Crate photo camera" type="file" accept="image/*" capture="environment" disabled={photoBusy} onChange={e=>{void addPhoto(e.target.files?.[0]);e.target.value=''}} /></label>
                 <label className={`crate-photo-button crate-photo-library ${photoBusy?'busy':''}`}>Choose from photos<input aria-label="Crate photo library" type="file" accept="image/*" disabled={photoBusy} onChange={e=>{void addPhoto(e.target.files?.[0]);e.target.value=''}} /></label>
               </div>
