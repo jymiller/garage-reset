@@ -6,9 +6,26 @@
   "functions": {
     "api/garage.js": {
       "maxDuration": 30
+    },
+    "api/photo-analysis-worker.js": {
+      "maxDuration": 90,
+      "experimentalTriggers": [
+        {
+          "type": "queue/v2beta",
+          "topic": "garage-photo-analysis"
+        }
+      ]
     }
   },
   "rewrites": [
+    {
+      "source": "/api/analysis",
+      "destination": "/api/garage?route=analysis"
+    },
+    {
+      "source": "/api/analysis/retry",
+      "destination": "/api/garage?route=analysis-retry"
+    },
     {
       "source": "/api/access",
       "destination": "/api/garage?route=access"

@@ -17,12 +17,15 @@
     "test:spatial": "node src/garage/spatial.test.mjs",
     "test:access": "node --test server/access.test.mjs && node src/access/access.test.mjs",
     "test:vercel": "node --test server/vercel.test.mjs",
-    "test:labels": "node --test src/crates/labelLinks.test.mjs"
+    "test:labels": "node --test src/crates/labelLinks.test.mjs",
+    "test:analysis": "node --test src/analysis/contract.test.mjs server/photo-analysis.test.mjs server/photo-analysis-routes.test.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
     "@vercel/blob": "^2.8.0",
+    "@vercel/oidc": "^3.8.7",
+    "@vercel/queue": "^0.5.1",
     "qrcode-generator": "^2.0.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

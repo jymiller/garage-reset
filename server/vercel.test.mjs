@@ -501,7 +501,8 @@ test('photo uploads inspect signatures and expose only protected application URL
   assert.equal((await head.arrayBuffer()).byteLength, 0)
   assert.equal((await get('photos', { method: 'POST', headers: { ...headers, 'content-type': 'image/jpeg' }, body: PNG })).status, 415)
   assert.equal((await get('photos', { method: 'POST', headers, body: 'not an image' })).status, 415)
-  assert.equal(storage.writes.length, 1)
+  assert.equal(storage.writes.filter(write => write.key.startsWith('garage/photos/')).length, 1)
+  assert.ok(storage.writes.some(write => write.key.startsWith('garage/analysis/')))
 })
 
 test('evidence stays inside its prefix and encoded traversal cannot reach workspace or other blobs', async t => {
@@ -599,5 +600,6 @@ test('preparsed Vercel query and body values retain validation and upload suppor
   assert.equal(put.status, 200)
   const photo = await get('photos', { method: 'POST', headers: { 'content-type': 'image/png' }, body: PNG })
   assert.equal(photo.status, 201)
-  assert.equal(storage.writes.length, 2)
+  assert.equal(storage.writes.filter(write => !write.key.startsWith('garage/analysis/')).length, 2)
+  assert.ok(storage.writes.some(write => write.key.startsWith('garage/analysis/')))
 })

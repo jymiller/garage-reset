@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto'
 import { validEnvelope, readBody, photoFormat, observationsPreserved, photoAwardsPreserved, activityCreditsPreserved } from './app.mjs'
 import { rewardsTransitionError } from '../src/rewards/contract.mjs'
 import { isAuthorized, handleAccess } from './access.mjs'
+import { AnalysisError, createPhotoAnalysisService, enqueuePhotoAnalysis } from './photo-analysis.mjs'
+import { isPhotoFilename } from '../src/analysis/contract.mjs'
 
 const WORKSPACE_KEY = 'garage/workspace.json'
 const WORKSPACE_LIMIT = 2 * 1024 * 1024
@@ -16,7 +18,7 @@ const DIAGNOSTIC_STAGES = new Set([
   'workspace-recovery-read', 'workspace-recovery-metadata', 'workspace-recovery-decode', 'workspace-recovery-schema',
   'workspace-revision', 'workspace-observations', 'workspace-photo-awards', 'workspace-activity-credits',
   'workspace-rewards', 'workspace-serialize', 'workspace-write', 'workspace-response',
-  'photo-request', 'photo-write', 'photo-response', 'image-read', 'image-response',
+  'photo-request', 'photo-write', 'photo-response', 'image-read', 'image-response', 'analysis-read', 'analysis-queue',
 ])
 const DIAGNOSTIC_ERROR_CLASSES = new Set([
   'Error', 'TypeError', 'RangeError', 'SyntaxError', 'ReferenceError', 'URIError', 'AggregateError', 'DOMException',
@@ -146,12 +148,14 @@ function routeQuery(req) {
     if (value !== null && value !== undefined && typeof value !== 'string') throw new RequestError(400, 'Invalid route.')
     return value
   }
-  const route = field('route'), name = field('name')
-  if (route) return { route, name }
+  const route = field('route'), name = field('name'), photo = field('photo')
+  if (route) return { route, name, photo }
   let pathname
   try { pathname = decodeURIComponent(url.pathname) } catch { throw new RequestError(400, 'Invalid route.') }
   if (pathname === '/api/workspace') return { route: 'workspace', name }
   if (pathname === '/api/photos') return { route: 'photos', name }
+  if (pathname === '/api/analysis') return { route: 'analysis', photo }
+  if (pathname === '/api/analysis/retry') return { route: 'analysis-retry', photo }
   if (pathname.startsWith('/api/photos/')) return { route: 'photo', name: pathname.slice('/api/photos/'.length) }
   if (pathname.startsWith('/evidence/')) return { route: 'evidence', name: pathname.slice('/evidence/'.length) }
   return { route, name }
@@ -182,6 +186,7 @@ async function workspaceSnapshot(storage, setStage = () => {}, recovery = false)
 /** No local files or process-level workspace cache: conditional Blob writes handle concurrency across function instances. */
 export function createVercelHandler({ storage = createBlobStorage(), authorize = isAuthorized, access = handleAccess,
   logError = diagnostic => console.error(JSON.stringify(diagnostic)),
+  analysis = createPhotoAnalysisService({ storage, enqueue: enqueuePhotoAnalysis }),
 } = {}) {
   return async function handler(req, res) {
     let stage = 'request'
@@ -197,7 +202,24 @@ export function createVercelHandler({ storage = createBlobStorage(), authorize =
       stage = 'authorization'
       if (!await authorize(req)) { req.resume?.(); json(res, 401, { error: 'Open your private garage link on this device to continue.' }); return }
       stage = 'route'
-      const { route, name } = routeQuery(req)
+      const { route, name, photo } = routeQuery(req)
+      if (route === 'analysis' || route === 'analysis-retry') {
+        if (route === 'analysis') {
+          if (req.method !== 'GET') { res.setHeader('Allow', 'GET'); throw new RequestError(405, 'Method not allowed.') }
+          if (!isPhotoFilename(photo)) throw new RequestError(400, 'Choose an uploaded photo.')
+          stage = 'analysis-read'
+          json(res, 200, { analysis: await analysis.get(photo) }); return
+        }
+        if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); throw new RequestError(405, 'Method not allowed.') }
+        if (mediaType(req) !== 'application/json') throw new RequestError(415, 'Use application/json.')
+        let body
+        try { body = JSON.parse((await requestBytes(req, 1024)).toString('utf8')) }
+        catch (error) { if (error instanceof RequestError) throw error; throw new RequestError(400, 'Invalid JSON.') }
+        if (!body || typeof body !== 'object' || Object.keys(body).length !== 1 || !isPhotoFilename(body.photo)) throw new RequestError(400, 'Choose an uploaded photo.')
+        stage = 'analysis-queue'
+        const record = await analysis.queue(body.photo)
+        json(res, ['queued', 'processing'].includes(record.status) ? 202 : 200, { analysis: record }); return
+      }
       if (route === 'workspace') {
         if (req.method === 'GET') {
           const current = await workspaceSnapshot(storage, setStage)
@@ -255,8 +277,11 @@ export function createVercelHandler({ storage = createBlobStorage(), authorize =
         stage = 'photo-write'
         await storage.write(`garage/photos/${filename}`, bytes, { contentType: MIME[extension], createOnly: true })
         const url = `/api/photos/${filename}`
+        let record = null
+        try { stage = 'analysis-queue'; record = await analysis.queue(filename, bytes) }
+        catch (error) { try { logError(storageDiagnostic(stage, error)) } catch { /* The image is safely stored. */ } }
         stage = 'photo-response'
-        json(res, 201, { url, src: url, filename }); return
+        json(res, 201, { url, src: url, filename, analysis: record }); return
       }
       if (route === 'photo' || route === 'evidence') {
         if (!['GET', 'HEAD'].includes(req.method)) { res.setHeader('Allow', 'GET, HEAD'); throw new RequestError(405, 'Method not allowed.') }
@@ -272,7 +297,7 @@ export function createVercelHandler({ storage = createBlobStorage(), authorize =
       throw new RequestError(404, 'API route not found.')
     } catch (error) {
       // Never return tokens, Blob URLs or provider diagnostics to the browser.
-      const status = error instanceof RequestError ? error.status : 503
+      const status = error instanceof RequestError || error instanceof AnalysisError ? error.status : 503
       if (status === 503) {
         // Only fixed labels reach server logs: never the error message, stack,
         // request, private photo path, workspace data or provider credentials.

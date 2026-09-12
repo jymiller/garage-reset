@@ -7,6 +7,8 @@ import os from 'node:os'
 import { fileURLToPath } from 'node:url'
 import { pipeline } from 'node:stream/promises'
 import { validateRewardBook, rewardsTransitionError } from '../src/rewards/contract.mjs'
+import { createPhotoAnalysisService, createAnalysisFileStorage } from './photo-analysis.mjs'
+import { isPhotoFilename } from '../src/analysis/contract.mjs'
 
 const APP_ROOT = fileURLToPath(new URL('..', import.meta.url))
 const WORKSPACE_LIMIT = 2 * 1024 * 1024
@@ -369,6 +371,7 @@ async function fileInside(directory, file) {
 export async function createGarageServer({
   dataDir,
   root = APP_ROOT, dev = false, password = process.env.GARAGE_PASSWORD, host,
+  analysis,
 } = {}) {
   root = path.resolve(root)
   dataDir = path.resolve(dataDir || process.env.GARAGE_DATA_DIR || path.join(root, '.garage-data'))
@@ -389,6 +392,7 @@ export async function createGarageServer({
   const photoDir = path.join(dataDir, 'photos'), evidenceDir = path.join(dataDir, 'evidence')
   const stateFile = path.join(dataDir, 'workspace.json')
   await fs.mkdir(photoDir, { recursive: true, mode: 0o700 })
+  analysis ??= createPhotoAnalysisService({ storage: createAnalysisFileStorage(dataDir) })
   let state
   try {
     state = JSON.parse(await fs.readFile(stateFile, 'utf8'))
@@ -420,6 +424,23 @@ export async function createGarageServer({
         if (!['http:', 'https:'].includes(origin.protocol) || origin.host !== req.headers.host) {
           throw new HttpError(403, 'Cross-origin writes are not allowed.')
         }
+      }
+      if (pathname === '/api/analysis' || pathname === '/api/analysis/retry') {
+        if (pathname === '/api/analysis') {
+          if (req.method !== 'GET') { res.setHeader('Allow', 'GET'); throw new HttpError(405, 'Method not allowed.') }
+          const params = new URL(req.url, 'http://local').searchParams
+          const photo = params.get('photo')
+          if (params.getAll('photo').length !== 1 || !isPhotoFilename(photo)) throw new HttpError(400, 'Choose an uploaded photo.')
+          json(res, 200, { analysis: await analysis.get(photo) }); return
+        }
+        if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); throw new HttpError(405, 'Method not allowed.') }
+        if (req.headers['content-type']?.split(';')[0].trim().toLowerCase() !== 'application/json') throw new HttpError(415, 'Use application/json.')
+        const bytes = await readBody(req, 1024)
+        let body
+        try { body = JSON.parse(bytes.toString('utf8')) } catch { throw new HttpError(400, 'Invalid JSON.') }
+        if (!body || typeof body !== 'object' || Object.keys(body).length !== 1 || !isPhotoFilename(body.photo)) throw new HttpError(400, 'Choose an uploaded photo.')
+        const record = await analysis.queue(body.photo)
+        json(res, ['queued', 'processing'].includes(record.status) ? 202 : 200, { analysis: record }); return
       }
       if (pathname === '/api/workspace') {
         if (req.method === 'GET') { json(res, 200, state); return }
@@ -461,7 +482,9 @@ export async function createGarageServer({
         const filename = `${randomUUID()}.${extension}`
         await atomicWrite(path.join(photoDir, filename), bytes)
         const url = `/api/photos/${filename}`
-        json(res, 201, { url, src: url, filename }); return
+        let record = null
+        try { record = await analysis.queue(filename, bytes) } catch { /* Analysis must never invalidate a saved photo. */ }
+        json(res, 201, { url, src: url, filename, analysis: record }); return
       }
       if (pathname.startsWith('/api/photos/')) {
         if (!['GET', 'HEAD'].includes(req.method)) { res.setHeader('Allow', 'GET, HEAD'); throw new HttpError(405, 'Method not allowed.') }
