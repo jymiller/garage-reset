@@ -69,3 +69,53 @@
   .play-timer b{font-size:70px}
   .play-side-photos{grid-template-columns:1fr}
 }
+
+/* Phone text stays readable through setup, sorting and photo review. */
+@media(max-width:760px){
+  .play-app{font-size:16px;line-height:1.6}
+  .play-app p,.play-app label,.play-field-label,.play-coach li,.play-counter-label,.play-round-counts>span{font-size:16px;line-height:1.6}
+  .play-app h1{font-size:32px;line-height:1.15}
+  .play-app h2,.play-app h3{font-size:24px;line-height:1.3;letter-spacing:-.5px}
+  .play-app .play-primary,.play-app .play-secondary,.play-app .play-back,.play-app .play-text-button,.play-app .play-photo-library,.play-app .play-parking-check{font-size:16px!important}
+  .play-app .play-fine,.play-app .play-setup .play-fine{font-size:16px!important;line-height:1.6!important}
+  .play-status-row{font-size:13px;line-height:1.5;align-items:flex-start}
+  .play-status-row button,.play-nav nav button,.play-bottom-note button,.play-compare-heading button,.play-alert button{font-size:16px}
+  .play-nav{gap:16px;flex-wrap:wrap}
+  .play-logo b,.play-level{font-size:12px}
+  .play-nav nav{flex-wrap:wrap}
+  .play-kicker,.play-round-title .play-kicker,.play-timer-card>.play-kicker,.play-photo-caption,.play-photo-reticle,.play-photo-sticker>span,.play-mode-top>b,.play-mode-select,.play-camera-empty>span,.play-active-before span,.play-round-prize,.play-victory-level span,.before-label,.after-label,.play-badges span,.play-side-photos figcaption{font-size:12px;line-height:1.5;letter-spacing:.6px}
+  .play-app small,.play-capture-controls small,.play-win-card small,.play-minutes small{font-size:12px;line-height:1.5}
+  .play-section-heading{align-items:flex-start;flex-wrap:wrap;gap:12px}
+  .play-section-heading>span,.play-round-heading{font-size:14px;line-height:1.5}
+  .play-mode{min-height:88px;grid-template-columns:22px minmax(0,1fr) auto;gap:8px;padding:12px}
+  .play-mode h3{font-size:24px;line-height:1.25;letter-spacing:-.5px}
+  .play-mode-select{max-width:65px}
+  .play-setup{gap:22px}
+  .play-minutes button{font-size:22px;min-height:52px}
+  .play-empty-wall{align-items:flex-start}
+  .play-empty-wall b{font-size:16px;line-height:1.6}
+  .play-win-card>div>span{font-size:12px}
+  .play-round-title{flex-wrap:wrap;align-items:flex-start}
+  .play-round-title>div{flex:1 1 180px}
+  .play-round-prize{padding:9px 12px}
+  .play-round-prize b{font-size:24px}
+  .play-steps>div{font-size:16px;gap:7px;flex-direction:column}
+  .play-steps span{font-size:12px;width:27px;height:27px}
+  .play-camera-empty{padding:26px 18px}
+  .play-coach li:before{font-size:12px;top:3px}
+  .play-time-ticket>span{font-size:12px;line-height:1.5}
+  .play-time-ticket small{font-size:16px}
+  .play-timer span{font-size:16px}
+  .play-counter-label{font-size:16px;line-height:1.4;min-height:45px}
+  .play-counter-label i{font-size:20px;line-height:1.2}
+  .play-counter b{font-size:36px}
+  .play-counter button{font-size:26px;min-height:48px}
+  .play-coach-note b,.play-crate-bridge b{font-size:16px;line-height:1.5}
+  .play-round-counts{gap:16px}
+  .play-round-counts b{font-size:28px}
+  .play-compare-heading>div{flex-wrap:wrap}
+  .play-compare-heading button{flex:1 1 120px;font-size:16px;min-height:48px}
+  .play-app .play-wipe-control{font-size:16px!important}
+  .play-alert,.play-message{font-size:16px;line-height:1.6}
+  .play-crate-bridge{align-items:flex-start}
+}

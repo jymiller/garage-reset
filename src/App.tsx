@@ -13,11 +13,12 @@ import { FinalStandings } from './screens/FinalStandings'
 import { PickupPlanner } from './pickup/PickupPlanner'
 import { CrateWorkspace } from './crates/CrateWorkspace'
 import './home/home.css'
+import { parseCrateLabelHash } from './crates/labelLinks'
 
 export type Tab = 'home' | 'more' | 'dashboard' | 'people' | 'zones' | 'snowball' | 'capture' | 'layout' | 'sound' | 'results' | 'pickup' | 'crates' | 'play'
 const tabs: Tab[] = ['home', 'more', 'pickup', 'crates', 'play', 'dashboard', 'people', 'zones', 'snowball', 'capture', 'layout', 'sound', 'results']
 const readTab = (): Tab => {
-  const hash = window.location.hash.slice(1) as Tab
+  const hash = window.location.hash.slice(1).split('?')[0] as Tab
   return tabs.includes(hash) ? hash : 'home'
 }
 
@@ -26,13 +27,14 @@ export function App() {
   const [playCrateId, setPlayCrateId] = useState<string|null>(null)
   const [crateInitialStep, setCrateInitialStep] = useState<'locate' | 'sort' | 'repack'>('locate')
   const [crateFocus, setCrateFocus] = useState<string|null>(null)
+  const [labelCode, setLabelCode] = useState<string|null>(() => parseCrateLabelHash(window.location.hash))
 
   useEffect(() => {
-    const followHistory = () => { setCrateFocus(null); setPlayCrateId(null); setTab(readTab()) }
+    const followHistory = () => { setCrateFocus(null); setPlayCrateId(null); setLabelCode(parseCrateLabelHash(window.location.hash)); setTab(readTab()) }
     window.addEventListener('hashchange', followHistory)
     window.addEventListener('popstate', followHistory)
     document.body.classList.add('garage-modern')
-    if (!tabs.includes(window.location.hash.slice(1) as Tab)) history.replaceState(null, '', '#home')
+    if (!tabs.includes(window.location.hash.slice(1).split('?')[0] as Tab)) history.replaceState(null, '', '#home')
     return () => {
       window.removeEventListener('hashchange', followHistory)
       window.removeEventListener('popstate', followHistory)
@@ -43,12 +45,12 @@ export function App() {
   useEffect(() => { window.scrollTo(0, 0) }, [tab])
 
   function navigate(next: Tab) {
-    if (next !== tab) history.pushState(null, '', `#${next}`)
+    if (window.location.hash !== `#${next}`) history.pushState(null, '', `#${next}`)
     setTab(next)
   }
-  function goTo(next: Tab) { setCrateFocus(null); setPlayCrateId(null); navigate(next) }
+  function goTo(next: Tab) { setLabelCode(null); setCrateFocus(null); setPlayCrateId(null); navigate(next) }
   function openCrate(id: string, step: 'locate' | 'sort' | 'repack' = 'locate') {
-    setCrateFocus(id); setCrateInitialStep(step); setPlayCrateId(null); navigate('crates')
+    setLabelCode(null); setCrateFocus(id); setCrateInitialStep(step); setPlayCrateId(null); navigate('crates')
   }
 
   let screen
@@ -56,7 +58,7 @@ export function App() {
   else if (tab === 'more') screen = <More onNavigate={goTo} />
   else if (tab === 'layout') screen = <Garage onNavigate={goTo} onOpenCrate={id => openCrate(id)} />
   else if (tab === 'pickup') screen = <PickupPlanner onNavigate={goTo} />
-  else if (tab === 'crates') screen = <CrateWorkspace onNavigate={goTo} initialCrateId={crateFocus} initialStep={crateInitialStep} onPlayCrate={id => { setPlayCrateId(id); setCrateFocus(null); navigate('play') }} />
+  else if (tab === 'crates') screen = <CrateWorkspace key={labelCode ?? "workspace"} labelCode={labelCode} onNavigate={goTo} initialCrateId={crateFocus} initialStep={crateInitialStep} onPlayCrate={id => { setPlayCrateId(id); setCrateFocus(null); navigate('play') }} />
   else if (tab === 'play' || tab === 'snowball') screen = <PhotoPlay onNavigate={goTo} initialCrateId={playCrateId} onOpenCrate={id => openCrate(id, 'repack')} />
   else screen = <div className="legacy-screen"><main>
     <button className="legacy-back" onClick={() => goTo('more')}>← More tools</button>

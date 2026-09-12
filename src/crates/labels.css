@@ -1,0 +1,21 @@
+.container-label{box-sizing:border-box;container-type:inline-size;width:3.625in;max-width:100%;aspect-ratio:29/18;display:grid;grid-template-columns:minmax(0,1fr) 31%;gap:3%;padding:.12in;border:1px solid #000;border-radius:0;background:#fff;color:#000;font-family:Arial,Helvetica,sans-serif;text-align:left;overflow:hidden;break-inside:avoid;page-break-inside:avoid;color-scheme:light}
+.container-label *{box-sizing:border-box;color:#000}
+.container-label-main{min-width:0;min-height:0;display:flex;flex-direction:column;gap:1.5cqi}
+.container-label-kicker{font-size:2.4cqi;font-weight:700;line-height:1.2;letter-spacing:.035em}
+.container-label-code{display:block;font-family:Arial,Helvetica,sans-serif;font-weight:900;font-size:10.5cqi;line-height:1;letter-spacing:-.035em;overflow-wrap:anywhere}
+.container-label-code.medium{font-size:8cqi}
+.container-label-code.long{font-size:5.8cqi}
+.container-label-fields{display:grid;grid-template-columns:minmax(0,1fr);gap:1.4cqi;margin:0}
+.container-label-fields>div{min-width:0}
+.container-label-fields dt{font-size:2.35cqi;line-height:1.1;font-weight:700;text-transform:uppercase;letter-spacing:.03em}
+.container-label-fields dd{min-height:4.8cqi;max-height:4.8cqi;margin:0;padding:.5cqi 0 .2cqi;border-bottom:1px solid #000;font-size:3.4cqi;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.container-label-fields dd.container-label-description{min-height:7.5cqi;max-height:8.9cqi;white-space:normal;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+.container-label-scan{min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:1cqi;gap:1.4cqi;text-align:center}
+.container-label-scan svg{display:block;flex-shrink:0;width:100%;height:auto;aspect-ratio:1;background:#fff}
+.container-label-scan>span{font-size:2.4cqi;font-weight:800;line-height:1.2;letter-spacing:.03em}
+.container-label-scan>small{font-size:2.4cqi;line-height:1.35}
+.container-label-invalid{font-size:3cqi;line-height:1.4;margin:0}
+
+@media print{
+  .container-label{width:3.625in!important;max-width:none!important;height:2.25in!important;aspect-ratio:auto;padding:.12in;gap:.10in;grid-template-columns:minmax(0,1fr) 1.08in;border:1px solid #000;margin:0;box-shadow:none;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}

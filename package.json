@@ -16,12 +16,14 @@
     "test:layout": "node src/garage/scanGeometry.test.mjs && node src/garage/layoutDraft.test.mjs",
     "test:spatial": "node src/garage/spatial.test.mjs",
     "test:access": "node --test server/access.test.mjs && node src/access/access.test.mjs",
-    "test:vercel": "node --test server/vercel.test.mjs"
+    "test:vercel": "node --test server/vercel.test.mjs",
+    "test:labels": "node --test src/crates/labelLinks.test.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
     "@vercel/blob": "^2.8.0",
+    "qrcode-generator": "^2.0.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "three": "^0.185.0"

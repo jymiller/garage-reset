@@ -10,9 +10,9 @@ Each family device opens a privately shared bookmark whose fragment contains `ac
 
 1. The browser reads the fragment locally and exchanges only `{ key }` with same-origin `POST /api/access`. Pasted links never cause requests to another host.
 2. A valid exchange sets the signed `__Host-garage-family` cookie with `HttpOnly`, `Secure`, `SameSite=Lax`, `Path=/`, and a one-year maximum age.
-3. The browser confirms authorization with `GET /api/access`, replaces the fragment with `#home`, and opens the app. An authorized browser can then use the ordinary address and normal screen links.
+3. The browser confirms authorization with `GET /api/access`, restores a pending, validated container QR route (or `#home`), and opens the app. An authorized browser can then use the ordinary address and normal screen links.
 
-Set `GARAGE_ACCESS_KEY` only in Vercel's server environment settings. The key is not kept in local storage or placed in the public bundle. Keep the actual family bookmark out of source, documentation and deployment output. Workspace and image requests require the signed cookie; the access screen and application code can load before authorization.
+Set `GARAGE_ACCESS_KEY` only in Vercel's server environment settings. The key is not kept in local storage or placed in the public bundle. Keep the actual family bookmark out of source, documentation and deployment output. A pending container route is stored only as a validated `#crates?code=…` fragment in session storage and removed after authorization. Printable QR labels never contain the access key. Workspace and image requests require the signed cookie; the access screen and application code can load before authorization.
 
 To rotate access, replace `GARAGE_ACCESS_KEY` and deploy the updated environment. Once the new runtime is active, previous device cookies and old family bookmarks no longer authorize access. Share a new bookmark privately.
 

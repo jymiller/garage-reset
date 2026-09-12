@@ -3,6 +3,14 @@ import type { ReactNode } from 'react'
 import { accessKeyFromHash, checkAccess, isLocalhost, openFamilyAccess, parseAccessKey } from './access'
 import type { AccessResult } from './access'
 import './access.css'
+import { parseCrateLabelHash, sanitizePendingCrateHash, restoreCrateHashAfterAccess } from '../crates/labelLinks'
+
+const PENDING_CRATE = 'garage-pending-crate-link-v1'
+function pendingCrate() {
+  const current = sanitizePendingCrateHash(window.location.hash)
+  if (current) return current
+  try { return sanitizePendingCrateHash(sessionStorage.getItem(PENDING_CRATE)) } catch { return null }
+}
 
 type State = AccessResult | { state: 'checking' }
 
@@ -12,13 +20,17 @@ export function FamilyAccess({ children }: { children: ReactNode }) {
   const [entry, setEntry] = useState('')
   const startup = useRef<Promise<AccessResult> | null>(null)
   const requestNumber = useRef(0)
+  const pendingRoute = useRef<string|null>(pendingCrate())
 
   function accept(result: AccessResult, clearFragment: boolean) {
     if (result.state === 'authorized') {
       setEntry('')
       if (clearFragment) {
-        window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}#home`)
+        const route = restoreCrateHashAfterAccess(pendingRoute.current)
+        window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}${route}`)
       }
+      pendingRoute.current = null
+      try { sessionStorage.removeItem(PENDING_CRATE) } catch { /* The in-memory route is sufficient for this tab. */ }
     }
     setState(result)
   }
@@ -33,6 +45,11 @@ export function FamilyAccess({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (local) return
     let active = true
+    const rememberCrate = () => {
+      const route = sanitizePendingCrateHash(window.location.hash)
+      if (route) { pendingRoute.current = route; try { sessionStorage.setItem(PENDING_CRATE, route) } catch { /* Keep it in memory. */ } }
+    }
+    rememberCrate()
     const key = accessKeyFromHash(window.location.hash)
     // React's development effect replay shares this operation rather than
     // exchanging the same link twice and racing its cookie confirmation.
@@ -42,6 +59,7 @@ export function FamilyAccess({ children }: { children: ReactNode }) {
       if (active && current === requestNumber.current) accept(result, key !== null)
     })
     const onHashChange = () => {
+      rememberCrate()
       const next = accessKeyFromHash(window.location.hash)
       if (next) void attempt(next)
     }
@@ -58,7 +76,7 @@ export function FamilyAccess({ children }: { children: ReactNode }) {
       <span className="family-access-mark" aria-hidden="true">G↗</span>
       <p className="family-access-brand">GARAGE RESET</p>
       <h1 id="family-access-title">{checking ? 'Opening your garage…' : state.state === 'error' ? 'Let’s get you connected.' : 'Open your family link.'}</h1>
-      <p className="family-access-intro">Your photos, plans and progress, together.<br />Use your saved family link to open the garage on this device.</p>
+      <p className="family-access-intro">{pendingRoute.current ? <>Opening container <strong>{parseCrateLabelHash(pendingRoute.current)}</strong>.<br />Paste your family link here once to open this box.</> : <>Your photos, plans and progress, together.<br />Use your saved family link to open the garage on this device.</>}</p>
       {checking ? <p className="family-access-checking" role="status">Getting the garage ready…</p> : <>
         {message && <p className="family-access-message" role="alert">{message}</p>}
         <form onSubmit={event => {
