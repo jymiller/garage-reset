@@ -124,10 +124,13 @@ export function createPhotoAnalysisService({ storage, analyze = analyzePhotoWith
   return { get: async photo => (await readRecord(photo)).record, queue, process }
 }
 
-export function gatewayConfigured() {
+export function gatewayConfigured(environment = process.env) {
   // Never borrow the desktop's API keys. Deployed functions use Vercel OIDC;
   // local runs require an explicitly available Vercel development OIDC token.
-  return process.env.VERCEL === '1' || Boolean(process.env.VERCEL_OIDC_TOKEN?.trim())
+  // Keep provider processing off until sharing photos with the analysis
+  // provider has been approved and this server-only switch is enabled.
+  return environment.GARAGE_PHOTO_ANALYSIS_ENABLED === '1'
+    && (environment.VERCEL === '1' || Boolean(environment.VERCEL_OIDC_TOKEN?.trim()))
 }
 
 export async function analyzePhotoWithGateway(bytes, { filename, model = ANALYSIS_MODEL } = {}, {

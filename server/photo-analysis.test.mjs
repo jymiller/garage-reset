@@ -3,13 +3,24 @@ import { test } from 'node:test'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { createPhotoAnalysisService, createAnalysisFileStorage, analyzePhotoWithGateway, enqueuePhotoAnalysis, AnalysisError } from './photo-analysis.mjs'
+import { createPhotoAnalysisService, createAnalysisFileStorage, analyzePhotoWithGateway, enqueuePhotoAnalysis, gatewayConfigured, AnalysisError } from './photo-analysis.mjs'
 import { validateAnalysisRecord } from '../src/analysis/contract.mjs'
 const bytes=Buffer.from('test image bytes')
 const result=(summary='A closed tote.')=>({summary,objects:[{id:'one',name:'Tote',category:'container',quantity:1,confidence:'high',evidence:'Closed plastic container.',region:null,readableLabel:'C-001',suggestedCrateId:'invented-by-model',locationHint:'Beside a shelf'}],questions:[]})
 const wait=()=>{let resolve;const promise=new Promise(r=>{resolve=r});return{promise,resolve}}
 function storage(){const objects=new Map([['garage/photos/one.jpg',{bytes,etag:'source'}],['garage/workspace.json',{bytes:Buffer.from('workspace untouched'),etag:'workspace'}]]);let n=0;return{objects,read:async key=>objects.get(key)??null,write:async(key,value,options)=>{const old=objects.get(key);if(options.createOnly?Boolean(old):!old||old.etag!==options.ifMatch)throw new Error('CAS');objects.set(key,{bytes:Buffer.from(value),etag:String(++n)})}}}
 function setup(overrides={}){const store=storage(),messages=[];let calls=0;const service=createPhotoAnalysisService({storage:store,configured:()=>true,enqueue:async m=>messages.push(m),analyze:async()=>{calls++;return result()},...overrides});return{store,messages,service,calls:()=>calls}}
+test('photo processing is off until the explicit server switch and Vercel credentials are both available',async()=>{
+ for(const env of [{},{VERCEL:'1'},{VERCEL_OIDC_TOKEN:'test-only'},{VERCEL:'1',GARAGE_PHOTO_ANALYSIS_ENABLED:'0'},{VERCEL:'1',GARAGE_PHOTO_ANALYSIS_ENABLED:'true'},{GARAGE_PHOTO_ANALYSIS_ENABLED:'1'},{GARAGE_PHOTO_ANALYSIS_ENABLED:'1',VERCEL_OIDC_TOKEN:' '}])assert.equal(gatewayConfigured(env),false)
+ assert.equal(gatewayConfigured({VERCEL:'1',GARAGE_PHOTO_ANALYSIS_ENABLED:'1'}),true)
+ assert.equal(gatewayConfigured({VERCEL_OIDC_TOKEN:'test-only',GARAGE_PHOTO_ANALYSIS_ENABLED:'1'}),true)
+ const {service,messages,calls}=setup({configured:()=>gatewayConfigured({VERCEL:'1'})})
+ assert.equal((await service.queue('one.jpg')).errorCode,'not_configured')
+ await service.process('one.jpg');assert.equal(messages.length,0);assert.equal(calls(),0)
+ let enabled=true
+ const queued=setup({configured:()=>enabled});await queued.service.queue('one.jpg');enabled=false
+ assert.equal((await queued.service.process('one.jpg')).errorCode,'not_configured');assert.equal(queued.calls(),0)
+})
 test('queued photo completes durably across instances without modifying workspace or accepting invented crate links',async()=>{
  const {store,service,messages,calls}=setup();const before=store.objects.get('garage/workspace.json')
  assert.equal(await service.get('one.jpg'),null)
