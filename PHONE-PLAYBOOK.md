@@ -1,67 +1,84 @@
 # Garage Reset on your phone
 
-Open the existing family link on each device. New visits start at Home; existing `#layout`, `#pickup`, and other saved links still open their original tools. Tap **Home** in the persistent navigation to choose what to do next.
+Start at **Home**. The main action is **Take a crate photo**. A closed box is useful: show it where it lives and open the lid only if it is easy. You do not need a label, inventory record, player name, or timer to begin.
 
-## Put it on your iPhone Home Screen
+**Missions** in the navigation now opens helpful photo capture. The choices are **Crate**, **Object moved**, **Both cars**, and **Measure**. The longer before-and-after cleanup rounds are available separately through **Start a cleanup mission**, or **More → Cleanup missions**.
 
-Open your working family link in **Safari**. Wait for your changes to sync. Tap **Share** (possibly inside Safari’s **More** menu), choose **Add to Home Screen**, leave **Open as Web App** enabled if shown, then tap **Add**. Launch the new **Garage Reset** icon. Full illustrated steps are in **More** and [Apple’s iPhone guide](https://support.apple.com/guide/iphone/open-as-web-app-iphea86e5236/ios).
+## Save one useful photo
 
-This is the standalone Home Screen web app, served by the existing Vercel deployment. It has its own garage icon and starts at Home. Crates, photos, missions and scores use the same family workspace. If the new app asks for access, paste the existing family link once. Finish syncing before installation and retain the original browser: unsent drafts, original task records and device-only planning settings may remain there. A connection is needed to open the app, upload photos and sync. This update adds no service worker, offline cache, native camera plugin, notifications, App Store package or new authentication flow.
+1. Choose **Take photo** or **Choose from photos**.
+2. Add a location or a short note if useful. Your phone keyboard’s microphone can dictate the note.
+3. Leave measurements and the existing-crate link empty unless you have something to record.
+4. Tap **Save photo**. Wait for **Helpful photo saved.** before treating it as shared.
+5. Choose **Take another photo** or **Review collected photos**.
 
-The manifest uses the stable app ID `/`, start URL `/#home`, scope `/`, and `standalone` display. The icon files are opaque PNGs at 180, 192 and 512 pixels plus the vector source; none contain personal photos or family credentials. Native TestFlight/App Store packaging is a separate path requiring Apple signing and an iOS build.
+Use **Home → See photos & measurements**, or **More → Photos & measurements**, to open the collection directly. On a laptop, filter the collection and enlarge a photo to compare its location, notes, and any manual reading. The same family workspace appears on both devices.
 
-## The five destinations
+## Use the 32 labels you printed
 
-- **Home:** the next small mission, resume an unfinished round, the next crate needing attention, photo-mission XP, and the registered-volume goal.
-- **Missions:** choose Clear a floor area, Sort a shelf, or Sort a crate; choose 5, 10, or 15 minutes; take a before photo; sort and count; take an after photo; confirm parking clearance; finish for 100 XP. Camera and existing-photo controls are separate. With a reward plan, each player can have one unfinished round; choose who is playing so friends can work separately.
-- **Crates:** register a container, give it a shelf address and photo, record its contents, assign decisions/destinations, and confirm the repacked fill. The phone puts the working container ahead of the volume report. Home directs unfinished repacks to their fill check and unrecorded occupied crates to their contents step.
-- **Garage:** the photo-linked 3D model and spatial catalog. The laptop retains its larger planning workbench.
-- **More:** Score & cash, Yellow Sack pickup, Crew, Task board, Item list, Task progress, Team standings, Sound controls, and the phone playbook.
+The labels are **C-001 through C-032**. Keep one ID with one physical box. If a box already has an ID, keep it. Check any saved photos under an ID before attaching that ID to a different box.
 
-The game shell uses system fonts, clear touch controls, a bottom bar on phones, and a top bar on laptops. Illustrated icons show a house, mission camera, smiling crate, garage, and toolbox; every destination keeps its text label. Phone navigation icons are 38px with 74px minimum-height buttons. Home tool icons are 54px, and mission choices show a broom, shelf, or crate at 44–48px. Navigation participates in browser Back/Forward. Returning to an active mission or crate preserves its local view; the mission board and All containers controls return to their respective lists.
+1. Open **Home → Label & photograph crates**. The same tool is in **More → Label & photograph** and **Crates → Label & photograph**.
+2. Put matching copies of the same ID on the front or side of an easy-to-reach container and on its lid. Enter the ID and tap **Use this label**. You can type 1 for C-001. Choose your name, then confirm **Front / side sticker** and **Lid sticker** as you place each one. Each earns **25 points**, once per position for that crate.
+3. Alternatively, scan the printed QR with the iPhone Camera and tap its link. It opens **Crates** for that ID; choose **Label & photograph**.
+4. Tap **Take outside photo**. Show the attached ID and the shelf or floor around the box. Add its location if helpful, tap **Save photo**, then **Back to this crate**.
+5. Tap **Take contents photo**. Open just this container, include its label in view if possible, and describe what you see in the optional note. Save and return with **Back to this crate**.
+6. Close the container and choose **Next crate**. If it is difficult to reach or open, leave it closed and move on. One outside view is already useful.
 
-## Choose a mission in 3D
+The label page shows how many of the 32 IDs have photos and how many have both outside and contents views. **See saved notes & contents** opens the descriptions for the selected ID. An additional outside or contents photo adds another view of that same box; it does not advance to a different step automatically.
 
-On **Missions**, use **3D garage** to look around before choosing work. Drag on a laptop to rotate; use the rotate, zoom and reset buttons for easier control. On a phone, turn on **Enable touch rotation** to orbit with one finger or zoom with two, then **Done rotating** to scroll the page normally. The area list works without touching the model.
+This builds a photo catalog under the printed IDs. It does not create full inventory, guess capacity, recognize individual contents, or make disposal decisions. **Full inventory setup (optional)** can wait until you want to record contents, destinations, and fill estimates.
 
-Select a rack or identified item, then choose **Use this area**. This fills the mission type, location and linked crate (when one is registered). Check those fields and take a before photo to create the mission. Selecting a shape alone does not start a mission, move an object or award points. Changing the registered crate clears the previous location so it cannot keep another crate’s address. Cars and utility references are for viewing and do not offer a cleanup mission.
+To add inventory later, open the registered crate’s inventory and choose your name for inventory points before adding contents. One saved batch of actual new contents earns **25 points**, whether it contains one item record or several. Correcting an existing record, moving it, or submitting it again earns no extra points. A photo and its optional description alone are not inventory records.
 
-Switch to **Reference photo** to compare the model with the selected object’s photo. These are static photographs. The 3D view uses the June floor scan and September 9 object references, with estimated object positions and dimensions. Illustrative totes are not individually identified inventory. Identify and link real containers in **Garage** to select them by their registered crate ID. Corrections to the layout are remembered on this device; identified items and crate inventory use the shared workspace.
+The printed QR contains the public app address and the container ID. It does not contain the private family access key. A new phone may need the family invitation before it can see the box’s photos. Spare labels remain available under **Crates → Print labels (optional)** or **More → Print container labels (optional)**. Print ordinary Letter paper at actual size / 100%.
 
-## Label boxes before sorting
+## Record where an object moved
 
-In **Crates**, choose **Download 32 blank labels**. The four-page PDF is made for ordinary US Letter paper: eight labels per page, actual size / 100%, single-sided. Cut on the borders and tape to the container body, facing the aisle. Print a second copy for matching lid labels if useful. Test one printed QR with the iPhone Camera before attaching the full set.
+Choose **Home → Show where something moved**, or **Missions → Object moved**. Photograph the bin, box, or object with its surroundings and any ID. Note what moved, where it was, and where it is now. This records useful evidence of the new location; it does not move the object in the 3D model automatically.
 
-IDs **C-001 through C-032** stay with their boxes. Match existing app IDs before using a label; never give two boxes the same ID. Write a short contents description and a separate home such as **Right rack · middle shelf**. A move changes the home, not the box ID.
+## Show the parking and measure a useful gap
 
-The iPhone Camera opens a QR link to `#crates?code=C-001` on the public app. A registered code opens its container. An unused code offers **Register C-001** with the ID already filled in; blank labels do not automatically create inventory. A new device first needs the family's private link, then returns to the scanned box. QR labels contain only the public address and container ID, never the family access key. Existing containers also have a **QR label** preview with a one-label print action.
+Choose **Home → Make room for both cars**, or **Missions → Both cars**. Photograph the actual cars in their normal parked positions. Take a wide view from the entrance, then another from the rear. Include the white parking boundary, the routes around the cars, and the room for opening doors. Note which car goes where and what blocks a route.
 
-For tomorrow: label one box, scan it, name it, record its home, then take a photo and open it. Dictate a short list of contents, one item or group per line. Choose keep / donate / sell / recycle / trash / ask, put keepers in a named home, and update how full the box is. Keep one box open at a time and keep the parking boundary clear. A photo records evidence; contents entry is manual, not automatic object recognition.
+Choose **Home → Measure one space**, or **Missions → Measure**, for a shelf depth, clear route width, or white-boundary measurement. Show both endpoints and the tape reading. Under **Add a measurement**, name the endpoints, enter **Your reading**, and choose the **Unit**. For example: “Rack wall to white line at the entrance end,” followed by the number actually read from the tape.
 
-Phone instructions and main buttons use 16px or larger text. Form fields, mission choices and before/after actions are sized for a narrow phone screen.
+Use one endpoint pair per capture. Repeat at the other end or a bend; the white line is not established as parallel to the wall. You can save the photo without a number. It will retain a pending-reading note, and a later capture can record the measured value.
 
-## One consistent interface
+Photos help us see the situation. They do not measure distances by themselves, certify that both cars fit with usable doors and routes, or automatically update the 3D plan. Keep both car spaces and the white boundary clear while gathering photos.
 
-The former arcade pages now use the same system type, cream background, green text, illustrated icons, rounded cards, and large phone controls as Home. **Crew** switches between people and shows assigned tasks. **Task board** opens tasks and items by area. **Item list** uses explicit owner, area, and decision fields. **Task progress** and **Team standings** show task completion and scores without implying that the physical garage is clear. **Sounds** has a mute switch and labeled previews.
+## Choose your name if you want
 
-Those task and loose-item records still use the existing device-local store. Crates and photo missions continue using the shared workspace. Styling does not migrate, reset, or combine these records. Item deletion and task reset require a second action inside the page.
+**Who’s helping?** appears on Home and beside or below photo capture. Select your name, or choose **Add my name**, enter a first name or nickname, and tap **Use this name**. The choice is remembered on this device and also appears on Score. **Continue without a name** keeps the photo flow available.
 
-## What the numbers mean
+A name attributes future helpful photos and cleanup missions. It does not claim earlier work. Adding the first helper initializes the app’s shared player list using its existing rewards system; you can still take photos without doing this.
 
-Photo-mission XP comes only from validated completed rounds: 100 XP per round, three rounds per level. Individual reward scores use the missions explicitly assigned to that player. It does not use the original game’s device-local scores and does not send money. Open **Score & cash** to assign missions to players, set a $100 reward plan, review earned cash, and record payments made outside the app.
+Saving a helpful photo does not award points automatically. In **Score → For John · review useful photos**, choose the helper, confirm that the photo adds useful information, and use **Award 25 points**. Each useful photo can be credited once. This includes outside and contents photos from the label game. Each confirmed front / side or lid sticker earns **25 points**, and each saved batch of new inventory contents earns **25 points**. Completed cleanup missions earn **100 points**. We are collecting points for now; dollar values will be decided later. Score shows stickers, inventory updates, reviewed photos, and finished cleanups separately. Any **Earlier cash records** are read-only history; new dollar amounts and payments cannot be recorded on this screen.
 
-The 50% goal uses registered container capacity × fill estimates. Home suppresses volume-progress claims while any crate is being sorted and labels an unlocked baseline as in progress. Missing contents records do not imply an empty crate. The goal is not a measured whole-garage result until the baseline covers the intended storage.
+## Invite someone nearby
 
-## Verification
+Open **Invite a helper** on **Home** or **More**. When the invitation is ready, tap **Share with AirDrop**, then choose AirDrop and the helper in the iPhone share sheet. Messages is another share-sheet option. Where sharing is unavailable, use **Copy family link**.
 
-The production build and 59 relevant label, mission, crate, sync, access, and Vercel adapter tests pass. Local browser checks covered the five primary destinations at 320px, the mission setup/camera step and Home resume at 390px, crate registration and contents/repack controls at 320px, browser Back, and the laptop layout at 1366px. No horizontal overflow was observed in the five main screens. The label update also checked unknown-code registration, saved-code reopening after reload, and the single-label preview at 390px. Every QR on all four PDF pages was decoded from rendered pages and matched its expected public container link. Navigation targets are at least 58px high; main phone buttons use 16px type, crate fields 18px, and mission headings at least 24px. CSS accounts for device safe areas and reduced-motion preferences.
+The recipient opens the private family link and can choose their own name. The link grants access to the family garage, including photos and progress, so give it to someone you intend to invite. Use the invitation control rather than sending a container QR as an access invitation.
 
-Browser resizing is not a physical iPhone/Safari test. Native camera permission and capture must still be exercised on the phone. QA mission/container records were confined to a separate local server and did not enter the hosted workspace.
+## If saving needs attention
 
-### Mission world verification
+Wait for the shared-save message before switching devices. An upload and the saved photo record are separate steps; **Photo uploaded privately** still needs **Save photo**.
 
-The 3D mission picker passed the production build and 51 mission, player-setup, area-mapping, scan, layout and spatial tests. Local browser checks covered rotation/zoom/reset, rear/whole framing, source-photo switching, protected reference objects, linked crate mission creation, shelf mission editing and reload persistence. At 320px and 390px the picker has no horizontal overflow, 16px camera labels, and a touch-rotation gate that restores page scrolling when disabled. The existing Garage view still renders at 320px. A separate local fixture supplied the QA crate and mission; the live workspace was not changed. Phone resizing verifies layout and toggle behavior, not physical iPhone multitouch gestures.
+An uploaded photo link and its unfinished form are kept for navigation or reload in the same browser tab. If you leave before the upload finishes, you may need to choose the original photo again. An **Unfinished … photo restored** banner identifies an earlier draft and its crate link. Finish that draft before starting a different photo task.
 
-### Home Screen installation verification
+If another device saved first, use **Download device draft**, then **Load shared version**. The photo form remains available; tap **Save photo** again to add that find to the shared version. **Download photo draft** is also offered when an uploaded photo has not yet joined the workspace. Keep your original photos and the page available until the save is confirmed. A session draft is not a backup that moves to another browser or device.
 
-The production build passed. Built metadata was checked for stable standalone launch, a credential-free manifest, correct icon paths and exact PNG sizes. Browser checks covered Home → installation guide, the data explanation, and readable 16px instructions at 320px, 390px and 1366px without horizontal overflow. The browser error log was empty on the guide. Physical Safari Home Screen installation, camera permissions, and app-to-browser data handoff still need exercising on the iPhone; this desktop session cannot install it on that device.
+## Plan or sort when you are ready
+
+**Garage** opens the 3D model and source photos. Its shell comes from the June scan; object references come from September 9 photos, with estimated positions and dimensions. Illustrative tote shapes are not a count of individually identified containers. Use the new photo collection and manual readings to decide what needs checking next.
+
+**Cleanup missions** has before-and-after photos, a 5-, 10-, or 15-minute timer, and a completed-round check. Its 3D picker can suggest an area after you press **Use this area**. On a phone, **Enable touch rotation** enables gestures; **Done rotating** restores normal page scrolling. The area list also works without 3D.
+
+**Crates** holds full contents and repacking records when you want them. The 50% storage goal uses registered capacity and fill estimates; helpful-photo counts do not change that volume calculation. **More → Yellow Sack pickup** holds the separate bag and truck-access plan. Pickup settings and garage layout corrections currently stay on the device where they are edited.
+
+## Keep it on the iPhone Home Screen
+
+Open the working family link in Safari and follow **More → Put the app on your iPhone Home Screen**. The guide walks through Share, **Add to Home Screen**, and **Open as Web App** when that switch is shown. The Garage Reset icon opens Home in its own window.
+
+Use the same family link if the Home Screen app asks for access. Finish syncing first and keep the original browser available: unfinished drafts and device-only settings may stay there. The app needs a connection to open, upload photos, and share changes. Physical iPhone camera capture, Home Screen installation, and AirDrop still need checking on the phone; desktop layout checks do not exercise those device features.

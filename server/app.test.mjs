@@ -36,6 +36,14 @@ const spatialItem = (changes = {}) => ({
   region: { x: 0.2, y: 0.3, w: 0.25, h: 0.2 }, x: 21.2, y: 0.2, z: 0.5, w: 0.6, d: 0.5, h: 0.4,
   dimensionBasis: 'estimated', notes: '', createdAt: 1000, ...changes,
 })
+const observation = (changes = {}) => ({
+  id: 'observation-one', kind: 'crate', photo: '/api/photos/one.jpg', notes: '', location: '',
+  crateId: null, measurement: null, createdAt: 1000, ...changes,
+})
+const observationMeasurement = (changes = {}) => ({ value: 84.5, unit: 'in', label: 'Between the parking lines', basis: 'user-measured', ...changes })
+const photoAward = (changes = {}) => ({ observationId: 'observation-one', helperId: 'griff', points: 25, reviewedAt: 2000, ...changes })
+const stickerCredit = (changes = {}) => ({ id: 'sticker:C-001:front', kind: 'sticker', helperId: 'griff', points: 25, createdAt: 2000, labelCode: 'C-001', surface: 'front', ...changes })
+const inventoryCredit = (changes = {}) => ({ id: 'inventory-one', kind: 'inventory', helperId: 'griff', points: 25, createdAt: 2000, labelCode: 'C01', itemIds: ['item-one'], ...changes })
 const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aVXcAAAAASUVORK5CYII=', 'base64')
 
 async function fixture(t) {
@@ -80,6 +88,168 @@ test('production requires a password before touching storage', async () => {
   await assert.rejects(createGarageServer({ dev: true, password: '', host: '0.0.0.0', dataDir: '/unused-for-test' }), /loopback/)
   await assert.rejects(createGarageServer({ password: PASSWORD, root: '/tmp/garage', dataDir: '/tmp/garage/public/private' }), /outside/)
   await assert.rejects(createGarageServer({ password: PASSWORD, root: '/tmp/garage', dataDir: '/tmp/garage/dist' }), /outside/)
+})
+
+test('activity receipts persist across restart and reject old-client drops or changed earned credit', async t => {
+  const { base, server, start } = await fixture(t)
+  const rewards = defaultRewards(1000)
+  rewards.players.push({ id: 'alex', name: 'Alex', createdAt: 1000 })
+  const original = workspace({ items: [], rewards })
+  assert.equal((await put(base, 0, original)).status, 200)
+  const data = { ...original, items: [item(), item({ id: 'item-two' })], activityCredits: [stickerCredit(), inventoryCredit({ itemIds: ['item-one', 'item-two'] })] }
+  assert.equal((await put(base, 1, data)).status, 200)
+  const dropped = { ...data }; delete dropped.activityCredits
+  for (const candidate of [dropped, { ...data, activityCredits: [] }, { ...data, activityCredits: data.activityCredits.slice(0, 1) },
+    { ...data, activityCredits: [stickerCredit({ helperId: 'alex' }), data.activityCredits[1]] },
+    { ...data, activityCredits: [stickerCredit({ createdAt: 2001 }), data.activityCredits[1]] },
+    { ...data, activityCredits: [stickerCredit(), inventoryCredit()] },
+    { ...data, activityCredits: [stickerCredit(), inventoryCredit({ itemIds: ['item-one', 'item-two'], labelCode: 'Renamed' })] }]) {
+    const response = await put(base, 2, candidate)
+    assert.equal(response.status, 409)
+    assert.deepEqual(await response.json(), { revision: 2, data })
+  }
+  const moved = { ...data, notes: 'Items moved after being counted.', crates: [crate({ code: 'Renamed' }), crate({ id: 'crate-two', code: 'B02' })],
+    items: data.items.map(entry => ({ ...entry, crateId: 'crate-two', decision: 'keep', destination: 'Rear shelf' })),
+    activityCredits: [inventoryCredit({ itemIds: ['item-two', 'item-one'] }), stickerCredit()] }
+  assert.equal((await put(base, 2, moved)).status, 200)
+  assert.deepEqual(moved.rewards.entries, [])
+  await close(server)
+  const restarted = await start()
+  assert.deepEqual(await (await get(restarted.base, '/api/workspace')).json(), { revision: 3, data: moved })
+})
+
+test('inventory credit requires newly added items in its named crate and cannot duplicate item XP', async t => {
+  const { base } = await fixture(t)
+  const data = workspace({ rewards: defaultRewards(1000), activityCredits: [] })
+  assert.equal((await put(base, 0, data)).status, 200)
+  const newItem = item({ id: 'new-item' })
+  for (const candidate of [
+    { ...data, activityCredits: [inventoryCredit()] },
+    { ...data, items: [...data.items, newItem], activityCredits: [inventoryCredit({ itemIds: ['new-item'], labelCode: 'Wrong crate' })] },
+  ]) {
+    const response = await put(base, 1, candidate)
+    assert.equal(response.status, 409)
+    assert.deepEqual(await response.json(), { revision: 1, data })
+  }
+  const additions = { ...data, items: [...data.items, newItem], activityCredits: [inventoryCredit({ itemIds: ['new-item'] })] }
+  assert.equal((await put(base, 1, additions)).status, 200)
+  assert.equal((await put(base, 2, { ...additions, activityCredits: [...additions.activityCredits, inventoryCredit({ id: 'duplicate', itemIds: ['new-item'] })] })).status, 400)
+  assert.equal((await put(base, 2, { ...additions, items: data.items })).status, 400)
+  assert.deepEqual(await (await get(base, '/api/workspace')).json(), { revision: 2, data: additions })
+})
+
+test('malformed activity receipts cannot overwrite shared storage', async t => {
+  const { base } = await fixture(t)
+  const data = workspace({ rewards: defaultRewards(1000) })
+  assert.equal((await put(base, 0, data)).status, 200)
+  for (const activityCredits of [null, [stickerCredit(), stickerCredit()], [stickerCredit({ points: 100 })],
+    [stickerCredit({ id: 'arbitrary' })], [stickerCredit({ surface: 'lid' })], [stickerCredit({ labelCode: 'C-000' })],
+    [stickerCredit({ helperId: 'missing' })], [stickerCredit({ itemIds: [] })], [inventoryCredit({ surface: 'front' })],
+    [inventoryCredit({ itemIds: [] })], [inventoryCredit({ itemIds: ['missing'] })], [inventoryCredit({ itemIds: ['item-one', 'item-one'] })]]) {
+    assert.equal((await put(base, 1, { ...data, activityCredits })).status, 400)
+  }
+  assert.deepEqual(await (await get(base, '/api/workspace')).json(), { revision: 1, data })
+})
+
+test('photo awards persist and older clients cannot discard reviews, change credit or replace reviewed photos', async t => {
+  const { base, server, start } = await fixture(t)
+  const rewards = defaultRewards(1000)
+  rewards.players.push({ id: 'alex', name: 'Alex', createdAt: 1000 })
+  const original = { ...empty(), rewards, observations: [observation({ kind: 'placement' }), observation({ id: 'second' })] }
+  assert.equal((await put(base, 0, original)).status, 200)
+  const data = { ...original, photoAwards: [photoAward(), photoAward({ observationId: 'second' })] }
+  assert.equal((await put(base, 1, data)).status, 200)
+  const candidates = [original, { ...data, photoAwards: [] }, { ...data, photoAwards: [data.photoAwards[0]] },
+    { ...data, photoAwards: [photoAward({ helperId: 'alex' }), data.photoAwards[1]] },
+    { ...data, photoAwards: [photoAward({ reviewedAt: 2001 }), data.photoAwards[1]] },
+    { ...data, observations: [{ ...data.observations[0], photo: '/api/photos/replaced.jpg' }, data.observations[1]] },
+    { ...data, observations: [{ ...data.observations[0], createdAt: 900 }, data.observations[1]] },
+  ]
+  for (const candidate of candidates) {
+    const response = await put(base, 2, candidate)
+    assert.equal(response.status, 409)
+    assert.deepEqual(await response.json(), { revision: 2, data })
+  }
+  const described = { ...data, notes: 'Laptop planning note', observations: data.observations.map(photo => ({ ...photo, location: 'Rear rack', notes: 'Description corrected.' })), photoAwards: [...data.photoAwards].reverse() }
+  assert.equal((await put(base, 2, described)).status, 200)
+  assert.deepEqual(described.rewards, rewards)
+  assert.deepEqual(described.rewards.entries, [])
+  await close(server)
+  const restarted = await start()
+  assert.deepEqual(await (await get(restarted.base, '/api/workspace')).json(), { revision: 3, data: described })
+})
+
+test('invalid photo awards cannot replace shared storage or manufacture duplicate points', async t => {
+  const { base } = await fixture(t)
+  const data = { ...empty(), rewards: defaultRewards(1000), observations: [observation()] }
+  assert.equal((await put(base, 0, data)).status, 200)
+  for (const photoAwards of [null, [photoAward(), photoAward()], [photoAward({ points: 100 })],
+    [photoAward({ points: '25' })], [photoAward({ reviewedAt: 999 })], [photoAward({ helperId: 'missing' })],
+    [photoAward({ observationId: 'missing' })], [photoAward({ extra: true })]]) {
+    assert.equal((await put(base, 1, { ...data, photoAwards })).status, 400)
+  }
+  assert.deepEqual(await (await get(base, '/api/workspace')).json(), { revision: 1, data })
+})
+
+test('quick observations persist across restart without registration and old clients cannot drop any photo ID', async t => {
+  const { base, server, start } = await fixture(t)
+  assert.equal((await put(base, 0, empty())).status, 200)
+  const data = { ...empty(), observations: [observation(), observation({ id: 'parking-photo', kind: 'parking', measurement: observationMeasurement() })] }
+  assert.equal((await put(base, 1, data)).status, 200)
+  for (const candidate of [empty(), { ...data, observations: [] }, { ...data, observations: data.observations.slice(0, 1) }]) {
+    const response = await put(base, 2, candidate)
+    assert.equal(response.status, 409)
+    assert.deepEqual(await response.json(), { revision: 2, data })
+  }
+  const added = { ...data, notes: 'Laptop note', observations: [...data.observations, observation({ id: 'pending-measurement', kind: 'measurement' })] }
+  assert.equal((await put(base, 2, added)).status, 200)
+  const stale = await put(base, 2, data)
+  assert.equal(stale.status, 409)
+  assert.deepEqual(await stale.json(), { revision: 3, data: added })
+  const revised = { ...added, observations: added.observations.map(photo => photo.id === 'observation-one' ? { ...photo, notes: 'Keep the original photo; describe it later.' } : photo) }
+  assert.equal((await put(base, 3, revised)).status, 200)
+  await close(server)
+  const restarted = await start()
+  assert.deepEqual(await (await get(restarted.base, '/api/workspace')).json(), { revision: 4, data: revised })
+})
+
+test('invalid observations never replace a saved photo or advance its revision', async t => {
+  const { base } = await fixture(t)
+  const data = workspace({ observations: [observation({ crateId: 'crate-one' })] })
+  assert.equal((await put(base, 0, data)).status, 200)
+  for (const observations of [null, [observation(), observation()],
+    [observation({ crateId: 'missing' })], [observation({ photo: 'https://example.com/private.jpg' })],
+    [observation({ unexpected: true })], [observation({ measurement: observationMeasurement({ extra: true }) })],
+    [observation({ measurement: observationMeasurement({ basis: 'estimated' }) })],
+    [observation({ measurement: observationMeasurement({ value: 0 }) })],
+  ]) assert.equal((await put(base, 1, { ...data, observations })).status, 400)
+  assert.deepEqual(await (await get(base, '/api/workspace')).json(), { revision: 1, data })
+})
+
+test('label photo metadata and optional helpers persist while older clients cannot strip the new fields', async t => {
+  const { base, server, start } = await fixture(t)
+  const data = { ...empty(), rewards: defaultRewards(1000), observations: [
+    observation({ labelCode: 'C-001', photoRole: 'outside', helperId: 'griff' }),
+    observation({ id: 'contents', labelCode: 'C-001', photoRole: 'contents', helperId: null }),
+  ] }
+  assert.equal((await put(base, 0, data)).status, 200)
+  for (const field of ['labelCode', 'photoRole', 'helperId']) {
+    const candidate = structuredClone(data); delete candidate.observations[0][field]
+    const response = await put(base, 1, candidate)
+    assert.equal(response.status, 409)
+    assert.deepEqual(await response.json(), { revision: 1, data })
+  }
+  for (const patch of [{ labelCode: 'C-000' }, { labelCode: 'c-001' }, { photoRole: 'before' }, { helperId: 'missing' }]) {
+    const candidate = { ...data, observations: [{ ...data.observations[0], ...patch }, data.observations[1]] }
+    assert.equal((await put(base, 1, candidate)).status, 400)
+  }
+  const changed = { ...data, notes: 'Both views saved', observations: data.observations.map(entry => ({ ...entry, helperId: null })) }
+  assert.equal((await put(base, 1, changed)).status, 200)
+  assert.equal(changed.crates.length, 0)
+  assert.deepEqual(changed.rewards.entries, [])
+  await close(server)
+  const restarted = await start()
+  assert.deepEqual(await (await get(restarted.base, '/api/workspace')).json(), { revision: 2, data: changed })
 })
 
 test('rewards persist across restart and reject old-client removal and approved history changes', async t => {
@@ -441,6 +611,36 @@ test('server validation accepts current client model records and rejects the sam
     workspace({ spatialItems: [spatialItem(), spatialItem({ id: 'spatial-two' })] }),
     workspace({ spatialItems: [spatialItem({ crateId: null }), spatialItem({ id: 'spatial-two', crateId: null })] }),
     workspace({ spatialItems: null }),
+    { ...empty(), observations: [observation()] },
+    ...['crate', 'parking', 'measurement', 'placement'].map(kind => workspace({ observations: [observation({ kind })] })),
+    ...['cm', 'm', 'in', 'ft'].map(unit => workspace({ observations: [observation({ crateId: 'crate-one', measurement: observationMeasurement({ unit }) })] })),
+    workspace({ observations: [] }), workspace({ observations: null }),
+    workspace({ observations: [observation(), observation()] }),
+    ...[{ crateId: 'missing' }, { photo: null }, { photo: '/api/photos/../secret.jpg' }, { extra: true },
+      { notes: 'x'.repeat(4001) }, { location: ' untrimmed ' }, { createdAt: NaN }]
+      .map(patch => workspace({ observations: [observation(patch)] })),
+    ...[{ value: Number.MIN_VALUE }, { value: 1e6 }, { value: 0 }, { value: NaN }, { value: Infinity },
+      { value: 1e6 + 1 }, { value: '5' }, { label: '' }, { unit: 'yards' }, { basis: 'photo' }, { extra: true }]
+      .map(patch => workspace({ observations: [observation({ measurement: observationMeasurement(patch) })] })),
+    ...[{ labelCode: 'C-001' }, { labelCode: 'C-999' }, { labelCode: 'C-000' }, { labelCode: 'C-1000' },
+      { labelCode: 'c-001' }, { labelCode: undefined }, { photoRole: 'outside' }, { photoRole: 'contents' },
+      { photoRole: 'before' }, { helperId: null }, { helperId: undefined }, { helperId: 'griff' }, { helperId: 'missing' }]
+      .flatMap(patch => [workspace({ observations: [observation(patch)] }), workspace({ rewards: defaultRewards(1000), observations: [observation(patch)] })]),
+    { ...empty(), photoAwards: [] }, { ...empty(), photoAwards: [photoAward()] },
+    ...[null, [photoAward()], [photoAward(), photoAward()], [photoAward({ reviewedAt: 999 })],
+      [photoAward({ reviewedAt: NaN })], [photoAward({ reviewedAt: Infinity })], [photoAward({ reviewedAt: 8.64e15 })],
+      [photoAward({ helperId: 'missing' })], [photoAward({ observationId: 'missing' })], [photoAward({ points: 100 })],
+      [photoAward({ points: '25' })], [photoAward({ extra: true })]]
+      .map(photoAwards => workspace({ rewards: defaultRewards(1000), observations: [observation()], photoAwards })),
+    { ...empty(), activityCredits: [] }, { ...empty(), activityCredits: [stickerCredit()] },
+    ...[null, [stickerCredit()], [inventoryCredit()], [stickerCredit(), stickerCredit()],
+      [stickerCredit({ points: 100 })], [stickerCredit({ createdAt: NaN })], [stickerCredit({ createdAt: Infinity })],
+      [stickerCredit({ helperId: 'missing' })], [stickerCredit({ id: 'arbitrary' })], [stickerCredit({ surface: 'lid' })],
+      [stickerCredit({ labelCode: 'C-000' })], [stickerCredit({ itemIds: [] })], [inventoryCredit({ surface: 'front' })],
+      [inventoryCredit({ itemIds: [] })], [inventoryCredit({ itemIds: ['missing'] })],
+      [inventoryCredit({ itemIds: ['item-one', 'item-one'] })], [inventoryCredit({ labelCode: 'Historical custom code' })],
+      [inventoryCredit(), inventoryCredit({ id: 'duplicate-item' })]]
+      .map(activityCredits => workspace({ rewards: defaultRewards(1000), activityCredits })),
   ]
   for (const example of examples) assert.equal(validWorkspace(example), model.validateWorkspace(example))
 

@@ -68,6 +68,53 @@ export type SpatialItem = {
   createdAt: number
 }
 
+export type ObservationMeasurement = {
+  value: number
+  unit: 'cm' | 'm' | 'in' | 'ft'
+  label: string
+  basis: 'user-measured'
+}
+
+/** A quick photo and optional human measurement, independent of inventory or missions. */
+export type Observation = {
+  id: string
+  kind: 'crate' | 'parking' | 'measurement' | 'placement'
+  photo: string
+  notes: string
+  location: string
+  crateId: string | null
+  measurement: ObservationMeasurement | null
+  createdAt: number
+  /** Printed label identity; does not register a volume-tracked crate. */
+  labelCode?: string
+  photoRole?: 'outside' | 'contents'
+  helperId?: string | null
+}
+
+/** Human-reviewed photo XP; does not create cleanup cash or a mission award. */
+export type PhotoAward = {
+  observationId: string
+  helperId: string
+  points: 25
+  reviewedAt: number
+}
+
+/** One confirmed activity earns 25 XP; these receipts never create cash. */
+export type ActivityCredit = {
+  id: string
+  helperId: string
+  points: 25
+  createdAt: number
+  labelCode: string
+} & ({
+  kind: 'sticker'
+  surface: 'front' | 'lid'
+} | {
+  kind: 'inventory'
+  /** Historical receipt: items may subsequently move to a different crate. */
+  itemIds: string[]
+})
+
 export type Workspace = {
   schemaVersion: 1
   crates: Crate[]
@@ -77,6 +124,9 @@ export type Workspace = {
   missions?: CleanupMission[]
   spatialItems?: SpatialItem[]
   rewards?: RewardBook
+  observations?: Observation[]
+  photoAwards?: PhotoAward[]
+  activityCredits?: ActivityCredit[]
 }
 
 // Fixed photo-survey groups are reference geometry, not shared inventory records.
@@ -111,8 +161,9 @@ function record(raw: unknown): Record<string, unknown> | null {
     : null
 }
 
-function exactKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {
-  return Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key))
+function exactKeys(value: Record<string, unknown>, keys: readonly string[], optionalKeys: readonly string[] = []): boolean {
+  return keys.every(key => Object.hasOwn(value, key))
+    && Object.keys(value).every(key => keys.includes(key) || optionalKeys.includes(key))
 }
 
 function finiteBetween(raw: unknown, min: number, max: number): raw is number {
@@ -217,6 +268,50 @@ export function validSpatialItem(raw: unknown): raw is SpatialItem {
     && value.x + value.w <= 25.21 && value.y + value.d <= 7.38 && value.z + value.h <= 3.2
 }
 
+/** Photos do not establish dimensions or whether either car fits. */
+export function validateObservation(raw: unknown): raw is Observation {
+  const value = record(raw)
+  if (!value || !exactKeys(value, ['id', 'kind', 'photo', 'notes', 'location', 'crateId', 'measurement', 'createdAt'], ['labelCode', 'photoRole', 'helperId'])
+    || !textIsValid(value.id, 120, true) || !['crate', 'parking', 'measurement', 'placement'].includes(value.kind as string)
+    || typeof value.photo !== 'string' || !PHOTO_PATH.test(value.photo)
+    || !textIsValid(value.notes, 4000) || !textIsValid(value.location, 160)
+    || !(value.crateId === null || textIsValid(value.crateId, 120, true))
+    || !finiteBetween(value.createdAt, 0, 8.64e15)
+    || Object.hasOwn(value, 'labelCode') && !(typeof value.labelCode === 'string' && /^C-(?!000)[0-9]{3}$/.test(value.labelCode))
+    || Object.hasOwn(value, 'photoRole') && !['outside', 'contents'].includes(value.photoRole as string)
+    || Object.hasOwn(value, 'helperId') && !(value.helperId === null || textIsValid(value.helperId, 120, true))) return false
+  if (value.measurement === null) return true
+  const measurement = record(value.measurement)
+  return measurement !== null && exactKeys(measurement, ['value', 'unit', 'label', 'basis'])
+    && finiteBetween(measurement.value, 0, 1e6) && measurement.value > 0
+    && ['cm', 'm', 'in', 'ft'].includes(measurement.unit as string)
+    && textIsValid(measurement.label, 160, true) && measurement.basis === 'user-measured'
+}
+
+export function validatePhotoAward(raw: unknown): raw is PhotoAward {
+  const value = record(raw)
+  return value !== null && exactKeys(value, ['observationId', 'helperId', 'points', 'reviewedAt'])
+    && textIsValid(value.observationId, 120, true) && textIsValid(value.helperId, 120, true)
+    && value.points === 25 && finiteBetween(value.reviewedAt, 0, 8.64e15)
+}
+
+export function validateActivityCredit(raw: unknown): raw is ActivityCredit {
+  const value = record(raw)
+  if (!value || !textIsValid(value.id, 120, true) || !textIsValid(value.helperId, 120, true)
+    || value.points !== 25 || !finiteBetween(value.createdAt, 0, 8.64e15)
+    || !textIsValid(value.labelCode, 32, true)) return false
+  const common = ['id', 'kind', 'helperId', 'points', 'createdAt', 'labelCode']
+  if (value.kind === 'sticker') {
+    return exactKeys(value, [...common, 'surface']) && /^C-(?!000)[0-9]{3}$/.test(value.labelCode)
+      && ['front', 'lid'].includes(value.surface as string)
+      && value.id === `sticker:${value.labelCode}:${value.surface}`
+  }
+  return value.kind === 'inventory' && exactKeys(value, [...common, 'itemIds'])
+    && Array.isArray(value.itemIds) && value.itemIds.length >= 1 && value.itemIds.length <= 100
+    && value.itemIds.every(id => textIsValid(id, 120, true))
+    && new Set(value.itemIds).size === value.itemIds.length
+}
+
 /** Validate imports and server snapshots before replacing the current workspace. */
 export function validateWorkspace(raw: unknown): boolean {
   const value = record(raw)
@@ -257,6 +352,45 @@ export function validateWorkspace(raw: unknown): boolean {
     }
   }
   if ('rewards' in value && !validateRewardBook(value.rewards, Array.isArray(value.missions) ? value.missions : [])) return false
+  if ('observations' in value) {
+    if (!Array.isArray(value.observations)) return false
+    const observationIds = new Set<string>()
+    const helperIds = new Set((value.rewards as RewardBook | undefined)?.players.map(player => player.id) ?? [])
+    for (const observation of value.observations) {
+      if (!validateObservation(observation) || observationIds.has(observation.id)
+        || observation.crateId !== null && !crateIds.has(observation.crateId)
+        || observation.helperId != null && !helperIds.has(observation.helperId)) return false
+      observationIds.add(observation.id)
+    }
+  }
+  if ('photoAwards' in value) {
+    if (!Array.isArray(value.photoAwards)) return false
+    const observations = new Map(((value.observations ?? []) as Observation[]).map(photo => [photo.id, photo]))
+    const helperIds = new Set((value.rewards as RewardBook | undefined)?.players.map(player => player.id) ?? [])
+    const awarded = new Set<string>()
+    for (const award of value.photoAwards) {
+      if (!validatePhotoAward(award) || awarded.has(award.observationId) || !helperIds.has(award.helperId)) return false
+      const observation = observations.get(award.observationId)
+      if (!observation || award.reviewedAt < observation.createdAt) return false
+      awarded.add(award.observationId)
+    }
+  }
+  if ('activityCredits' in value) {
+    if (!Array.isArray(value.activityCredits)) return false
+    const helperIds = new Set((value.rewards as RewardBook | undefined)?.players.map(player => player.id) ?? [])
+    const creditIds = new Set<string>()
+    const creditedItems = new Set<string>()
+    for (const credit of value.activityCredits) {
+      if (!validateActivityCredit(credit) || creditIds.has(credit.id) || !helperIds.has(credit.helperId)) return false
+      if (credit.kind === 'inventory') {
+        for (const id of credit.itemIds) {
+          if (!itemIds.has(id) || creditedItems.has(id)) return false
+          creditedItems.add(id)
+        }
+      }
+      creditIds.add(credit.id)
+    }
+  }
   return true
 }
 
@@ -388,6 +522,47 @@ export function sanitizeWorkspace(raw: unknown): Workspace {
     }
   }
   if ('rewards' in value && validateRewardBook(value.rewards, result.missions ?? [])) result.rewards = structuredClone(value.rewards)
+  if ('observations' in value) {
+    result.observations = []
+    const observationIds = new Set<string>()
+    const helperIds = new Set(result.rewards?.players.map(player => player.id) ?? [])
+    for (const observation of Array.isArray(value.observations) ? value.observations : []) {
+      // Preserve valid records exactly; never invent a photo, measurement or link.
+      if (!validateObservation(observation) || observationIds.has(observation.id)
+        || observation.crateId !== null && !crateIds.has(observation.crateId)
+        || observation.helperId != null && !helperIds.has(observation.helperId)) continue
+      result.observations.push(structuredClone(observation))
+      observationIds.add(observation.id)
+    }
+  }
+  if ('photoAwards' in value) {
+    result.photoAwards = []
+    const observations = new Map((result.observations ?? []).map(photo => [photo.id, photo]))
+    const helperIds = new Set(result.rewards?.players.map(player => player.id) ?? [])
+    const awarded = new Set<string>()
+    for (const award of Array.isArray(value.photoAwards) ? value.photoAwards : []) {
+      // Never manufacture a review or change its credited helper while recovering.
+      if (!validatePhotoAward(award) || awarded.has(award.observationId) || !helperIds.has(award.helperId)) continue
+      const observation = observations.get(award.observationId)
+      if (!observation || award.reviewedAt < observation.createdAt) continue
+      result.photoAwards.push({ ...award })
+      awarded.add(award.observationId)
+    }
+  }
+  if ('activityCredits' in value) {
+    result.activityCredits = []
+    const helperIds = new Set(result.rewards?.players.map(player => player.id) ?? [])
+    const creditIds = new Set<string>()
+    const creditedItems = new Set<string>()
+    for (const credit of Array.isArray(value.activityCredits) ? value.activityCredits : []) {
+      // Never repair an earned receipt or silently reassign its helper/items.
+      if (!validateActivityCredit(credit) || creditIds.has(credit.id) || !helperIds.has(credit.helperId)
+        || credit.kind === 'inventory' && credit.itemIds.some(id => !itemIds.has(id) || creditedItems.has(id))) continue
+      result.activityCredits.push(structuredClone(credit))
+      creditIds.add(credit.id)
+      if (credit.kind === 'inventory') credit.itemIds.forEach(id => creditedItems.add(id))
+    }
+  }
   return result
 }
 

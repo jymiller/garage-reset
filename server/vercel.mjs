@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { validEnvelope, readBody, photoFormat } from './app.mjs'
+import { validEnvelope, readBody, photoFormat, observationsPreserved, photoAwardsPreserved, activityCreditsPreserved } from './app.mjs'
 import { rewardsTransitionError } from '../src/rewards/contract.mjs'
 import { isAuthorized, handleAccess } from './access.mjs'
 
@@ -169,6 +169,9 @@ export function createVercelHandler({ storage = createBlobStorage(), authorize =
         if (!validEnvelope(candidate)) throw new RequestError(400, 'Invalid workspace or revision.')
         const current = await workspaceSnapshot(storage)
         if (candidate.revision !== current.envelope.revision) { json(res, 409, current.envelope); return }
+        if (!observationsPreserved(current.envelope.data, candidate.data)) { json(res, 409, current.envelope); return }
+        if (!photoAwardsPreserved(current.envelope.data, candidate.data)) { json(res, 409, current.envelope); return }
+        if (!activityCreditsPreserved(current.envelope.data, candidate.data)) { json(res, 409, current.envelope); return }
         const rewardsError = rewardsTransitionError(current.envelope.data, candidate.data)
         if (rewardsError) throw new RequestError(400, rewardsError)
         if (candidate.revision === Number.MAX_SAFE_INTEGER) throw new Error('Revision limit reached.')

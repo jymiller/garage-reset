@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-export type GarageIconName = 'home' | 'missions' | 'crate' | 'garage' | 'more' | 'floor' | 'shelf' | 'pickup' | 'crew' | 'board' | 'trophy' | 'sound'
+export type GarageIconName = 'home' | 'missions' | 'crate' | 'garage' | 'more' | 'floor' | 'shelf' | 'pickup' | 'crew' | 'board' | 'trophy' | 'sound' | 'measure' | 'placement'
 
 const ink = '#294b3c'
 const cream = '#f7edcf'
@@ -35,6 +35,16 @@ const drawings: Record<GarageIconName, ReactNode> = {
     <circle cx="29" cy="27" r="1.8" fill={ink} stroke="none" />
     <path d="M21 32q3.5 4 7 0" />
     <path d="M10 19v1M38 19v1M10 36v1M38 36v1" strokeWidth="1.8" />
+  </>,
+  placement: <>
+    <path d="M9 17h23l-2 22H11Z" fill={sage}/><path d="M7 13h27v5H7ZM16 13V9h9v4" fill={gold}/>
+    <path d="M16 22v11m8-11v11"/><circle cx="13" cy="41" r="2" fill={ink}/><circle cx="28" cy="41" r="2" fill={ink}/>
+    <path d="M33 28h11m-4-4 4 4-4 4"/>
+  </>,
+  measure: <>
+    <path d="m8 33 25-25 9 9-25 25Z" fill={gold} />
+    <path d="m29 12 5 5m-10 0 3 3m-8 2 5 5m-10 0 3 3" />
+    <circle cx="16" cy="34" r="1.5" fill={ink} stroke="none" />
   </>,
   garage: <>
     <path d="M7 19 24 7l17 12v22H7Z" fill={sage} />

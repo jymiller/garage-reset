@@ -56,7 +56,7 @@ function number(value, min, max) {
 
 /** Mirrors src/crates/model.ts. The integration test checks the shared contract. */
 export function validWorkspace(data) {
-  if (!exactObject(data, ['schemaVersion', 'crates', 'items', 'baselineLocked', 'notes'], ['missions', 'spatialItems', 'rewards'])
+  if (!exactObject(data, ['schemaVersion', 'crates', 'items', 'baselineLocked', 'notes'], ['missions', 'spatialItems', 'rewards', 'observations', 'photoAwards', 'activityCredits'])
     || data.schemaVersion !== 1 || !Array.isArray(data.crates) || !Array.isArray(data.items)
     || typeof data.baselineLocked !== 'boolean' || !text(data.notes, 4000)) return false
   const ids = new Set(), codes = new Set(), itemIds = new Set()
@@ -100,6 +100,122 @@ export function validWorkspace(data) {
     }
   }
   if (Object.hasOwn(data, 'rewards') && !validateRewardBook(data.rewards, data.missions ?? [])) return false
+  if (Object.hasOwn(data, 'observations')) {
+    if (!Array.isArray(data.observations)) return false
+    const observationIds = new Set()
+    const helperIds = new Set(data.rewards?.players.map(player => player.id) ?? [])
+    for (const observation of data.observations) {
+      if (!validObservation(observation, ids, helperIds) || observationIds.has(observation.id)) return false
+      observationIds.add(observation.id)
+    }
+  }
+  if (Object.hasOwn(data, 'photoAwards')) {
+    if (!Array.isArray(data.photoAwards)) return false
+    const observations = new Map((data.observations ?? []).map(photo => [photo.id, photo]))
+    const helperIds = new Set(data.rewards?.players.map(player => player.id) ?? [])
+    const awarded = new Set()
+    for (const award of data.photoAwards) {
+      if (!exactObject(award, ['observationId', 'helperId', 'points', 'reviewedAt'])
+        || !text(award.observationId, 120, true) || !text(award.helperId, 120, true)
+        || award.points !== 25 || !number(award.reviewedAt, 0, 8.64e15)
+        || awarded.has(award.observationId) || !helperIds.has(award.helperId)) return false
+      const observation = observations.get(award.observationId)
+      if (!observation || award.reviewedAt < observation.createdAt) return false
+      awarded.add(award.observationId)
+    }
+  }
+  if (Object.hasOwn(data, 'activityCredits')) {
+    if (!Array.isArray(data.activityCredits)) return false
+    const helperIds = new Set(data.rewards?.players.map(player => player.id) ?? [])
+    const creditIds = new Set(), creditedItems = new Set()
+    for (const credit of data.activityCredits) {
+      if (!validActivityCredit(credit) || creditIds.has(credit.id) || !helperIds.has(credit.helperId)) return false
+      if (credit.kind === 'inventory') {
+        for (const id of credit.itemIds) {
+          if (!itemIds.has(id) || creditedItems.has(id)) return false
+          creditedItems.add(id)
+        }
+      }
+      creditIds.add(credit.id)
+    }
+  }
+  return true
+}
+
+function validActivityCredit(value) {
+  if (!value || !text(value.id, 120, true) || !text(value.helperId, 120, true)
+    || value.points !== 25 || !number(value.createdAt, 0, 8.64e15) || !text(value.labelCode, 32, true)) return false
+  const common = ['id', 'kind', 'helperId', 'points', 'createdAt', 'labelCode']
+  if (value.kind === 'sticker') {
+    return exactObject(value, [...common, 'surface']) && /^C-(?!000)[0-9]{3}$/.test(value.labelCode)
+      && ['front', 'lid'].includes(value.surface) && value.id === `sticker:${value.labelCode}:${value.surface}`
+  }
+  return value.kind === 'inventory' && exactObject(value, [...common, 'itemIds'])
+    && Array.isArray(value.itemIds) && value.itemIds.length >= 1 && value.itemIds.length <= 100
+    && value.itemIds.every(id => text(id, 120, true)) && new Set(value.itemIds).size === value.itemIds.length
+}
+
+function validObservation(observation, crateIds, helperIds) {
+  if (!exactObject(observation, ['id', 'kind', 'photo', 'notes', 'location', 'crateId', 'measurement', 'createdAt'], ['labelCode', 'photoRole', 'helperId'])
+    || !text(observation.id, 120, true) || !['crate', 'parking', 'measurement', 'placement'].includes(observation.kind)
+    || typeof observation.photo !== 'string' || !PHOTO_URL.test(observation.photo)
+    || !text(observation.notes, 4000) || !text(observation.location, 160)
+    || !(observation.crateId === null || text(observation.crateId, 120, true) && crateIds.has(observation.crateId))
+    || !number(observation.createdAt, 0, 8.64e15)
+    || Object.hasOwn(observation, 'labelCode') && !(typeof observation.labelCode === 'string' && /^C-(?!000)[0-9]{3}$/.test(observation.labelCode))
+    || Object.hasOwn(observation, 'photoRole') && !['outside', 'contents'].includes(observation.photoRole)
+    || Object.hasOwn(observation, 'helperId') && !(observation.helperId === null || text(observation.helperId, 120, true) && helperIds.has(observation.helperId))) return false
+  const measurement = observation.measurement
+  return measurement === null || exactObject(measurement, ['value', 'unit', 'label', 'basis'])
+    && number(measurement.value, Number.MIN_VALUE, 1e6)
+    && ['cm', 'm', 'in', 'ft'].includes(measurement.unit)
+    && text(measurement.label, 160, true) && measurement.basis === 'user-measured'
+}
+
+/** Old clients cannot silently discard photos they do not yet understand. */
+export function observationsPreserved(current, next) {
+  const incoming = new Map((next.observations ?? []).map(observation => [observation.id, observation]))
+  return (current.observations ?? []).every(observation => {
+    const retained = incoming.get(observation.id)
+    return retained && ['labelCode', 'photoRole', 'helperId'].every(key => !Object.hasOwn(observation, key) || Object.hasOwn(retained, key))
+  })
+}
+
+/** Reviewed XP and its original photo cannot be replaced by a stale or older client. */
+export function photoAwardsPreserved(current, next) {
+  const incoming = new Map((next.photoAwards ?? []).map(award => [award.observationId, award]))
+  const previousPhotos = new Map((current.observations ?? []).map(photo => [photo.id, photo]))
+  const nextPhotos = new Map((next.observations ?? []).map(photo => [photo.id, photo]))
+  return (current.photoAwards ?? []).every(award => {
+    const retained = incoming.get(award.observationId)
+    const before = previousPhotos.get(award.observationId), after = nextPhotos.get(award.observationId)
+    return retained && ['observationId', 'helperId', 'points', 'reviewedAt'].every(key => retained[key] === award[key])
+      && before && after && before.photo === after.photo && before.createdAt === after.createdAt
+  })
+}
+
+/** Immutable receipts survive older clients; new inventory XP accompanies actual added items. */
+export function activityCreditsPreserved(current, next) {
+  const incoming = new Map((next.activityCredits ?? []).map(credit => [credit.id, credit]))
+  const existing = new Map((current.activityCredits ?? []).map(credit => [credit.id, credit]))
+  for (const credit of existing.values()) {
+    const retained = incoming.get(credit.id)
+    if (!retained || !['id', 'kind', 'helperId', 'points', 'createdAt', 'labelCode'].every(key => retained[key] === credit[key])) return false
+    if (credit.kind === 'sticker' ? retained.surface !== credit.surface
+      : retained.itemIds.length !== credit.itemIds.length || credit.itemIds.some(id => !retained.itemIds.includes(id))) return false
+  }
+  const previousItems = new Set(current.items.map(item => item.id))
+  const nextItems = new Map(next.items.map(item => [item.id, item]))
+  const nextCrates = new Map(next.crates.map(crate => [crate.id, crate]))
+  for (const credit of incoming.values()) {
+    if (existing.has(credit.id) || credit.kind !== 'inventory') continue
+    // Only new receipts need a current crate match. Earned receipts retain their
+    // historical label even when these items or their crate are moved/renamed.
+    if (credit.itemIds.some(id => {
+      const item = nextItems.get(id)
+      return previousItems.has(id) || !item || nextCrates.get(item.crateId)?.code !== credit.labelCode
+    })) return false
+  }
   return true
 }
 
@@ -318,6 +434,9 @@ export async function createGarageServer({
         if (!validEnvelope(body)) throw new HttpError(400, 'Invalid workspace or revision.')
         const write = writeQueue.then(async () => {
           if (body.revision !== state.revision) return { status: 409, value: state }
+          if (!observationsPreserved(state.data, body.data)) return { status: 409, value: state }
+          if (!photoAwardsPreserved(state.data, body.data)) return { status: 409, value: state }
+          if (!activityCreditsPreserved(state.data, body.data)) return { status: 409, value: state }
           const rewardsError = rewardsTransitionError(state.data, body.data)
           if (rewardsError) throw new HttpError(400, rewardsError)
           if (state.revision === Number.MAX_SAFE_INTEGER) throw new Error('Revision limit reached.')

@@ -67,6 +67,23 @@ export function FamilyAccess({ children }: { children: ReactNode }) {
     return () => { active = false; window.removeEventListener('hashchange', onHashChange) }
   }, [local])
 
+  // A QR may already be waiting in this tab when an invitation is opened in another.
+  useEffect(() => {
+    if (local || state.state !== 'locked') return
+    let active = true
+    let checking = false
+    const refresh = async () => {
+      if (checking || document.visibilityState !== 'visible') return
+      checking = true
+      const result = await checkAccess()
+      checking = false
+      if (active && result.state === 'authorized') accept(result, false)
+    }
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', refresh)
+    return () => { active = false; window.removeEventListener('focus', refresh); document.removeEventListener('visibilitychange', refresh) }
+  }, [local, state.state])
+
   if (state.state === 'authorized') return children
   const checking = state.state === 'checking'
   const message = state.state === 'locked' || state.state === 'error' ? state.message : undefined

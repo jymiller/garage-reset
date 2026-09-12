@@ -14,6 +14,18 @@ const rewardMission = (id = 'mission-one') => ({ id, title: 'One shelf', area: '
   phase: 'complete', beforePhoto: '/api/photos/before.jpg', afterPhoto: '/api/photos/after.jpg', plannedMinutes: 10,
   elapsedSeconds: 100, runningSince: null, createdAt: 1000, completedAt: 2000, kept: 0, bagged: 0,
   donated: 0, ask: 0, summary: 'Grouped the shelf contents.', parkingClear: true })
+const observation = (changes = {}) => ({
+  id: 'observation-one', kind: 'crate', photo: '/api/photos/one.jpg', notes: '', location: '',
+  crateId: null, measurement: null, createdAt: 1000, ...changes,
+})
+const observationMeasurement = (changes = {}) => ({ value: 84.5, unit: 'in', label: 'Between the parking lines', basis: 'user-measured', ...changes })
+const photoAward = (changes = {}) => ({ observationId: 'observation-one', helperId: 'griff', points: 25, reviewedAt: 2000, ...changes })
+const activityCrate = (changes = {}) => ({ id: 'crate-one', code: 'A01', name: 'Camping', location: '', owner: '',
+  capacityLiters: 100, baselineFill: 80, currentFill: 80, status: 'unopened', photo: null, notes: '', createdAt: 1000, ...changes })
+const activityItem = (changes = {}) => ({ id: 'item-one', crateId: 'crate-one', name: 'Lantern', quantity: 1,
+  decision: 'undecided', destination: '', departed: false, notes: '', ...changes })
+const stickerCredit = (changes = {}) => ({ id: 'sticker:C-001:front', kind: 'sticker', helperId: 'griff', points: 25, createdAt: 2000, labelCode: 'C-001', surface: 'front', ...changes })
+const inventoryCredit = (changes = {}) => ({ id: 'inventory-one', kind: 'inventory', helperId: 'griff', points: 25, createdAt: 2000, labelCode: 'A01', itemIds: ['item-one'], ...changes })
 
 function fakeStorage() {
   const objects = new Map(), writes = []
@@ -88,6 +100,194 @@ test('access handler runs before authorization and private API routes fail close
   assert.equal(accessCalls, 5)
   assert.equal(authCalls, 4)
   assert.equal(storage.writes.length, 0)
+})
+
+test('concurrent sticker and inventory claims award each activity once across function instances', async t => {
+  for (const kind of ['sticker', 'inventory']) {
+    const first = await fixture(t)
+    const rewards = defaultRewards(1000)
+    rewards.players.push({ id: 'alex', name: 'Alex', createdAt: 1000 })
+    const original = { ...empty(), crates: [activityCrate()], rewards, activityCredits: [] }
+    assert.equal((await first.put(0, original)).status, 200)
+    const second = await fixture(t, { storage: first.storage })
+    first.storage.synchronizeReads(2)
+    const make = helperId => ({ ...original, items: kind === 'inventory' ? [activityItem()] : [],
+      activityCredits: [kind === 'sticker' ? stickerCredit({ helperId }) : inventoryCredit({ helperId })] })
+    const responses = await Promise.all([first.put(1, make('griff')), second.put(1, make('alex'))])
+    assert.deepEqual(responses.map(response => response.status).sort(), [200, 409])
+    const current = await (await first.get()).json()
+    assert.equal(current.data.activityCredits.length, 1)
+    assert.equal(current.data.activityCredits[0].points, 25)
+    assert.deepEqual(await responses.find(response => response.status === 409).json(), current)
+    const dropped = { ...current.data }; delete dropped.activityCredits
+    const credited = current.data.activityCredits[0]
+    for (const candidate of [dropped, { ...current.data, activityCredits: [] },
+      { ...current.data, activityCredits: [{ ...credited, helperId: credited.helperId === 'griff' ? 'alex' : 'griff' }] },
+      { ...current.data, activityCredits: [{ ...credited, createdAt: 2001 }] }]) {
+      const response = await second.put(2, candidate)
+      assert.equal(response.status, 409)
+      assert.deepEqual(await response.json(), current)
+    }
+    const moved = { ...current.data, notes: 'Moved after credit.', crates: [activityCrate({ code: 'Renamed' }), activityCrate({ id: 'crate-two', code: 'B02' })],
+      items: current.data.items.map(item => ({ ...item, crateId: 'crate-two', destination: 'Back shelf', decision: 'keep' })) }
+    assert.equal((await second.put(2, moved)).status, 200)
+    const fresh = await fixture(t, { storage: first.storage })
+    assert.deepEqual(await (await fresh.get()).json(), { revision: 3, data: moved })
+    assert.deepEqual(moved.rewards.entries, [])
+  }
+})
+
+test('Blob requires atomic new inventory items and rejects duplicate or malformed receipts', async t => {
+  const { put, get, storage } = await fixture(t)
+  const data = { ...empty(), crates: [activityCrate()], items: [activityItem()], rewards: defaultRewards(1000) }
+  assert.equal((await put(0, data)).status, 200)
+  for (const activityCredits of [null, [stickerCredit(), stickerCredit()], [stickerCredit({ helperId: 'missing' })],
+    [stickerCredit({ id: 'random' })], [stickerCredit({ surface: 'lid' })], [stickerCredit({ points: 50 })],
+    [stickerCredit({ itemIds: [] })], [inventoryCredit({ surface: 'front' })], [inventoryCredit({ itemIds: [] })],
+    [inventoryCredit({ itemIds: ['missing'] })], [inventoryCredit({ itemIds: ['item-one', 'item-one'] })]]) {
+    assert.equal((await put(1, { ...data, activityCredits })).status, 400)
+  }
+  for (const candidate of [{ ...data, activityCredits: [inventoryCredit()] },
+    { ...data, items: [...data.items, activityItem({ id: 'new-item' })], activityCredits: [inventoryCredit({ itemIds: ['new-item'], labelCode: 'Wrong crate' })] }]) {
+    const response = await put(1, candidate)
+    assert.equal(response.status, 409)
+    assert.deepEqual(await response.json(), { revision: 1, data })
+  }
+  assert.equal(storage.writes.length, 1)
+  const added = { ...data, items: [...data.items, activityItem({ id: 'new-item' })], activityCredits: [inventoryCredit({ itemIds: ['new-item'] })] }
+  assert.equal((await put(1, added)).status, 200)
+  assert.equal((await put(2, { ...added, activityCredits: [...added.activityCredits, inventoryCredit({ id: 'duplicate', itemIds: ['new-item'] })] })).status, 400)
+  assert.equal((await put(2, { ...added, items: data.items })).status, 400)
+  assert.deepEqual(await (await get()).json(), { revision: 2, data: added })
+})
+
+test('concurrent photo reviews award a photo once and preserve the winner across function instances', async t => {
+  const first = await fixture(t)
+  const rewards = defaultRewards(1000)
+  rewards.players.push({ id: 'alex', name: 'Alex', createdAt: 1000 })
+  const original = { ...empty(), rewards, observations: [observation({ kind: 'placement' })] }
+  assert.equal((await first.put(0, original)).status, 200)
+  const second = await fixture(t, { storage: first.storage })
+  first.storage.synchronizeReads(2)
+  const responses = await Promise.all([
+    first.put(1, { ...original, photoAwards: [photoAward()] }),
+    second.put(1, { ...original, photoAwards: [photoAward({ helperId: 'alex' })] }),
+  ])
+  assert.deepEqual(responses.map(response => response.status).sort(), [200, 409])
+  const current = await (await first.get()).json()
+  assert.equal(current.data.photoAwards.length, 1)
+  assert.equal(current.data.photoAwards[0].points, 25)
+  assert.deepEqual(await responses.find(response => response.status === 409).json(), current)
+  const candidates = [original, { ...current.data, photoAwards: [] },
+    { ...current.data, photoAwards: [photoAward({ helperId: current.data.photoAwards[0].helperId === 'griff' ? 'alex' : 'griff' })] },
+    { ...current.data, photoAwards: [{ ...current.data.photoAwards[0], reviewedAt: 2001 }] },
+    { ...current.data, observations: [observation({ kind: 'placement', photo: '/api/photos/replaced.jpg' })] },
+    { ...current.data, observations: [observation({ kind: 'placement', createdAt: 900 })] },
+  ]
+  for (const candidate of candidates) {
+    const response = await second.put(2, candidate)
+    assert.equal(response.status, 409)
+    assert.deepEqual(await response.json(), current)
+  }
+  const described = { ...current.data, observations: [{ ...current.data.observations[0], notes: 'Location corrected.', location: 'Rear rack' }] }
+  assert.equal((await second.put(2, described)).status, 200)
+  assert.deepEqual(await (await first.get()).json(), { revision: 3, data: described })
+  assert.deepEqual(described.rewards, rewards)
+  assert.deepEqual(described.rewards.entries, [])
+})
+
+test('Blob rejects malformed, orphaned and duplicate photo awards before storage', async t => {
+  const { put, get, storage } = await fixture(t)
+  const data = { ...empty(), rewards: defaultRewards(1000), observations: [observation()] }
+  assert.equal((await put(0, data)).status, 200)
+  for (const photoAwards of [null, [photoAward(), photoAward()], [photoAward({ points: 100 })],
+    [photoAward({ points: '25' })], [photoAward({ reviewedAt: 999 })], [photoAward({ helperId: 'missing' })],
+    [photoAward({ observationId: 'missing' })], [photoAward({ extra: true })]]) {
+    assert.equal((await put(1, { ...data, photoAwards })).status, 400)
+  }
+  assert.deepEqual(await (await get()).json(), { revision: 1, data })
+  assert.equal(storage.writes.length, 1)
+})
+
+test('Blob quick photos survive fresh handlers and old clients cannot remove whole or partial observations', async t => {
+  const first = await fixture(t)
+  assert.equal((await first.put(0, empty())).status, 200)
+  const data = { ...empty(), observations: [observation(), observation({ id: 'parking', kind: 'parking', measurement: observationMeasurement() })] }
+  assert.equal((await first.put(1, data)).status, 200)
+  const second = await fixture(t, { storage: first.storage })
+  assert.deepEqual(await (await second.get()).json(), { revision: 2, data })
+  for (const candidate of [empty(), { ...data, observations: [] }, { ...data, observations: [data.observations[0]] }]) {
+    const result = await second.put(2, candidate)
+    assert.equal(result.status, 409)
+    assert.deepEqual(await result.json(), { revision: 2, data })
+  }
+  const revised = { ...data, notes: 'Laptop update', observations: data.observations.map(entry => ({ ...entry, location: 'Rear garage' })) }
+  assert.equal((await second.put(2, revised)).status, 200)
+  assert.deepEqual(await (await first.get()).json(), { revision: 3, data: revised })
+  assert.equal(first.storage.writes.length, 3)
+})
+
+test('concurrent phone and laptop quick photos use CAS and retain both additions after explicit retry', async t => {
+  const first = await fixture(t)
+  const original = { ...empty(), observations: [observation()] }
+  assert.equal((await first.put(0, original)).status, 200)
+  const second = await fixture(t, { storage: first.storage })
+  const phone = { ...original, observations: [...original.observations, observation({ id: 'phone', kind: 'parking' })] }
+  const laptop = { ...original, observations: [...original.observations, observation({ id: 'laptop', kind: 'measurement' })] }
+  first.storage.synchronizeReads(2)
+  const responses = await Promise.all([first.put(1, phone), second.put(1, laptop)])
+  assert.deepEqual(responses.map(response => response.status).sort(), [200, 409])
+  const conflict = await responses.find(response => response.status === 409).json()
+  const current = await (await first.get()).json()
+  assert.deepEqual(conflict, current)
+  const missing = conflict.data.observations.some(entry => entry.id === 'phone') ? laptop.observations[1] : phone.observations[1]
+  const merged = { ...conflict.data, observations: [...conflict.data.observations, missing] }
+  assert.equal((await second.put(conflict.revision, merged)).status, 200)
+  assert.deepEqual((await (await first.get()).json()).data.observations.map(entry => entry.id).sort(), ['laptop', 'observation-one', 'phone'])
+  const stale = await first.put(1, phone)
+  assert.equal(stale.status, 409)
+  assert.equal((await stale.json()).revision, 3)
+})
+
+test('malformed quick photo measurements, links and identities fail before any Blob write', async t => {
+  const { get, put, storage } = await fixture(t)
+  const data = { ...empty(), observations: [observation()] }
+  assert.equal((await put(0, data)).status, 200)
+  for (const observations of [null, [observation(), observation()], [observation({ crateId: 'missing' })],
+    [observation({ photo: '/api/photos/one.jpg?key=private' })], [observation({ unexpected: true })],
+    [observation({ measurement: observationMeasurement({ extra: true }) })],
+    [observation({ measurement: observationMeasurement({ basis: 'estimated' }) })],
+    [observation({ measurement: observationMeasurement({ value: 0 }) })],
+  ]) assert.equal((await put(1, { ...data, observations })).status, 400)
+  assert.deepEqual(await (await get()).json(), { revision: 1, data })
+  assert.equal(storage.writes.length, 1)
+})
+
+test('Blob label progress keeps both photo roles and helper attribution without registering a crate or awarding points', async t => {
+  const first = await fixture(t)
+  const data = { ...empty(), rewards: defaultRewards(1000), observations: [
+    observation({ labelCode: 'C-032', photoRole: 'outside', helperId: 'griff' }),
+    observation({ id: 'contents', labelCode: 'C-032', photoRole: 'contents', helperId: null }),
+  ] }
+  assert.equal((await first.put(0, data)).status, 200)
+  const second = await fixture(t, { storage: first.storage })
+  assert.deepEqual(await (await second.get()).json(), { revision: 1, data })
+  for (const field of ['labelCode', 'photoRole', 'helperId']) {
+    const candidate = structuredClone(data); delete candidate.observations[0][field]
+    const response = await second.put(1, candidate)
+    assert.equal(response.status, 409)
+    assert.deepEqual(await response.json(), { revision: 1, data })
+  }
+  for (const patch of [{ labelCode: 'C-000' }, { labelCode: 'c-032' }, { photoRole: 'after' }, { helperId: 'missing' }]) {
+    assert.equal((await second.put(1, { ...data, observations: [{ ...data.observations[0], ...patch }, data.observations[1]] })).status, 400)
+  }
+  const changed = { ...data, observations: data.observations.map(entry => ({ ...entry, helperId: null })) }
+  assert.equal((await second.put(1, changed)).status, 200)
+  const persisted = await (await first.get()).json()
+  assert.deepEqual(persisted, { revision: 2, data: changed })
+  assert.deepEqual(persisted.data.crates, [])
+  assert.deepEqual(persisted.data.rewards.entries, [])
+  assert.equal(first.storage.writes.length, 2)
 })
 
 test('Blob rewards persist across handlers and CAS protects duplicate approvals, payments and ledger history', async t => {

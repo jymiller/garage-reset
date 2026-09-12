@@ -1,6 +1,7 @@
 import { Component, lazy, Suspense, useEffect, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { Tab } from '../App'
+import { GarageIcon } from '../components/GarageIcons'
 import { currentObjects } from '../garage/currentObjects'
 import type { LayoutObject } from '../garage/currentObjects'
 import { scanShell } from '../garage/scanGeometry'
@@ -105,6 +106,7 @@ export function Garage({ onNavigate, onOpenCrate }: { onNavigate: (tab: Tab) => 
         <div><span className="layout-eyebrow">THE SPACE WE’RE TAKING BACK</span><h1>Your garage,<br /><em>closer to reality.</em></h1><p>Select it in a photo. Find it in 3D. Know what it is and how much space its box takes.</p></div>
         <div className="layout-next"><span className="layout-eyebrow">NEXT UPGRADE</span><h2>A fresh scan + a few measurements.</h2><p>Keep the two car spaces, map each shelf, and make every crate findable.</p><button onClick={() => { setCaptureOpen(true); setTimeout(() => document.getElementById('layout-capture')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 0) }}>See the capture checklist ↗</button></div>
       </section>
+      {!!workspace.data.observations?.length && <section className="layout-new-evidence"><GarageIcon name="missions"/><div><h2>New photos & measurements</h2><p>{workspace.data.observations.length} helpful photos · {workspace.data.observations.filter(item=>item.measurement).length} tape readings, ready to compare with this plan.</p></div><button onClick={()=>onNavigate('observations')}>Review new evidence →</button></section>}
       <div className="layout-sources">
         <div><span className="layout-dot scan" /><b>Walls & openings</b><span>Polycam · Jun 25, 2026</span></div>
         <div><span className="layout-dot photo" /><b>Objects & conditions</b><span>17 photos · Sep 9, 2026</span></div>

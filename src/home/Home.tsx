@@ -1,64 +1,58 @@
+import { ShareFamilyLink } from '../access/ShareFamilyLink'
 import type { Tab } from '../App'
+import { HelperIdentity, readHelperPlayerId } from '../rewards/HelperIdentity'
 import { useState } from 'react'
 import { useWorkspace } from '../crates/useWorkspace'
-import { volumeStats } from '../crates/model'
-import { missionProgress } from '../play/mission'
-import { BoltIcon } from '../components/icons'
-import { GarageIcon } from '../components/GarageIcons'
 import { rewardSummary } from '../rewards/model'
+import { photoPointsForPlayer } from '../rewards/photoPoints'
+import { activityPointsForPlayer } from '../rewards/activityPoints'
+import { volumeStats } from '../crates/model'
+import { GarageIcon } from '../components/GarageIcons'
 import { openMissionsForPlayer } from '../play/playerMissions'
-import { InstallHomeLink } from './InstallGuide'
+import './start.css'
 
-const statusLabels = { connecting: 'Connecting · showing saved progress…', shared: 'Synced across your devices', saving: 'Saving your progress…', offline: 'Offline · showing this device’s draft', conflict: 'Your draft needs review', error: 'Save needs attention' }
-const liters = (value: number) => new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value)
+const statusLabels = { connecting: 'Opening your saved progress…', shared: 'Saved with the family', saving: 'Saving…', offline: 'Offline · showing this device’s draft', conflict: 'Your draft needs review', error: 'Save needs attention' }
+type PhotoKind = 'crate' | 'parking' | 'measurement' | 'placement'
 
-export function Home({ onNavigate, onOpenCrate }: { onNavigate: (tab: Tab) => void; onOpenCrate: (id: string, step: 'locate' | 'sort' | 'repack') => void }) {
+export function Home({ onNavigate, onCapture, onOpenCrate }: { onNavigate: (tab: Tab) => void; onCapture: (kind: PhotoKind) => void; onOpenCrate: (id: string, step: 'locate' | 'sort' | 'repack') => void }) {
   const workspace = useWorkspace()
   const { data } = workspace
-  const [devicePlayer] = useState(() => { try { return localStorage.getItem('garage-reset-current-player-v1') } catch { return null } })
-  const currentPlayer = data.rewards?.players.find(player => player.id === devicePlayer)
-  const playerScore = rewardSummary(data).players.find(player => player.id === currentPlayer?.id)
-  const money = (cents: number) => new Intl.NumberFormat('en-US', {style: 'currency', currency: 'USD', maximumFractionDigits: 0}).format(cents / 100)
-  const missions = data.missions ?? []
-  const score = missionProgress(missions)
+  const [devicePlayer, setDevicePlayer] = useState(readHelperPlayerId)
+  const player = data.rewards?.players.find(person => person.id === devicePlayer)
+  const points = (rewardSummary(data).players.find(person=>person.id===player?.id)?.points??0)+photoPointsForPlayer(data,player?.id).points+activityPointsForPlayer(data,player?.id).points
+  const open = openMissionsForPlayer(data, player?.id ?? null)[0]
+  const observations = data.observations ?? []
+  const measurements = observations.filter(item => item.measurement !== null)
+  const parking = observations.filter(item => item.kind === 'parking')
+  const latest = observations.slice().sort((a,b) => b.createdAt-a.createdAt)[0]
   const volume = volumeStats(data)
   const pendingFill = data.crates.some(crate => crate.status === 'sorting')
-  const open = openMissionsForPlayer(data, currentPlayer?.id ?? null)[0]
-  const recordedCrates = new Set(data.items.map(item => item.crateId))
-  const nextCrate = data.crates.find(crate => crate.status === 'sorting') ?? data.crates.find(crate => crate.status === 'unopened') ?? data.crates.find(crate => crate.currentFill > 0 && !recordedCrates.has(crate.id))
-  const nextCrateStep = nextCrate?.status === 'sorting' ? 'repack' : nextCrate?.status === 'repacked' ? 'sort' : 'locate'
-  const latestWin = missions.filter(m => m.phase === 'complete').sort((a, b) => (b.completedAt ?? 0) - (a.completedAt ?? 0))[0]
-  const goalReady = volume.baselineLiters > 0 && !pendingFill
-  const goalProgress = goalReady ? Math.min(100, volume.freedPercent * 2) : 0
-  const resumeLabel = !open ? 'Start a photo mission' : open.phase === 'before' ? open.beforePhoto ? 'Start your saved round' : 'Take your before photo' : open.phase === 'active' ? 'Continue your mission' : 'Finish your mission'
+  const nextCrate = data.crates.find(crate => crate.status === 'sorting') ?? data.crates[0]
   const attention = workspace.status === 'conflict' || workspace.status === 'error' || workspace.storageError
 
-  return <main className="reset-home">
-    <header className="home-heading"><div><p className="home-eyebrow">GARAGE RESET</p><h1>Let’s make<br className="home-mobile-break"/> some room.</h1><p>Choose one small area. Sort it. See your progress.</p></div><button className="home-level" aria-label={`Open score and cash. Team level ${score.level}, ${score.points} points`} onClick={() => onNavigate('score')}><span>LEVEL</span><strong>{score.level}</strong><span>{score.points} XP</span></button></header>
-    <div className={`home-sync ${workspace.status}`} role="status"><i/>{workspace.storageError ? 'Device backup unavailable · open Crates for help' : statusLabels[workspace.status]}</div>
-    {attention && <div className="home-save-alert"><p>{workspace.error || 'Open Crates to review your draft and backup options.'}</p><button onClick={() => onNavigate('crates')}>Review saved progress →</button></div>}
+  return <main className="reset-home start-home">
+    <header className="start-heading"><p className="home-eyebrow">GARAGE RESET</p><h1>One photo helps.</h1><p>Let’s learn what’s here, then make room.</p><button className="start-score-link" onClick={()=>onNavigate('score')}><GarageIcon name="trophy"/>{player ? `${player.name} · ${points} points` : 'Your points'}<span aria-hidden="true">→</span></button></header>
+    <div className={`home-sync ${workspace.status}`} role="status"><i/>{workspace.storageError ? 'Device backup unavailable · review your draft' : statusLabels[workspace.status]}</div>
+    {attention && <div className="home-save-alert"><p>{workspace.error || 'Open Missions to review your draft and backup options.'}</p><button onClick={() => onNavigate('discover')}>Review saved progress →</button></div>}
 
-    <button className="home-cash-link" onClick={() => onNavigate('score')}>
-      <GarageIcon name="trophy"/><span><strong>Score & cash</strong><small>{playerScore ? `${playerScore.name}: ${playerScore.points} points · ${money(playerScore.approvedCents)} approved` : data.rewards ? 'Choose your player. See your points and cash.' : 'Griff + friends · set up your path to $100.'}</small></span><span aria-hidden="true">→</span>
-    </button>
-    <InstallHomeLink onShowGuide={() => onNavigate('more')} />
-    <div className="home-grid">
-      <section className="home-mission" aria-labelledby="home-mission-title">
-        <div className="home-mission-photo"><img src={open?.beforePhoto ?? '/evidence/2026-09-09/IMG_1930.jpg'} alt={open?.beforePhoto ? `Before your mission: ${open.area}` : 'The garage storage shelves in the September 9 reference photo'} fetchPriority="high"/><div className="home-photo-shade"/><span className="home-photo-caption">{open?.beforePhoto ? 'YOUR MISSION / BEFORE' : 'YOUR GARAGE / SEPT 9 REFERENCE'}</span><span className="home-xp-stamp"><BoltIcon className="home-small-icon"/>100 XP<span>per finished round</span></span></div>
-        <div className="home-mission-copy"><div className="home-mission-meta"><span>{open ? 'YOUR MISSION IS WAITING' : 'NEXT UP / ONE SMALL WIN'}</span><span>{open ? `${open.plannedMinutes} min round` : '5–15 minutes'}</span></div><h2 id="home-mission-title">{open ? open.title : 'Clear one small area.'}</h2><p>{open ? `${open.area}. Your saved photos and counts are waiting. Pick up right where you left off.` : 'Choose one shelf, one crate, or part of the floor. Take a before photo, sort it, then take an after photo.'}</p><button className="home-primary" onClick={() => onNavigate('play')}><span>{resumeLabel}</span><span aria-hidden="true">↗</span></button><p className="home-mission-foot">Both cars keep their space. One open batch at a time.</p></div>
-      </section>
-
-      <div className="home-side">
-        <section className="home-campaign" aria-labelledby="home-goal"><div className="home-card-heading"><span className="home-eyebrow">THE BIG MISSION</span><span className="home-target">50%</span></div><h2 id="home-goal">Free half the<br/> storage space.</h2><p>{pendingFill ? 'Finish the open repacks to update your space estimate.' : volume.baselineLiters === 0 ? 'Register your crates and their starting fill. That gives your progress a real starting point.' : `${liters(volume.freedLiters)} L freed from ${liters(volume.baselineLiters)} L of recorded starting contents.`}</p><div className="home-goal-track" role="progressbar" aria-label="Progress toward freeing half of recorded storage volume" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(goalProgress)} aria-valuetext={pendingFill ? 'Fill checks pending' : volume.baselineLiters === 0 ? 'Starting volume not recorded' : `${Math.round(goalProgress)} percent of the half-volume goal${data.baselineLocked ? '' : ', provisional baseline'}`}><span style={{width: `${goalProgress}%`}}/></div><div className="home-goal-caption"><span>{pendingFill ? 'Fill checks pending' : volume.baselineLiters === 0 ? 'Add your starting amounts' : `${Math.round(volume.freedPercent)}% of recorded volume freed`}</span><span>{goalReady && !data.baselineLocked ? 'Baseline in progress' : 'Goal: 50% less'}</span></div><button className="home-text-link" onClick={() => onNavigate('crates')}>{volume.baselineLiters === 0 ? 'Set up your first crate' : 'Open volume tracker'} <span aria-hidden="true">→</span></button></section>
-        <section className="home-level-progress" aria-label="Photo mission progress"><div><span className="home-round-icon"><GarageIcon name="trophy"/></span><p><strong>{score.completedCount} {score.completedCount === 1 ? 'mission' : 'missions'} complete</strong><span>{score.roundsToNextLevel} more to level {score.level + 1}</span></p><b>{score.points}<small>XP</small></b></div><div className="home-level-pips" aria-hidden="true">{[0, 1, 2].map(n => <i className={n < score.completedCount % 3 ? 'filled' : ''} key={n}/>)}</div><p>Finish a before-and-after round to earn 100 XP.</p></section>
+    <section className="start-actions" aria-label="Choose one small action">
+      <button className="start-photo" onClick={() => onCapture('crate')}><GarageIcon name="missions"/><span className="start-duration">ABOUT 1 MINUTE</span><h2>Take a crate photo</h2><p>Show a box where it lives. Open the lid only if it’s easy.</p><span className="start-action-label">Take a photo <span aria-hidden="true">→</span></span><small>No label, inventory or timer needed.</small></button>
+      <div className="start-side-actions">
+        <button className="start-small-action" onClick={() => onNavigate('labels')}><GarageIcon name="crate"/><span><strong>Label & photograph crates</strong><small>Use your printed labels. Two photos per box.</small></span><span aria-hidden="true">→</span></button>
+        <button className="start-small-action" onClick={() => onCapture('parking')}><GarageIcon name="garage"/><span><strong>Make room for both cars</strong><small>Show the parking spaces and the tight spots.</small></span><span aria-hidden="true">→</span></button>
+        <button className="start-small-action" onClick={() => onCapture('placement')}><GarageIcon name="placement"/><span><strong>Show where something moved</strong><small>A bin, a box, or an object in a new spot.</small></span><span aria-hidden="true">→</span></button>
+        <button className="start-small-action" onClick={() => onCapture('measurement')}><GarageIcon name="measure"/><span><strong>Measure one space</strong><small>A shelf depth, a gap, or the white parking line.</small></span><span aria-hidden="true">→</span></button>
+        <p className="start-reassurance">Take a photo, add a note if you want, and save. Each one gives us more to plan with.</p>
       </div>
+    </section>
 
-      <section className="home-tools" aria-label="Choose your next action"><button className="home-tool" onClick={() => nextCrate ? onOpenCrate(nextCrate.id, nextCrateStep) : onNavigate('crates')}><span className="home-tool-icon"><GarageIcon name="crate"/></span><span><strong>{nextCrate ? `${nextCrateStep === 'repack' ? 'Check' : nextCrateStep === 'sort' ? 'Log' : 'Open'} ${nextCrate.code}` : 'Open a crate'}</strong><small>{nextCrate ? nextCrateStep === 'repack' ? 'Finish its repack & fill check.' : nextCrateStep === 'sort' ? 'Record what’s inside.' : nextCrate.name : 'Photo, contents, keep or go.'}</small></span><span aria-hidden="true">↗</span></button><button className="home-tool" onClick={() => onNavigate('layout')}><span className="home-tool-icon map"><GarageIcon name="garage"/></span><span><strong>Explore your garage</strong><small>Photos, objects & the 3D plan.</small></span><span aria-hidden="true">↗</span></button></section>
+    <ShareFamilyLink/>
+    <HelperIdentity workspace={workspace} selectedPlayerId={devicePlayer} onSelectPlayer={setDevicePlayer}/>
+    <section className="start-findings" aria-labelledby="start-findings-title"><div><h2 id="start-findings-title">Your garage is coming into focus.</h2><p>{observations.length ? `${observations.length} helpful ${observations.length===1?'photo':'photos'} collected` : 'Your first photo is enough to get started.'}</p></div><div className="start-counts"><span><b>{measurements.length}</b>tape measurements</span><span><b>{parking.length}</b>parking photos</span></div><button onClick={() => onNavigate('observations')}>See photos & measurements →</button></section>
+    {latest && <section className="start-latest"><img src={latest.photo} alt={latest.location || latest.notes || 'Your latest helpful garage photo'} loading="lazy"/><div><span className="home-eyebrow">LATEST HELPFUL PHOTO</span><h2>{latest.location || (latest.kind==='placement'?'An object’s location':latest.kind==='parking'?'Parking space':latest.kind==='measurement'?'A space to measure':'A crate to explore')}</h2><p>{latest.measurement ? `${latest.measurement.label}: ${latest.measurement.value} ${latest.measurement.unit}` : latest.notes || 'Saved for your next planning session.'}</p><button onClick={() => onNavigate('observations')}>Open your photo collection →</button></div></section>}
 
-      <section className="home-how" aria-labelledby="home-how-title"><div className="home-section-heading"><div><p className="home-eyebrow">HOW TO PLAY</p><h2 id="home-how-title">Your next 10 minutes.</h2></div><span>One round is enough.</span></div><ol><li><span>01</span><div><h3>Take a before photo</h3><p>Choose a small area. Use <b>Take a photo</b> for a before shot.</p></div></li><li><span>02</span><div><h3>Sort each item</h3><p>Put it away, bag it, donate it, or ask the owner. Count as you go.</p></div></li><li><span>03</span><div><h3>Take an after photo</h3><p>Take the after shot, check both car paths, and finish for <b>100 XP</b>.</p></div></li></ol></section>
-
-      {latestWin && <section className="home-recent"><img src={latestWin.afterPhoto!} alt={`After: ${latestWin.area}`} loading="lazy"/><div><p className="home-eyebrow">YOUR LATEST WIN</p><h2>{latestWin.title}</h2><p>{latestWin.summary}</p><button className="home-text-link" onClick={() => onNavigate('play')}>Open Missions →</button></div></section>}
-      <footer className="home-footer"><span>Use your phone to sort. Plan on your laptop.</span><button onClick={() => onNavigate('more')}>Help & more tools <span aria-hidden="true">↗</span></button></footer>
-    </div>
+    {open && <section className="start-resume"><div><h2>Your cleanup mission is waiting.</h2><p>{open.area}{player ? ` · ${player.name}` : ''}</p></div><button onClick={() => onNavigate('play')}>Continue cleanup →</button></section>}
+    <details className="start-next"><summary>Ready to sort or plan?</summary><div className="start-next-grid"><button onClick={() => onNavigate('play')}><GarageIcon name="floor"/><span><b>Do a cleanup mission</b><small>Before photo, sort, after photo. Earn 100 points.</small></span></button><button onClick={() => onNavigate('layout')}><GarageIcon name="garage"/><span><b>Open the garage plan</b><small>Compare your photos with the 3D model.</small></span></button><button onClick={() => nextCrate ? onOpenCrate(nextCrate.id, nextCrate.status==='sorting'?'repack':'locate') : onNavigate('crates')}><GarageIcon name="crate"/><span><b>Work on a container</b><small>Record contents when you’re ready.</small></span></button><button onClick={() => onNavigate('score')}><GarageIcon name="trophy"/><span><b>Points & progress</b><small>Stickers, photos, inventory and cleanups.</small></span></button></div><p className="start-volume">Storage goal: free half the occupied volume. {pendingFill ? 'Finish the open repacks to update the estimate.' : volume.baselineLiters > 0 ? `${Math.round(volume.freedPercent)}% of recorded starting contents freed${data.baselineLocked ? '.' : ' · baseline in progress.'}` : 'Photos help us start; record container fill later to track this goal.'}</p></details>
+    <footer className="home-footer"><span>Gather on your phone. Plan on your laptop.</span><button onClick={() => onNavigate('more')}>Help & optional tools →</button></footer>
   </main>
 }

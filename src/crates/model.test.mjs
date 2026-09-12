@@ -3,12 +3,13 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
 import ts from 'typescript'
+import { defaultRewards, rewardSummary } from '../rewards/contract.mjs'
 
 const source = (await readFile(new URL('./model.ts', import.meta.url), 'utf8')).replaceAll("'../rewards/contract.mjs'", JSON.stringify(new URL('../rewards/contract.mjs', import.meta.url).href))
 const compiled = ts.transpileModule(source, {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
 }).outputText
-const { emptyWorkspace, validateWorkspace, sanitizeWorkspace, volumeStats } =
+const { emptyWorkspace, validateWorkspace, sanitizeWorkspace, validateObservation, validatePhotoAward, validateActivityCredit, volumeStats } =
   await import(`data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`)
 
 const crate = (patch = {}) => ({
@@ -21,6 +22,222 @@ const item = (patch = {}) => ({
   destination: '', departed: false, notes: '', ...patch,
 })
 const workspace = (patch = {}) => ({ ...emptyWorkspace(), crates: [crate()], ...patch })
+const observation = (patch = {}) => ({
+  id: 'observation-one', kind: 'crate', photo: '/api/photos/one.jpg', notes: '', location: '',
+  crateId: null, measurement: null, createdAt: 1000, ...patch,
+})
+const measurement = (patch = {}) => ({ value: 84.5, unit: 'in', label: 'Between the parking lines', basis: 'user-measured', ...patch })
+const photoAward = (patch = {}) => ({ observationId: 'observation-one', helperId: 'griff', points: 25, reviewedAt: 2000, ...patch })
+const stickerCredit = (patch = {}) => ({ id: 'sticker:C-001:front', kind: 'sticker', helperId: 'griff', points: 25, createdAt: 2000, labelCode: 'C-001', surface: 'front', ...patch })
+const inventoryCredit = (patch = {}) => ({ id: 'inventory-one', kind: 'inventory', helperId: 'griff', points: 25, createdAt: 2000, labelCode: 'A01', itemIds: ['item-a'], ...patch })
+
+test('activity credit receipts preserve legacy data and earn no cleanup cash or volume', () => {
+  assert.equal(Object.hasOwn(sanitizeWorkspace(emptyWorkspace()), 'activityCredits'), false)
+  assert.equal(validateWorkspace({ ...emptyWorkspace(), activityCredits: [] }), true)
+  const data = workspace({ items: [item()], rewards: defaultRewards(1000), activityCredits: [stickerCredit(), inventoryCredit()] })
+  assert.equal(validateWorkspace(data), true)
+  assert.deepEqual(sanitizeWorkspace(data), data)
+  const cash = rewardSummary(data)
+  for (const key of ['points', 'potentialCents', 'approvedCents', 'paidCents', 'unpaidCents']) assert.equal(cash[key], 0, key)
+  assert.equal(volumeStats(data).freedLiters, 0)
+  assert.deepEqual(data.rewards.entries, [])
+  const moved = { ...data, crates: [...data.crates, crate({ id: 'crate-b', code: 'B02' })], items: [item({ crateId: 'crate-b', destination: 'Another shelf', decision: 'keep' })] }
+  assert.equal(validateWorkspace(moved), true)
+  assert.deepEqual(sanitizeWorkspace(moved), moved)
+})
+
+test('activity credits require exact variant fields, bounded IDs and deterministic sticker surfaces', () => {
+  for (const make of [stickerCredit, inventoryCredit]) {
+    for (const patch of [{ id: '' }, { id: ' id ' }, { id: 'x'.repeat(121) }, { helperId: '' },
+      { helperId: 'x'.repeat(121) }, { points: 50 }, { points: '25' }, { createdAt: -1 }, { createdAt: NaN },
+      { createdAt: Infinity }, { createdAt: 8.64e15 + 1 }, { labelCode: '' }, { labelCode: ' A01' },
+      { labelCode: 'x'.repeat(33) }, { kind: 'photo' }, { extra: true }]) {
+      assert.equal(validateActivityCredit(make(patch)), false, JSON.stringify(patch))
+    }
+    for (const key of Object.keys(make())) {
+      const incomplete = make(); delete incomplete[key]
+      assert.equal(validateActivityCredit(incomplete), false, key)
+    }
+  }
+  for (const patch of [{ id: 'random-id' }, { labelCode: 'C-000' }, { labelCode: 'c-001' }, { labelCode: 'C-1000' },
+    { surface: 'bottom' }, { surface: 'lid' }, { itemIds: [] }]) assert.equal(validateActivityCredit(stickerCredit(patch)), false)
+  assert.equal(validateActivityCredit(stickerCredit({ id: 'sticker:C-999:lid', labelCode: 'C-999', surface: 'lid' })), true)
+  for (const patch of [{ surface: 'front' }, { itemIds: [] }, { itemIds: ['item-a', 'item-a'] },
+    { itemIds: [''] }, { itemIds: [' item '] }, { itemIds: ['x'.repeat(121)] },
+    { itemIds: Array.from({ length: 101 }, (_, i) => `item-${i}`) }]) assert.equal(validateActivityCredit(inventoryCredit(patch)), false)
+  assert.equal(validateActivityCredit(inventoryCredit({ itemIds: Array.from({ length: 100 }, (_, i) => `item-${i}`) })), true)
+  assert.equal(validateActivityCredit(inventoryCredit({ labelCode: 'Camping / A01' })), true)
+})
+
+test('activity links award each sticker surface and inventory item once across helpers', () => {
+  const rewards = defaultRewards(1000)
+  rewards.players.push({ id: 'alex', name: 'Alex', createdAt: 1000 })
+  const base = workspace({ items: [item()], rewards })
+  for (const activityCredits of [null, {}, [stickerCredit(), stickerCredit({ helperId: 'alex' })],
+    [stickerCredit({ helperId: 'missing' })], [inventoryCredit({ itemIds: ['missing'] })],
+    [inventoryCredit(), inventoryCredit({ id: 'another', helperId: 'alex' })]]) {
+    assert.equal(validateWorkspace({ ...base, activityCredits }), false)
+  }
+  assert.equal(validateWorkspace({ ...emptyWorkspace(), activityCredits: [stickerCredit()] }), false)
+  assert.equal(validateWorkspace({ ...base, activityCredits: [stickerCredit(), stickerCredit({ id: 'sticker:C-001:lid', surface: 'lid', helperId: 'alex' }), inventoryCredit()] }), true)
+  const original = inventoryCredit()
+  const sanitized = sanitizeWorkspace({ ...base, activityCredits: [original, inventoryCredit({ id: 'duplicate-item' }),
+    stickerCredit({ helperId: 'missing' }), stickerCredit({ points: 100 }), stickerCredit()] })
+  assert.deepEqual(sanitized.activityCredits, [original, stickerCredit()])
+  assert.notEqual(sanitized.activityCredits[0].itemIds, original.itemIds)
+  assert.equal(validateWorkspace(sanitized), true)
+})
+
+test('reviewed photo points preserve legacy snapshots and never produce cleanup cash or volume credit', () => {
+  assert.equal(Object.hasOwn(sanitizeWorkspace(emptyWorkspace()), 'photoAwards'), false)
+  const data = { ...emptyWorkspace(), rewards: defaultRewards(1000), observations: [observation({ kind: 'placement', notes: 'Bin moved beside the rack.' })], photoAwards: [photoAward()] }
+  assert.equal(validateWorkspace(data), true)
+  assert.deepEqual(sanitizeWorkspace(data), data)
+  assert.equal(Object.hasOwn(data.observations[0], 'helperId'), false)
+  assert.equal(Object.hasOwn(data, 'missions'), false)
+  const cash = rewardSummary(data)
+  for (const key of ['points', 'potentialCents', 'approvedCents', 'paidCents', 'unpaidCents']) assert.equal(cash[key], 0, key)
+  assert.equal(volumeStats(data).freedLiters, 0)
+  assert.deepEqual(data.rewards.entries, [])
+})
+
+test('photo awards require one valid 25-point review per existing photo and helper', () => {
+  const base = { ...emptyWorkspace(), rewards: defaultRewards(1000), observations: [observation()] }
+  for (const patch of [{ observationId: '' }, { observationId: ' id ' }, { observationId: 'x'.repeat(121) },
+    { helperId: '' }, { helperId: 'x'.repeat(121) }, { helperId: null }, { points: 100 }, { points: '25' },
+    { points: 25.1 }, { reviewedAt: -1 }, { reviewedAt: NaN }, { reviewedAt: Infinity },
+    { reviewedAt: '2000' }, { reviewedAt: 8.64e15 + 1 }, { extra: true }]) {
+    assert.equal(validatePhotoAward(photoAward(patch)), false, JSON.stringify(patch))
+  }
+  for (const field of Object.keys(photoAward())) {
+    const incomplete = photoAward(); delete incomplete[field]
+    assert.equal(validatePhotoAward(incomplete), false, field)
+  }
+  for (const awards of [null, {}, [photoAward(), photoAward()], [photoAward({ helperId: 'missing' })],
+    [photoAward({ observationId: 'missing' })], [photoAward({ reviewedAt: 999 })]]) {
+    assert.equal(validateWorkspace({ ...base, photoAwards: awards }), false)
+  }
+  assert.equal(validateWorkspace({ ...base, photoAwards: [photoAward({ reviewedAt: 1000 })] }), true)
+  assert.equal(validateWorkspace({ ...emptyWorkspace(), photoAwards: [] }), true)
+  assert.equal(validateWorkspace({ ...emptyWorkspace(), photoAwards: [photoAward()] }), false)
+})
+
+test('photo award recovery keeps valid immutable values without repairing a missing review or reference', () => {
+  const good = photoAward()
+  const base = { ...emptyWorkspace(), rewards: defaultRewards(1000), observations: [observation()] }
+  const result = sanitizeWorkspace({ ...base, photoAwards: [good, good, photoAward({ reviewedAt: 999 }),
+    photoAward({ observationId: 'missing' }), photoAward({ helperId: 'missing' }), photoAward({ points: 50 })] })
+  assert.deepEqual(result.photoAwards, [good])
+  assert.notEqual(result.photoAwards[0], good)
+  assert.equal(validateWorkspace(result), true)
+})
+
+test('quick photos need no inventory, player, mission or measurement and preserve legacy absence', () => {
+  assert.equal(Object.hasOwn(sanitizeWorkspace(emptyWorkspace()), 'observations'), false)
+  for (const kind of ['crate', 'parking', 'measurement', 'placement']) {
+    const data = { ...emptyWorkspace(), observations: [observation({ kind })] }
+    assert.equal(validateWorkspace(data), true)
+    assert.deepEqual(sanitizeWorkspace(data), data)
+    assert.equal(volumeStats(data).baselineLiters, 0)
+    assert.equal(volumeStats(data).freedLiters, 0)
+    assert.equal(Object.hasOwn(data, 'missions'), false)
+    assert.equal(Object.hasOwn(data, 'rewards'), false)
+  }
+})
+
+test('quick photo measurements preserve explicit units and cannot change a linked crate capacity', () => {
+  for (const kind of ['crate', 'parking', 'measurement']) {
+    for (const unit of ['cm', 'm', 'in', 'ft']) {
+      const data = workspace({ observations: [observation({ kind, crateId: 'crate-a', measurement: measurement({ unit }) })] })
+      assert.equal(validateWorkspace(data), true)
+      const restored = sanitizeWorkspace(data)
+      assert.deepEqual(restored, data)
+      assert.notEqual(restored.observations[0].measurement, data.observations[0].measurement)
+      assert.equal(restored.crates[0].capacityLiters, 100)
+      assert.deepEqual(volumeStats(restored), volumeStats(workspace()))
+    }
+  }
+})
+
+test('quick photo validator rejects unsafe URLs, malformed fields, duplicate IDs and orphan links', () => {
+  for (const patch of [
+    { id: '' }, { id: ' duplicate ' }, { id: 'x'.repeat(121) }, { kind: 'floor' }, { notes: ' untrimmed' },
+    { notes: 'x'.repeat(4001) }, { location: 'x'.repeat(161) }, { createdAt: -1 }, { createdAt: Infinity },
+    { createdAt: NaN }, { createdAt: '1000' }, { createdAt: 8.64e15 + 1 }, { crateId: '' },
+    { photo: null }, { photo: 'https://example.com/photo.jpg' }, { photo: '/api/photos/../one.jpg' },
+    { photo: '/api/photos/one.jpg?key=private' }, { photo: 'data:image/jpeg;base64,abc' }, { photo: '/evidence/one.jpg' },
+    { surprise: true },
+  ]) assert.equal(validateObservation(observation(patch)), false, JSON.stringify(patch))
+  for (const field of Object.keys(observation())) {
+    const incomplete = observation(); delete incomplete[field]
+    assert.equal(validateObservation(incomplete), false, field)
+  }
+  for (const observations of [null, {}, [observation(), observation()], [observation({ crateId: 'missing' })]]) {
+    assert.equal(validateWorkspace(workspace({ observations })), false)
+  }
+})
+
+test('quick measurements require an explicit positive finite user reading and named endpoints', () => {
+  for (const patch of [
+    { value: 0 }, { value: -1 }, { value: NaN }, { value: Infinity }, { value: 1e6 + 1 }, { value: '84' },
+    { unit: 'feet' }, { basis: 'estimated' }, { basis: 'photo-inferred' }, { label: '' },
+    { label: ' space ' }, { label: 'x'.repeat(161) }, { extra: true },
+  ]) assert.equal(validateObservation(observation({ measurement: measurement(patch) })), false, JSON.stringify(patch))
+  for (const field of Object.keys(measurement())) {
+    const incomplete = measurement(); delete incomplete[field]
+    assert.equal(validateObservation(observation({ measurement: incomplete })), false, field)
+  }
+  for (const value of [Number.MIN_VALUE, 1e6]) {
+    assert.equal(validateObservation(observation({ measurement: measurement({ value }) })), true)
+  }
+})
+
+test('recovery retains valid quick photos exactly and does not manufacture missing readings', () => {
+  const valid = observation({ measurement: measurement() })
+  const pending = observation({ id: 'pending-reading', kind: 'measurement' })
+  const data = workspace({ observations: [valid, pending, valid,
+    observation({ id: 'bad-reading', measurement: measurement({ value: -5 }) }),
+    observation({ id: 'orphan', crateId: 'missing' }), observation({ id: 'bad-photo', photo: null })] })
+  const recovered = sanitizeWorkspace(data)
+  assert.deepEqual(recovered.observations, [valid, pending])
+  assert.equal(validateWorkspace(recovered), true)
+  assert.equal(recovered.observations[1].measurement, null)
+})
+
+test('printed labels pair outside and contents photos without registration or reward credit', () => {
+  const photos = [observation({ labelCode: 'C-001', photoRole: 'outside', helperId: null }),
+    observation({ id: 'contents', labelCode: 'C-001', photoRole: 'contents' })]
+  const data = { ...emptyWorkspace(), observations: photos }
+  assert.equal(validateWorkspace(data), true)
+  assert.deepEqual(sanitizeWorkspace(data), data)
+  assert.equal(data.crates.length, 0)
+  assert.equal(rewardSummary(data).points, 0)
+  assert.deepEqual(sanitizeWorkspace({ ...emptyWorkspace(), observations: [observation()] }).observations, [observation()])
+  for (const labelCode of ['C-001', 'C-032', 'C-100', 'C-999']) {
+    assert.equal(validateObservation(observation({ labelCode })), true)
+  }
+})
+
+test('printed observation metadata validates canonical IDs, roles and existing optional helpers', () => {
+  for (const labelCode of ['C-000', 'C-1', 'c-001', ' C-001 ', 'C-1000', '', null, 1, undefined, 'x'.repeat(33)]) {
+    assert.equal(validateObservation(observation({ labelCode })), false, String(labelCode))
+  }
+  for (const photoRole of ['before', 'after', '', null, undefined]) {
+    assert.equal(validateObservation(observation({ photoRole })), false)
+  }
+  for (const helperId of ['', ' griff ', 1, undefined, 'x'.repeat(121)]) {
+    assert.equal(validateObservation(observation({ helperId })), false)
+  }
+  assert.equal(validateWorkspace({ ...emptyWorkspace(), observations: [observation({ helperId: 'griff' })] }), false)
+  const rewards = defaultRewards(1000)
+  const data = { ...emptyWorkspace(), rewards, observations: [observation({ labelCode: 'C-002', photoRole: 'contents', helperId: 'griff' })] }
+  assert.equal(validateWorkspace(data), true)
+  assert.deepEqual(sanitizeWorkspace(data), data)
+  assert.equal(rewardSummary(data).points, 0)
+  assert.deepEqual(rewards.entries, [])
+  assert.equal(validateWorkspace({ ...data, observations: [observation({ helperId: 'missing' })] }), false)
+  assert.deepEqual(sanitizeWorkspace({ ...data, observations: [observation({ helperId: 'missing' })] }).observations, [])
+})
 
 test('empty workspace has no seeded inventory and no fictitious progress', () => {
   assert.deepEqual(emptyWorkspace(), { schemaVersion: 1, crates: [], items: [], baselineLocked: false, notes: '' })
