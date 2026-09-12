@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import fs from 'node:fs/promises'
 import os from 'node:os'
 import path from 'node:path'
-import { createPhotoAnalysisService, createAnalysisFileStorage, analyzePhotoWithGateway, AnalysisError } from './photo-analysis.mjs'
+import { createPhotoAnalysisService, createAnalysisFileStorage, analyzePhotoWithGateway, enqueuePhotoAnalysis, AnalysisError } from './photo-analysis.mjs'
 import { validateAnalysisRecord } from '../src/analysis/contract.mjs'
 const bytes=Buffer.from('test image bytes')
 const result=(summary='A closed tote.')=>({summary,objects:[{id:'one',name:'Tote',category:'container',quantity:1,confidence:'high',evidence:'Closed plastic container.',region:null,readableLabel:'C-001',suggestedCrateId:'invented-by-model',locationHint:'Beside a shelf'}],questions:[]})
@@ -68,4 +68,16 @@ test('provider errors log only fixed status, do not retry schema/credits failure
   assert.deepEqual(logs,[{event:'garage-analysis-provider-failure',status}]);assert.doesNotMatch(JSON.stringify(logs),/secret|private|token|https/)
  }
  for(const choice of [{finish_reason:'length',message:{content:JSON.stringify(result())}},{finish_reason:'stop',message:{refusal:'no',content:JSON.stringify(result())}},{finish_reason:'stop',message:{content:'broken'}}])await assert.rejects(analyzePhotoWithGateway(bytes,{}, {getToken:async()=>'test',fetchImpl:async()=>new Response(JSON.stringify({choices:[choice]}))}),e=>e.code==='invalid_result')
+})
+test('queue adapter accepts deduplicated sends and safely wraps errors without nonexistent SDK exports',async()=>{
+ const message={photo:'one.jpg',analysisVersion:'garage-photo-v1'},calls=[]
+ // The installed SDK exports QueueClient; successful duplicate sends resolve
+ // with a null messageId instead of throwing a special duplicate error.
+ for(const response of [{messageId:'message-1'},{messageId:null}]){
+  const sdk={QueueClient:class{async send(...args){calls.push(args);return response}}}
+  await enqueuePhotoAnalysis(message,'stable-key',{loadSdk:async()=>sdk})
+ }
+ assert.deepEqual(calls,Array.from({length:2},()=>['garage-photo-analysis',message,{idempotencyKey:'stable-key',retentionSeconds:86400}]))
+ const sdk={QueueClient:class{async send(){throw new Error('private provider URL and token')}}}
+ await assert.rejects(enqueuePhotoAnalysis(message,'stable-key',{loadSdk:async()=>sdk}),error=>error instanceof AnalysisError && error.code==='queue_unavailable' && error.retryable && !/private|token|TypeError/.test(error.message))
 })

@@ -170,10 +170,12 @@ export async function analyzePhotoWithGateway(bytes, { filename, model = ANALYSI
   } finally { clearTimeout(timeout) }
 }
 
-export async function enqueuePhotoAnalysis(message, idempotencyKey) {
-  const { QueueClient, DuplicateMessageError } = await import('@vercel/queue')
+export async function enqueuePhotoAnalysis(message, idempotencyKey, { loadSdk = () => import('@vercel/queue') } = {}) {
+  const { QueueClient } = await loadSdk()
   try { await new QueueClient().send(ANALYSIS_TOPIC, message, { idempotencyKey, retentionSeconds: 86400 }) }
-  catch (error) { if (!(error instanceof DuplicateMessageError)) throw new AnalysisError('queue_unavailable', 503, true) }
+  // SDK 0.5 accepts duplicate sends with { messageId: null }; it does not
+  // export a DuplicateMessageError. All rejected sends are retryable failures.
+  catch { throw new AnalysisError('queue_unavailable', 503, true) }
 }
 
 /** Local files implement the same private object interface and conditional writes. */
