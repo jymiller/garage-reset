@@ -20,7 +20,7 @@ export function rememberHelperPlayerId(id: string | null): boolean {
   } catch { return false }
 }
 
-type IdentityWorkspace = Pick<ReturnType<typeof useWorkspace>, 'data' | 'update' | 'status' | 'dirty' | 'conflict' | 'storageError'>
+type IdentityWorkspace = Pick<ReturnType<typeof useWorkspace>, 'data' | 'update' | 'status' | 'dirty' | 'conflict' | 'storageError' | 'retry'>
 export type HelperIdentityProps = {
   workspace: IdentityWorkspace
   selectedPlayerId: string | null
@@ -94,7 +94,7 @@ export function HelperIdentity({ workspace, selectedPlayerId, onSelectPlayer }: 
     <div className="helper-identity-heading"><GarageIcon name="crew" /><div><h2 id={id + '-heading'}>Your name</h2></div></div>
     <>
       <div className="helper-identity-choice"><label htmlFor={id + '-player'}><span className="helper-identity-sr-only">Choose your name</span><select id={id + '-player'} value={selected?.id ?? ''} onChange={event => choose(event.target.value || null)}><option value="">No name yet</option>{players.map(player => <option key={player.id} value={player.id}>{player.name}</option>)}</select></label><button type="button" className="helper-identity-add" aria-expanded={adding} aria-controls={id + '-add'} onClick={() => { setAdding(value => !value); setNotice(null) }}>{adding ? 'Cancel' : 'Add name'}</button></div>
-      {adding && <form id={id + '-add'} className="helper-identity-form" onSubmit={event => { event.preventDefault(); addName() }}><label htmlFor={id + '-name'}>Name<input id={id + '-name'} value={name} maxLength={80} autoComplete="given-name" autoCapitalize="words" onChange={event => setName(event.target.value)} placeholder="First name or nickname" required /></label><button type="submit" disabled={!normalizedName(name) || !canRegister}>Save</button>{!canRegister && <p>Waiting for the save…</p>}</form>}
+      {adding && <form id={id + '-add'} className="helper-identity-form" onSubmit={event => { event.preventDefault(); addName() }}><label htmlFor={id + '-name'}>Name<input id={id + '-name'} value={name} maxLength={80} autoComplete="given-name" autoCapitalize="words" onChange={event => setName(event.target.value)} placeholder="First name or nickname" required /></label><button type="submit" disabled={!normalizedName(name) || !canRegister}>Save</button>{!canRegister && <p>{workspace.status === 'offline' || workspace.status === 'error' ? 'Save paused. Your name stays here.' : 'Waiting for the save…'}</p>}{!workspace.conflict && (workspace.status === 'offline' || workspace.status === 'error') && <button type="button" onClick={workspace.retry}>Retry save</button>}</form>}
     </>
     {noticeText && <p className={'helper-identity-notice ' + (notice?.type ?? '')} role={notice?.type === 'error' ? 'alert' : 'status'}>{noticeText}</p>}
   </section>

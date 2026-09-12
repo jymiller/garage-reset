@@ -10,6 +10,30 @@ const EVIDENCE_LIMIT = 16 * 1024 * 1024
 const PHOTO_NAME = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}\.(jpg|png|webp)$/
 const MIME = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', avif: 'image/avif' }
 const empty = () => ({ revision: 0, data: { schemaVersion: 1, crates: [], items: [], baselineLocked: false, notes: '' } })
+const DIAGNOSTIC_STAGES = new Set([
+  'request', 'access', 'authorization', 'route', 'workspace-request', 'workspace-candidate',
+  'workspace-read', 'workspace-metadata', 'workspace-decode', 'workspace-schema',
+  'workspace-recovery-read', 'workspace-recovery-metadata', 'workspace-recovery-decode', 'workspace-recovery-schema',
+  'workspace-revision', 'workspace-observations', 'workspace-photo-awards', 'workspace-activity-credits',
+  'workspace-rewards', 'workspace-serialize', 'workspace-write', 'workspace-response',
+  'photo-request', 'photo-write', 'photo-response', 'image-read', 'image-response',
+])
+const DIAGNOSTIC_ERROR_CLASSES = new Set([
+  'Error', 'TypeError', 'RangeError', 'SyntaxError', 'ReferenceError', 'URIError', 'AggregateError', 'DOMException',
+  'BlobError', 'BlobAccessError', 'BlobContentTypeNotAllowedError', 'BlobPathnameMismatchError',
+  'BlobClientTokenExpiredError', 'BlobFileTooLargeError', 'BlobStoreNotFoundError', 'BlobStoreSuspendedError',
+  'BlobUnknownError', 'BlobNotFoundError', 'BlobServiceNotAvailable', 'BlobServiceRateLimited',
+  'BlobRequestAbortedError', 'BlobPreconditionFailedError', 'BlobAlreadyExistsError',
+])
+
+function storageDiagnostic(stage, error) {
+  let errorClass = 'unexpected'
+  try {
+    const name = error?.constructor?.name
+    if (DIAGNOSTIC_ERROR_CLASSES.has(name)) errorClass = name
+  } catch { /* Even an unusual thrown value must not prevent the safe response. */ }
+  return { event: 'garage-storage-failure', stage: DIAGNOSTIC_STAGES.has(stage) ? stage : 'unexpected', errorClass }
+}
 
 class RequestError extends Error {
   constructor(status, message) { super(message); this.status = status }
@@ -50,7 +74,11 @@ export function createBlobStorage({ loadSdk = () => import('@vercel/blob'), toke
     async read(key, { limit = EVIDENCE_LIMIT } = {}) {
       const auth = options()
       const sdk = await loadSdk()
-      const result = await sdk.get(key, { ...auth, useCache: false })
+      // Compression can turn the HTTP ETag into W/"…", which Blob rejects as
+      // an If-Match value. Read the identity representation so bytes and their
+      // strong write ETag come from the same response, without a separate HEAD
+      // request that could race with another device's save.
+      const result = await sdk.get(key, { ...auth, useCache: false, headers: { 'accept-encoding': 'identity' } })
       if (result === null) return null
       if (result.statusCode !== 200 || !result.stream || !result.blob?.etag) throw new Error('Invalid private storage response.')
       if (typeof result.blob.size === 'number' && result.blob.size > limit) {
@@ -135,61 +163,88 @@ function evidenceName(name) {
   return MIME[extension] ? extension : null
 }
 
-async function workspaceSnapshot(storage) {
+async function workspaceSnapshot(storage, setStage = () => {}, recovery = false) {
+  const prefix = recovery ? 'workspace-recovery' : 'workspace'
+  setStage(`${prefix}-read`)
   const stored = await storage.read(WORKSPACE_KEY, { limit: WORKSPACE_LIMIT })
   if (stored === null) return { envelope: empty(), etag: null }
+  setStage(`${prefix}-metadata`)
   if (typeof stored.etag !== 'string' || !stored.etag || !Buffer.isBuffer(stored.bytes) || stored.bytes.length > WORKSPACE_LIMIT) {
     throw new Error('Invalid stored workspace metadata.')
   }
+  setStage(`${prefix}-decode`)
   const envelope = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(stored.bytes))
+  setStage(`${prefix}-schema`)
   if (!validEnvelope(envelope)) throw new Error('Invalid stored workspace; data is preserved.')
   return { envelope, etag: stored.etag }
 }
 
 /** No local files or process-level workspace cache: conditional Blob writes handle concurrency across function instances. */
-export function createVercelHandler({ storage = createBlobStorage(), authorize = isAuthorized, access = handleAccess } = {}) {
+export function createVercelHandler({ storage = createBlobStorage(), authorize = isAuthorized, access = handleAccess,
+  logError = diagnostic => console.error(JSON.stringify(diagnostic)),
+} = {}) {
   return async function handler(req, res) {
+    let stage = 'request'
+    const setStage = value => { stage = value }
     res.setHeader('Cache-Control', 'private, no-store')
     res.setHeader('X-Content-Type-Options', 'nosniff')
     res.setHeader('X-Frame-Options', 'DENY')
     res.setHeader('Referrer-Policy', 'same-origin')
     try {
       sameOriginWrite(req)
+      stage = 'access'
       if (await access(req, res)) return
+      stage = 'authorization'
       if (!await authorize(req)) { req.resume?.(); json(res, 401, { error: 'Open your private garage link on this device to continue.' }); return }
+      stage = 'route'
       const { route, name } = routeQuery(req)
       if (route === 'workspace') {
-        if (req.method === 'GET') { json(res, 200, (await workspaceSnapshot(storage)).envelope); return }
+        if (req.method === 'GET') {
+          const current = await workspaceSnapshot(storage, setStage)
+          stage = 'workspace-response'; json(res, 200, current.envelope); return
+        }
+        stage = 'workspace-request'
         if (req.method !== 'PUT') { res.setHeader('Allow', 'GET, PUT'); throw new RequestError(405, 'Method not allowed.') }
         if (mediaType(req) !== 'application/json') throw new RequestError(415, 'Workspace requests must use application/json.')
         const bytes = await requestBytes(req, WORKSPACE_LIMIT)
         let candidate
         try { candidate = JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(bytes)) }
         catch { throw new RequestError(400, 'Invalid JSON.') }
+        stage = 'workspace-candidate'
         if (!validEnvelope(candidate)) throw new RequestError(400, 'Invalid workspace or revision.')
-        const current = await workspaceSnapshot(storage)
+        const current = await workspaceSnapshot(storage, setStage)
+        stage = 'workspace-revision'
         if (candidate.revision !== current.envelope.revision) { json(res, 409, current.envelope); return }
+        stage = 'workspace-observations'
         if (!observationsPreserved(current.envelope.data, candidate.data)) { json(res, 409, current.envelope); return }
+        stage = 'workspace-photo-awards'
         if (!photoAwardsPreserved(current.envelope.data, candidate.data)) { json(res, 409, current.envelope); return }
+        stage = 'workspace-activity-credits'
         if (!activityCreditsPreserved(current.envelope.data, candidate.data)) { json(res, 409, current.envelope); return }
+        stage = 'workspace-rewards'
         const rewardsError = rewardsTransitionError(current.envelope.data, candidate.data)
         if (rewardsError) throw new RequestError(400, rewardsError)
+        stage = 'workspace-serialize'
         if (candidate.revision === Number.MAX_SAFE_INTEGER) throw new Error('Revision limit reached.')
         const next = { revision: candidate.revision + 1, data: candidate.data }
         const serialized = Buffer.from(JSON.stringify(next))
         if (serialized.length > WORKSPACE_LIMIT) throw new RequestError(413, 'Workspace is too large.')
         try {
+          stage = 'workspace-write'
           await storage.write(WORKSPACE_KEY, serialized, { contentType: 'application/json', createOnly: current.etag === null, ...(current.etag === null ? {} : { ifMatch: current.etag }) })
         } catch (error) {
           // Covers a create race, failed If-Match, or a lost success response.
           // An unrelated storage failure must never become a fictitious success.
-          const latest = await workspaceSnapshot(storage)
+          const latest = await workspaceSnapshot(storage, setStage, true)
           if (latest.etag !== null && latest.etag !== current.etag) { json(res, 409, latest.envelope); return }
+          stage = 'workspace-write'
           throw error
         }
+        stage = 'workspace-response'
         json(res, 200, next); return
       }
       if (route === 'photos') {
+        stage = 'photo-request'
         if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); throw new RequestError(405, 'Method not allowed.') }
         const bytes = await requestBytes(req, PHOTO_LIMIT)
         const extension = photoFormat(bytes)
@@ -197,24 +252,33 @@ export function createVercelHandler({ storage = createBlobStorage(), authorize =
         const type = mediaType(req)
         if (type && type !== 'application/octet-stream' && type !== MIME[extension]) throw new RequestError(415, 'Image content does not match its content type.')
         const filename = `${randomUUID()}.${extension}`
+        stage = 'photo-write'
         await storage.write(`garage/photos/${filename}`, bytes, { contentType: MIME[extension], createOnly: true })
         const url = `/api/photos/${filename}`
+        stage = 'photo-response'
         json(res, 201, { url, src: url, filename }); return
       }
       if (route === 'photo' || route === 'evidence') {
         if (!['GET', 'HEAD'].includes(req.method)) { res.setHeader('Allow', 'GET, HEAD'); throw new RequestError(405, 'Method not allowed.') }
         const extension = route === 'photo' ? typeof name === 'string' && PHOTO_NAME.test(name) && name.split('.').at(-1) : evidenceName(name)
         if (!extension) throw new RequestError(404, 'Image not found.')
+        stage = 'image-read'
         const stored = await storage.read(`garage/${route === 'photo' ? 'photos' : 'evidence'}/${name}`, { limit: EVIDENCE_LIMIT })
         if (!stored) throw new RequestError(404, 'Image not found.')
+        stage = 'image-response'
         res.writeHead(200, { 'Content-Type': MIME[extension], 'Content-Length': stored.bytes.length })
         res.end(req.method === 'HEAD' ? undefined : stored.bytes); return
       }
       throw new RequestError(404, 'API route not found.')
     } catch (error) {
-      if (res.headersSent) { res.destroy(); return }
       // Never return tokens, Blob URLs or provider diagnostics to the browser.
       const status = error instanceof RequestError ? error.status : 503
+      if (status === 503) {
+        // Only fixed labels reach server logs: never the error message, stack,
+        // request, private photo path, workspace data or provider credentials.
+        try { logError(storageDiagnostic(stage, error)) } catch { /* Logging must not replace the response. */ }
+      }
+      if (res.headersSent) { res.destroy(); return }
       req.resume?.()
       json(res, status, { error: status === 503 ? 'Shared storage is unavailable. Your existing data has not been replaced; retry shortly.' : error.message })
     }

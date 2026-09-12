@@ -4,6 +4,7 @@ import type { Workspace } from './model'
 import { preparePhotoUpload } from '../access/photoUpload'
 import { acknowledgeSave, applyRemote, validRevision } from './sync'
 import type { Snapshot } from './sync'
+import { fetchWorkspaceJson } from './workspaceRequest'
 
 const CACHE = 'garage-crates-workspace-v1'
 type Status = 'connecting' | 'shared' | 'saving' | 'offline' | 'conflict' | 'error'
@@ -26,6 +27,9 @@ export function useWorkspace() {
   const [tick, setTick] = useState(0)
   const latest = useRef(snapshot)
   const busy = useRef(false)
+  const requests = useRef(new Set<AbortController>())
+  const saveRequest = useRef<AbortController | null>(null)
+  const retryRef = useRef<() => void>(() => {})
   const conflictRef = useRef(conflict)
   const lifecycle = useRef({ mounted: false, generation: 0 })
 
@@ -67,34 +71,54 @@ export function useWorkspace() {
       // now owned by another screen's workspace instance.
       lifecycle.current.mounted = false
       lifecycle.current.generation += 1
+      for (const request of requests.current) request.abort()
+      requests.current.clear()
     }
   }, [])
 
   useEffect(() => {
     let stopped = false
     const generation = lifecycle.current.generation
+    let activeRefresh: AbortController | null = null
     async function refresh() {
-      if (stopped || document.hidden || !isCurrent(generation) || busy.current || conflictRef.current || latest.current.dirty) return
+      if (stopped || document.hidden || !isCurrent(generation) || activeRefresh || busy.current || conflictRef.current || latest.current.dirty) return
+      const request = new AbortController()
+      activeRefresh = request; requests.current.add(request)
       try {
-        const response = await fetch('/api/workspace', { cache: 'no-store' })
+        const { response, remote } = await fetchWorkspaceJson({ cache: 'no-store' }, { signal: request.signal })
         if (!response.ok) throw new Error('Shared workspace unavailable')
-        const remote = await response.json()
         if (!validateWorkspace(remote.data) || !validRevision(remote.revision)) throw new Error('Invalid shared workspace')
         if (stopped || !isCurrent(generation)) return
-        const next = applyRemote(latest.current, remote, busy.current || conflictRef.current !== null)
+        const next = applyRemote(latest.current, { data: remote.data as Workspace, revision: remote.revision }, busy.current || conflictRef.current !== null)
         if (next === latest.current) return
         commit(next, generation)
         setStatus('shared'); setError('')
       } catch {
         if (!stopped && isCurrent(generation) && !busy.current && !conflictRef.current) setStatus('offline')
+      } finally {
+        requests.current.delete(request)
+        if (activeRefresh === request) activeRefresh = null
       }
     }
-    void refresh()
-    const timer = setInterval(() => {
-      if (stopped || !isCurrent(generation)) return
+    function retryCurrent() {
+      if (stopped || !isCurrent(generation) || conflictRef.current) return
       setTick(t => t + 1); void refresh()
-    }, ['localhost', '127.0.0.1', '[::1]', '::1'].includes(window.location.hostname) ? 4000 : 30000)
-    return () => { stopped = true; clearInterval(timer) }
+    }
+    function whenVisible() { if (!document.hidden) retryCurrent() }
+    retryRef.current = retryCurrent
+    void refresh()
+    const timer = setInterval(retryCurrent, ['localhost', '127.0.0.1', '[::1]', '::1'].includes(window.location.hostname) ? 4000 : 30000)
+    window.addEventListener('online', retryCurrent)
+    window.addEventListener('focus', whenVisible)
+    document.addEventListener('visibilitychange', whenVisible)
+    return () => {
+      stopped = true; clearInterval(timer)
+      activeRefresh?.abort()
+      window.removeEventListener('online', retryCurrent)
+      window.removeEventListener('focus', whenVisible)
+      document.removeEventListener('visibilitychange', whenVisible)
+      if (retryRef.current === retryCurrent) retryRef.current = () => {}
+    }
   }, [])
 
   useEffect(() => {
@@ -102,15 +126,16 @@ export function useWorkspace() {
     const generation = lifecycle.current.generation
     const timer = setTimeout(async () => {
       if (!isCurrent(generation) || busy.current || conflictRef.current || !latest.current.dirty) return
+      const request = new AbortController()
+      saveRequest.current = request; requests.current.add(request)
       busy.current = true
       const sent = latest.current
       setStatus('saving')
       try {
-        const response = await fetch('/api/workspace', {
+        const { response, remote } = await fetchWorkspaceJson({
           method: 'PUT', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ revision: sent.revision, data: sent.data }),
-        })
-        const remote = await response.json()
+        }, { signal: request.signal })
         if (!isCurrent(generation)) return
         if (response.status === 409 && validateWorkspace(remote.data) && validRevision(remote.revision)) {
           // A lost success response can make our own already-saved write look
@@ -122,7 +147,7 @@ export function useWorkspace() {
               return
             }
           }
-          recordConflict({ revision: remote.revision, data: remote.data, dirty: false }); setStatus('conflict')
+          recordConflict({ revision: remote.revision, data: remote.data as Workspace, dirty: false }); setStatus('conflict')
           setError('Another device saved changes. Your draft is preserved here.')
           return
         }
@@ -131,7 +156,7 @@ export function useWorkspace() {
           setError(typeof remote.error === 'string' ? remote.error : 'The shared workspace rejected this save. Your draft is retained here.')
           return
         }
-        const acknowledged = validateWorkspace(remote.data)
+        const acknowledged = validateWorkspace(remote.data) && validRevision(remote.revision)
           ? acknowledgeSave(latest.current, sent, remote.revision) : null
         if (!acknowledged) {
           setStatus('error'); setError('The server returned an invalid save acknowledgement. Your draft is retained here.')
@@ -143,7 +168,12 @@ export function useWorkspace() {
         if (!isCurrent(generation)) return
         setStatus('offline')
         setError('Your draft is retained here and will retry when the shared workspace is reachable. Check the device backup status before closing this page.')
-      } finally { if (isCurrent(generation)) busy.current = false }
+      } finally {
+        requests.current.delete(request)
+        if (isCurrent(generation) && saveRequest.current === request) {
+          saveRequest.current = null; busy.current = false
+        }
+      }
     }, 450)
     return () => clearTimeout(timer)
   }, [snapshot, tick, conflict])
@@ -160,6 +190,9 @@ export function useWorkspace() {
     if (!conflictRef.current) setError('')
     return true
   }
+  function retry() {
+    if (isCurrent() && !conflictRef.current) retryRef.current()
+  }
   function downloadDraft() {
     if (!isCurrent()) return
     const blob = new Blob([JSON.stringify({ exportedAt: new Date().toISOString(), ...latest.current }, null, 2)], { type: 'application/json' })
@@ -175,7 +208,7 @@ export function useWorkspace() {
     catch { setError('Download your draft before replacing it; this browser cannot store a backup.'); return }
     commit(shared); recordConflict(null); setStatus('shared'); setError('')
   }
-  return { data: snapshot.data, update, status, error, storageError, dirty: snapshot.dirty, conflict, downloadDraft, useSharedVersion }
+  return { data: snapshot.data, update, status, error, storageError, dirty: snapshot.dirty, conflict, retry, downloadDraft, useSharedVersion }
 }
 
 export async function uploadCratePhoto(file: File): Promise<string> {

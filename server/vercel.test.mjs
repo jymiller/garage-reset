@@ -64,7 +64,7 @@ function fakeStorage() {
 
 async function fixture(t, overrides = {}) {
   const storage = overrides.storage ?? fakeStorage()
-  const handler = createVercelHandler({ storage, authorize: req => req.headers['x-test-access'] === 'yes', access: async () => false, ...overrides })
+  const handler = createVercelHandler({ storage, authorize: req => req.headers['x-test-access'] === 'yes', access: async () => false, logError: () => {}, ...overrides })
   const server = http.createServer(handler)
   await new Promise((resolve, reject) => { server.once('error', reject); server.listen(0, '127.0.0.1', resolve) })
   t.after(() => new Promise((resolve, reject) => {
@@ -431,6 +431,45 @@ test('storage errors and corrupt stored data return 503 without provider details
   }
 })
 
+test('503 diagnostics log only fixed failure stages and allowed error classes', async t => {
+  const validStored = { bytes: Buffer.from(JSON.stringify({ revision: 0, data: empty() })), etag: '"tag"' }
+  const secret = 'private token https://provider.example/garage/private-photo.jpg customer notes'
+  const cases = [
+    { stage: 'workspace-read', errorClass: 'TypeError', read: async () => { throw new TypeError(secret) } },
+    { stage: 'workspace-metadata', errorClass: 'Error', read: async () => ({ ...validStored, etag: '' }) },
+    { stage: 'workspace-decode', errorClass: 'SyntaxError', read: async () => ({ ...validStored, bytes: Buffer.from(secret) }) },
+    { stage: 'workspace-schema', errorClass: 'Error', read: async () => ({ ...validStored, bytes: Buffer.from('{"private":"notes"}') }) },
+    { stage: 'workspace-write', errorClass: 'unexpected', read: async () => validStored, write: async () => {
+      const error = new Error(secret); error.constructor = { name: secret }; throw error
+    } },
+    { stage: 'workspace-recovery-read', errorClass: 'RangeError', calls: 0, read: async function () {
+      if (++this.calls > 1) throw new RangeError(secret)
+      return validStored
+    }, write: async () => { throw new Error(secret) } },
+  ]
+  for (const item of cases) {
+    const diagnostics = []
+    const storage = { calls: 0, read: item.read, write: item.write ?? (async () => {}) }
+    const { put } = await fixture(t, { storage, logError: diagnostic => diagnostics.push(diagnostic) })
+    const response = await put(0, empty())
+    assert.equal(response.status, 503)
+    assert.deepEqual(diagnostics, [{ event: 'garage-storage-failure', stage: item.stage, errorClass: item.errorClass }])
+    assert.doesNotMatch(JSON.stringify(diagnostics), /token|https:|photo|customer|notes|stack|message/)
+    assert.doesNotMatch(await response.text(), /provider|token|customer|notes|errorClass|workspace-read/)
+  }
+})
+
+test('logging cannot mask a storage failure and ordinary rejected requests are not storage diagnostics', async t => {
+  const failing = await fixture(t, { storage: { read: async () => { throw new Error('secret') } }, logError: () => { throw new Error('logger failed') } })
+  assert.equal((await failing.get()).status, 503)
+  const diagnostics = []
+  const { put } = await fixture(t, { logError: diagnostic => diagnostics.push(diagnostic) })
+  assert.equal((await put(-1, empty())).status, 400)
+  assert.equal((await put(0, empty())).status, 200)
+  assert.equal((await put(0, empty())).status, 409)
+  assert.deepEqual(diagnostics, [])
+})
+
 test('requests enforce same-origin writes and workspace/photo byte limits before storage', async t => {
   const { get, base, storage } = await fixture(t)
   for (const extra of [{ origin: 'https://outside.example' }, { origin: 'null' }, { origin: base.replace('http:', 'https:') }, { 'sec-fetch-site': 'cross-site' }]) {
@@ -494,6 +533,7 @@ test('Blob SDK adapter bypasses cache and uses create-only or ETag-conditional p
   const storage = createBlobStorage({ loadSdk: async () => sdk, token: () => 'test-only-token' })
   assert.deepEqual((await storage.read('garage/evidence/one.png')).bytes, PNG)
   assert.equal(calls[0].options.useCache, false)
+  assert.deepEqual(calls[0].options.headers, { 'accept-encoding': 'identity' })
   await storage.write(WORKSPACE_KEY, '{}', { contentType: 'application/json', createOnly: true })
   await storage.write(WORKSPACE_KEY, '{}', { contentType: 'application/json', ifMatch: '"etag"' })
   for (const call of calls) assert.equal(call.options.access, 'private')
@@ -505,6 +545,40 @@ test('Blob SDK adapter bypasses cache and uses create-only or ETag-conditional p
   await assert.rejects(storage.write(WORKSPACE_KEY, '{}', { contentType: 'application/json' }), /ETag/)
   await assert.rejects(createBlobStorage({ loadSdk: async () => sdk, token: () => '' }).read(WORKSPACE_KEY), /not configured/)
   await assert.rejects(storage.read(WORKSPACE_KEY, { limit: 1 }), /size limit/)
+})
+
+test('compressed JSON HTTP ETags do not break conditional workspace saves', async t => {
+  let stored = null, sequence = 0
+  const getCalls = [], writes = []
+  const sdk = {
+    get: async (_key, options) => {
+      getCalls.push(options)
+      if (!stored) return null
+      const identity = options.headers?.['accept-encoding'] === 'identity'
+      return { statusCode: 200, stream: new Blob([stored.bytes]).stream(),
+        blob: { etag: identity ? stored.etag : `W/${stored.etag}`, size: stored.bytes.length, contentType: 'application/json' } }
+    },
+    put: async (_key, bytes, options) => {
+      // The storage API requires its strong object ETag. The CDN may have
+      // supplied a weak ETag for a compressed HTTP representation instead.
+      if (stored ? options.ifMatch !== stored.etag : options.allowOverwrite) throw new Error('ETag precondition failed')
+      writes.push(options)
+      stored = { bytes: Buffer.from(bytes), etag: `"${++sequence}"` }
+    },
+  }
+  const storage = createBlobStorage({ loadSdk: async () => sdk, token: () => 'test-only-token' })
+  const first = await fixture(t, { storage })
+  const original = { ...empty(), notes: 'Large JSON workspace '.repeat(80).trim(), rewards: defaultRewards(1000), observations: [observation(), observation({ id: 'second-photo' })] }
+  assert.ok(Buffer.byteLength(JSON.stringify(original)) > 1024)
+  assert.equal((await first.put(0, original)).status, 200)
+  const next = { ...original, observations: [...original.observations, observation({ id: 'third-photo' })] }
+  assert.equal((await first.put(1, next)).status, 200)
+  const second = await fixture(t, { storage })
+  assert.deepEqual(await (await second.get()).json(), { revision: 2, data: next })
+  assert.equal((await second.put(1, original)).status, 409)
+  assert.equal(writes.length, 2)
+  assert.equal(writes[1].ifMatch, '"1"')
+  assert.ok(getCalls.every(options => options.headers?.['accept-encoding'] === 'identity'))
 })
 
 test('preparsed Vercel query and body values retain validation and upload support', async t => {

@@ -121,11 +121,13 @@ body.garage-modern::after{display:none}
 .home-guide details button{background:none;border:0;color:#385e36;min-height:44px;padding:7px 0 13px;font-size:13px;font-weight:650}
 @media(max-width:1100px){.garage-nav{gap:20px;padding-inline:20px}.garage-nav-note{display:none}.garage-nav-items{margin-left:auto}.home-grid{gap:18px}.home-campaign{padding:22px}.home-mission-copy{padding:24px}.home-mission-copy h2{font-size:29px}.home-campaign h2{font-size:27px}}
 @media(max-width:760px){
-  .garage-shell{padding-bottom:calc(76px + env(safe-area-inset-bottom,0px))}
-  .garage-nav{position:fixed;top:auto;bottom:0;left:0;right:0;z-index:45;padding:7px max(8px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom,0px)) max(8px,env(safe-area-inset-left));border-top:1px solid #d3dbca;border-bottom:0;background:#f5f3ebf7;box-shadow:0 -4px 20px #1c382d0a}
+  .garage-shell{padding-bottom:env(safe-area-inset-bottom,0px)}
+  .garage-nav{position:sticky;top:0;bottom:auto;z-index:45;padding:calc(6px + env(safe-area-inset-top,0px)) max(8px,env(safe-area-inset-right,0px)) 6px max(8px,env(safe-area-inset-left,0px));border-top:0;border-bottom:1px solid #d3dbca;background:#f5f3ebf7;box-shadow:0 4px 18px #1c382d0a}
   .garage-nav-brand{display:none!important}.garage-nav-items{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:3px;width:100%;margin:0}
-  .garage-nav-items>button{flex-direction:column;gap:5px;min-height:55px;padding:7px 2px 5px;border-radius:12px;font-size:10px;line-height:1.2;letter-spacing:0}
-  .garage-nav-icon{width:21px;height:21px}.garage-nav-items>button.is-active{background:#e1e8d8}
+  .garage-nav-items>button{gap:0;min-width:44px;min-height:48px;padding:5px;border-radius:12px;line-height:1.2}.garage-nav-label{display:none}.garage-nav-items>button.garage-nav-photo{background:#e6edbd}.garage-nav-items>button.garage-nav-photo.is-active{background:#d8e59e;box-shadow:inset 0 0 0 1px #b5c67f}
+  .garage-nav-icon{width:38px;height:38px}.garage-nav-items>button.is-active{background:#e1e8d8}
+  #app-screen,#app-screen :is(input,textarea,select,button,[id]){scroll-margin-top:calc(76px + env(safe-area-inset-top,0px))}
+  .garage-skip{top:calc(8px + env(safe-area-inset-top,0px))}
   .reset-home{padding:calc(25px + env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right)) 18px max(20px,env(safe-area-inset-left))}
   .home-heading{align-items:flex-start;gap:13px;margin-bottom:10px}.home-heading h1{font-size:38px;line-height:1.06;letter-spacing:-1.8px;margin:13px 0 12px}.home-heading>div>p:last-child{font-size:12px;line-height:1.7;max-width:240px}.home-mobile-break{display:block}.home-eyebrow{font-size:9px;letter-spacing:1.45px}
   .home-level{width:61px;min-height:78px;border-radius:19px;margin-top:24px}.home-level strong{font-size:29px}.home-level span{font-size:8px}
@@ -151,7 +153,7 @@ body.garage-modern::after{display:none}
 
 /* Phone reading size: plain instructions are more important than dense panels. */
 @media(max-width:760px){
- .garage-nav-items>button{font-size:12px;min-height:58px}.garage-nav-icon{width:23px;height:23px}
+ .garage-nav-icon{width:38px;height:38px}
  .home-heading>div>p:last-child{font-size:16px;line-height:1.6}.home-heading h1{font-size:36px}.home-eyebrow{font-size:12px;letter-spacing:1px}.home-sync{font-size:13px;line-height:1.6}
  .home-level{width:65px}.home-level span{font-size:10px}.home-mission-meta{font-size:12px;letter-spacing:.3px;flex-wrap:wrap}.home-mission-meta>span:last-child{font-size:13px}.home-mission-copy>p{font-size:16px;line-height:1.65}.home-primary{font-size:17px!important}.home-mission-copy .home-mission-foot{font-size:12px}.home-photo-caption{font-size:10px}.home-xp-stamp>span{font-size:10px}
  .home-tool strong{font-size:16px}.home-tool small{font-size:14px}.home-how h3{font-size:17px}.home-how li p{font-size:16px;line-height:1.65}.home-how li>span{font-size:14px}.home-campaign>p{font-size:16px}.home-target{font-size:14px}.home-goal-caption{font-size:12px;flex-wrap:wrap}.home-text-link{font-size:15px!important}.home-level-progress strong{font-size:16px}.home-level-progress p>span{font-size:14px}.home-level-progress>p{font-size:13px}.home-level-progress b small{font-size:11px}.home-footer,.home-footer button{font-size:14px}.home-recent p:not(.home-eyebrow){font-size:16px}
@@ -167,8 +169,7 @@ body.garage-modern::after{display:none}
 .home-round-icon{width:50px;height:50px;background:transparent}
 .home-round-icon svg{width:46px;height:46px}
 @media(max-width:760px){
- .garage-shell{padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
- .garage-nav-items>button{min-height:74px;gap:3px;padding:6px 2px 5px;font-size:12px}
+ .garage-nav-items>button{min-height:48px;gap:0;padding:5px}
  .garage-nav-icon{width:38px;height:38px}
  .home-tool-icon{width:64px;height:64px;border-radius:17px}
  .home-tool-icon svg{width:54px;height:54px}
