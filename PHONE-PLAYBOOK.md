@@ -2,6 +2,14 @@
 
 Open the existing family link on each device. New visits start at Home; existing `#layout`, `#pickup`, and other saved links still open their original tools. Tap **Home** in the persistent navigation to choose what to do next.
 
+## Put it on your iPhone Home Screen
+
+Open your working family link in **Safari**. Wait for your changes to sync. Tap **Share** (possibly inside Safari’s **More** menu), choose **Add to Home Screen**, leave **Open as Web App** enabled if shown, then tap **Add**. Launch the new **Garage Reset** icon. Full illustrated steps are in **More** and [Apple’s iPhone guide](https://support.apple.com/guide/iphone/open-as-web-app-iphea86e5236/ios).
+
+This is the standalone Home Screen web app, served by the existing Vercel deployment. It has its own garage icon and starts at Home. Crates, photos, missions and scores use the same family workspace. If the new app asks for access, paste the existing family link once. Finish syncing before installation and retain the original browser: unsent drafts, original task records and device-only planning settings may remain there. A connection is needed to open the app, upload photos and sync. This update adds no service worker, offline cache, native camera plugin, notifications, App Store package or new authentication flow.
+
+The manifest uses the stable app ID `/`, start URL `/#home`, scope `/`, and `standalone` display. The icon files are opaque PNGs at 180, 192 and 512 pixels plus the vector source; none contain personal photos or family credentials. Native TestFlight/App Store packaging is a separate path requiring Apple signing and an iOS build.
+
 ## The five destinations
 
 - **Home:** the next small mission, resume an unfinished round, the next crate needing attention, photo-mission XP, and the registered-volume goal.
@@ -53,3 +61,7 @@ Browser resizing is not a physical iPhone/Safari test. Native camera permission 
 ### Mission world verification
 
 The 3D mission picker passed the production build and 51 mission, player-setup, area-mapping, scan, layout and spatial tests. Local browser checks covered rotation/zoom/reset, rear/whole framing, source-photo switching, protected reference objects, linked crate mission creation, shelf mission editing and reload persistence. At 320px and 390px the picker has no horizontal overflow, 16px camera labels, and a touch-rotation gate that restores page scrolling when disabled. The existing Garage view still renders at 320px. A separate local fixture supplied the QA crate and mission; the live workspace was not changed. Phone resizing verifies layout and toggle behavior, not physical iPhone multitouch gestures.
+
+### Home Screen installation verification
+
+The production build passed. Built metadata was checked for stable standalone launch, a credential-free manifest, correct icon paths and exact PNG sizes. Browser checks covered Home → installation guide, the data explanation, and readable 16px instructions at 320px, 390px and 1366px without horizontal overflow. The browser error log was empty on the guide. Physical Safari Home Screen installation, camera permissions, and app-to-browser data handoff still need exercising on the iPhone; this desktop session cannot install it on that device.

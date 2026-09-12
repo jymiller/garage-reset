@@ -7,6 +7,7 @@ import { BoltIcon } from '../components/icons'
 import { GarageIcon } from '../components/GarageIcons'
 import { rewardSummary } from '../rewards/model'
 import { openMissionsForPlayer } from '../play/playerMissions'
+import { InstallHomeLink } from './InstallGuide'
 
 const statusLabels = { connecting: 'Connecting · showing saved progress…', shared: 'Synced across your devices', saving: 'Saving your progress…', offline: 'Offline · showing this device’s draft', conflict: 'Your draft needs review', error: 'Save needs attention' }
 const liters = (value: number) => new Intl.NumberFormat(undefined, { maximumFractionDigits: 1 }).format(value)
@@ -40,6 +41,7 @@ export function Home({ onNavigate, onOpenCrate }: { onNavigate: (tab: Tab) => vo
     <button className="home-cash-link" onClick={() => onNavigate('score')}>
       <GarageIcon name="trophy"/><span><strong>Score & cash</strong><small>{playerScore ? `${playerScore.name}: ${playerScore.points} points · ${money(playerScore.approvedCents)} approved` : data.rewards ? 'Choose your player. See your points and cash.' : 'Griff + friends · set up your path to $100.'}</small></span><span aria-hidden="true">→</span>
     </button>
+    <InstallHomeLink onShowGuide={() => onNavigate('more')} />
     <div className="home-grid">
       <section className="home-mission" aria-labelledby="home-mission-title">
         <div className="home-mission-photo"><img src={open?.beforePhoto ?? '/evidence/2026-09-09/IMG_1930.jpg'} alt={open?.beforePhoto ? `Before your mission: ${open.area}` : 'The garage storage shelves in the September 9 reference photo'} fetchPriority="high"/><div className="home-photo-shade"/><span className="home-photo-caption">{open?.beforePhoto ? 'YOUR MISSION / BEFORE' : 'YOUR GARAGE / SEPT 9 REFERENCE'}</span><span className="home-xp-stamp"><BoltIcon className="home-small-icon"/>100 XP<span>per finished round</span></span></div>

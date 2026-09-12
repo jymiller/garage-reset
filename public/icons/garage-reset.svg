@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Garage Reset</title>
+  <rect width="64" height="64" fill="#f5f3eb" />
+  <g transform="translate(8 8)" fill="none" stroke="#294b3c" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 19 24 7l17 12v22H7Z" fill="#a8c2a0" />
+    <path d="m4 20 20-15 20 15" />
+    <path d="M12 20h24v21H12Z" fill="#f7edcf" />
+    <path d="M13 25h22M13 29h22" stroke="#829579" stroke-width="1.8" />
+    <path d="m17 32 2-4h10l2 4 3 2v6H14v-6Z" fill="#a9c9ca" />
+    <path d="M18 32h12" />
+    <path d="M17 40v2M31 40v2" stroke-width="3" />
+    <path d="M18 36h1M29 36h1" stroke="#f7edcf" stroke-width="2.6" />
+  </g>
+</svg>
