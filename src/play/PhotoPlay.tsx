@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Tab } from '../App'
 import type { CleanupMission } from '../crates/model'
 import { uploadCratePhoto, useWorkspace } from '../crates/useWorkspace'
@@ -7,6 +7,10 @@ import { sound } from '../sound'
 import './play.css'
 import { GarageIcon } from '../components/GarageIcons'
 import { openMissionsForPlayer, savePlayerMissionSetup } from './playerMissions'
+import { currentObjects } from '../garage/currentObjects'
+import { readCorrections } from '../garage/corrections'
+import { MissionWorldPicker } from './MissionWorldPicker'
+import type { MissionAreaSuggestion } from './missionArea'
 
 type Kind = CleanupMission['kind']
 type CountKey = 'kept' | 'bagged' | 'donated' | 'ask'
@@ -39,6 +43,9 @@ export function PhotoPlay({onNavigate, initialCrateId, onOpenCrate}:{onNavigate:
   const [kind,setKind] = useState<Kind>(initialCrateId?'crate':'floor')
   const [crateId,setCrateId] = useState(initialCrateId || '')
   const [area,setArea] = useState('')
+  const [areaSelectionMessage,setAreaSelectionMessage] = useState('')
+  const [corrections] = useState(readCorrections)
+  const objects = useMemo(()=>currentObjects.map(object=>({...object,...corrections[object.id]})),[corrections])
   const [minutes,setMinutes] = useState<5|10|15>(10)
   const [photoBusy,setPhotoBusy] = useState(false)
   const [message,setMessage] = useState('')
@@ -83,14 +90,19 @@ export function PhotoPlay({onNavigate, initialCrateId, onOpenCrate}:{onNavigate:
     return accepted&&changed
   }
   function patch(id:string, fields:Partial<CleanupMission>) {return change(id,m=>({...m,...fields}))}
-  function openRound(id:string) {setSelected(id);setLobby(false);setEditingId(null)}
-  function goLobby() {setSelected(null);setLobby(true);setMessage('');setEditingId(null)}
+  function openRound(id:string) {setAreaSelectionMessage('');setSelected(id);setLobby(false);setEditingId(null)}
+  function goLobby() {setAreaSelectionMessage('');setSelected(null);setLobby(true);setMessage('');setEditingId(null)}
   function choosePlayer(id:string) {
     if(editingId) {setEditingPlayerId(id);return}
     setPlayerId(id)
     try { if(id)localStorage.setItem(PLAYER_KEY,id);else localStorage.removeItem(PLAYER_KEY) } catch { /* Player choice still works for this visit. */ }
   }
-  function editBefore() {if(!mission||mission.phase!=='before'||photoBusy)return;setKind(mission.kind);setArea(mission.area);setCrateId(mission.crateId||'');setMinutes(mission.plannedMinutes);setEditingPlayerId(missionEntry?.playerId||'');setEditingId(mission.id);setSelected(null);setLobby(true)}
+  function editBefore() {if(!mission||mission.phase!=='before'||photoBusy)return;setAreaSelectionMessage('');setKind(mission.kind);setArea(mission.area);setCrateId(mission.crateId||'');setMinutes(mission.plannedMinutes);setEditingPlayerId(missionEntry?.playerId||'');setEditingId(mission.id);setSelected(null);setLobby(true)}
+  function useModelArea(suggestion: MissionAreaSuggestion) {
+    setKind(suggestion.kind);setArea(suggestion.area);setCrateId(suggestion.crateId || '')
+    setAreaSelectionMessage(`Selected: ${suggestion.area}. Check the details, then take a before photo.`)
+    selectionRef.current?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})
+  }
   function beginRound() {
     const id=editingId||crypto.randomUUID()
     let created=false
@@ -146,7 +158,7 @@ export function PhotoPlay({onNavigate, initialCrateId, onOpenCrate}:{onNavigate:
         </section> : <section className="play-reward-note"><div><h2>Play for points. Plan cash rewards.</h2><p>You can start a mission now. Set up players and a reward plan to track cash separately.</p></div><button type="button" className="play-secondary" onClick={()=>onNavigate('score')}>Set up players & cash rewards →</button></section>}
         <section className="play-hero">
           <div className="play-hero-copy"><span className="play-kicker">CLEAN UP ONE AREA AT A TIME</span><h1>Clear a little.<br /><em>See the difference.</em></h1><p>Choose a floor area, shelf, or crate.<br />Take photos before and after you sort.</p><button className="play-primary" onClick={()=>selectionRef.current?.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'})}>Choose a mission <span>↗</span></button><div className="play-hero-foot"><span>◎</span> Before photo → sort items → after photo.</div></div>
-          <div className="play-hero-photo"><img src="/evidence/2026-09-09/IMG_1930.jpg" alt="Your storage racks behind the white parking-clearance line" /><div className="play-photo-shade"/><span className="play-photo-caption">YOUR GARAGE · SEPT 9 REFERENCE</span><div className="play-photo-reticle"><i/><span>ONE SMALL AREA<br /><b>YOU’VE GOT THIS.</b></span><i/></div><div className="play-photo-sticker"><span>YOUR NEXT MISSION</span><b>Choose one<br />area to clear.</b><span>+100 points / FINISHED MISSION</span></div></div>
+          <MissionWorldPicker objects={objects} spatialItems={workspace.data.spatialItems ?? []} crates={workspace.data.crates} onUseArea={useModelArea} onOpenGarage={()=>onNavigate('layout')} />
         </section>
         {orderedOpen.length>0&&<section className="play-open-missions" aria-label="Saved missions by player">{orderedOpen.map(saved=>{
           const owner=ownerOf(saved.id)
@@ -154,9 +166,10 @@ export function PhotoPlay({onNavigate, initialCrateId, onOpenCrate}:{onNavigate:
         })}</section>}
         <section className="play-selection" ref={selectionRef}>
           <div className="play-section-heading"><div><span className="play-kicker">CHOOSE A MISSION</span><h2>What will you work on?</h2></div><span>{rewards ? 'One unfinished mission per player. Keep both car spaces clear.' : 'Finish one mission at a time. Keep both car spaces clear.'}</span></div>
-          <div className="play-mode-grid">{modes.map((mode,index)=><button key={mode.kind} className={`play-mode ${kind===mode.kind?'chosen':''}`} aria-pressed={kind===mode.kind} onClick={()=>{setKind(mode.kind);setArea('')}}><span className="play-mode-top"><GarageIcon name={mode.icon} className="play-choice-icon"/><b>0{index+1}</b></span><h3>{mode.title}</h3><p>{mode.subtitle}</p><span className="play-mode-select">{kind===mode.kind?'Selected ✓':'Choose'}</span></button>)}</div>
+          <div className="play-mode-grid">{modes.map((mode,index)=><button key={mode.kind} className={`play-mode ${kind===mode.kind?'chosen':''}`} aria-pressed={kind===mode.kind} onClick={()=>{setKind(mode.kind);setArea('');setCrateId('');setAreaSelectionMessage('')}}><span className="play-mode-top"><GarageIcon name={mode.icon} className="play-choice-icon"/><b>0{index+1}</b></span><h3>{mode.title}</h3><p>{mode.subtitle}</p><span className="play-mode-select">{kind===mode.kind?'Selected ✓':'Choose'}</span></button>)}</div>
+          {areaSelectionMessage && <p className="play-area-selection" role="status">{areaSelectionMessage}</p>}
           <div className="play-setup">
-            <div><label>Where will you work?<input aria-label="Round location" value={area} maxLength={160} placeholder={kind==='crate'&&linked?.location?linked.location:template.area} onChange={e=>setArea(e.target.value)} /></label>{kind==='crate'&&<label>Choose a registered crate<select value={crateId} onChange={e=>setCrateId(e.target.value)}><option value="">Crate not registered yet</option>{workspace.data.crates.map(c=><option key={c.id} value={c.id}>{c.code} · {c.name}</option>)}</select></label>}</div>
+            <div><label>Where will you work?<input aria-label="Round location" value={area} maxLength={160} placeholder={kind==='crate'&&linked?.location?linked.location:template.area} onChange={e=>{setArea(e.target.value);setAreaSelectionMessage('')}} /></label>{kind==='crate'&&<label>Choose a registered crate<select value={crateId} onChange={e=>{setCrateId(e.target.value);setArea('');setAreaSelectionMessage('')}}><option value="">Crate not registered yet</option>{workspace.data.crates.map(c=><option key={c.id} value={c.id}>{c.code} · {c.name}</option>)}</select></label>}</div>
             <div><span className="play-field-label">How long will you work?</span><div className="play-minutes" role="group" aria-label="Round length">{([5,10,15] as const).map(n=><button key={n} aria-pressed={minutes===n} onClick={()=>setMinutes(n)}>{n}<small>MIN</small></button>)}</div><p className="play-fine">You can pause the timer or finish early.</p></div>
             <button className="play-primary" disabled={needsPlayer || Boolean(blockedMission) || workspace.status==='connecting'} onClick={beginRound}>{editingId?'Save changes & take before photo':'Take before photo'} <CameraIcon /></button>
           </div>

@@ -1,0 +1,82 @@
+.mission-world {
+  min-width: 0;
+  width: 100%;
+  padding: 20px;
+  border: 1px solid #d9ddce;
+  border-radius: 26px;
+  background: #f8f7ed;
+  color: #254737;
+  box-shadow: 0 14px 36px #102a2112;
+  font: 16px/1.5 system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  color-scheme: light;
+}
+.mission-world *, .mission-world *::before, .mission-world *::after { box-sizing: border-box; }
+.play-app .mission-world h2, .mission-world h2 { margin: 0; color: #254737; font-size: 24px; line-height: 1.2; letter-spacing: -.55px; }
+.play-app .mission-world h3, .mission-world h3 { margin: 5px 0; color: #254737; font-size: 22px; line-height: 1.3; letter-spacing: -.3px; }
+.play-app .mission-world p, .mission-world p { margin: 0; color: #596958; font-size: 16px; line-height: 1.5; }
+.mission-world-heading { display: flex; gap: 12px; align-items: center; margin-bottom: 17px; }
+.mission-world-heading > svg { flex: 0 0 auto; width: 44px; height: 44px; }
+.play-app .mission-world-heading p, .mission-world-heading p { margin-top: 5px; }
+.mission-world-toolbar { display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; margin-bottom: 12px; }
+.mission-world-segment { display: flex; gap: 4px; background: #e6eadc; border: 1px solid #d8dece; border-radius: 14px; padding: 4px; }
+.play-app .mission-world button, .mission-world button { cursor: pointer; font-family: inherit; font-size: 16px; line-height: 1.3; text-transform: none; letter-spacing: normal; }
+.play-app .mission-world-segment button, .mission-world-segment button { min-height: 44px; padding: 9px 12px; border-radius: 10px; border: 1px solid transparent; background: transparent; color: #52644f; font-weight: 650; }
+.play-app .mission-world-segment button[aria-pressed='true'], .mission-world-segment button[aria-pressed='true'] { color: #f8f7ed; background: #315841; border-color: #315841; box-shadow: 0 2px 4px #15342114; }
+.mission-world-viewport { position: relative; height: 340px; overflow: hidden; border-radius: 16px; border: 1px solid #d4d8cb; background: #eeeeE6; }
+.mission-world-canvas { width: 100%; height: 100%; }
+.mission-world-canvas.is-touch-locked { pointer-events: none; }
+.mission-world-touch-cover { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center; padding: 10px; touch-action: pan-y; pointer-events: none; }
+.mission-world-touch-cover span { padding: 6px 12px; border: 1px solid #dadfcd; border-radius: 20px; background: #faf9f0ed; color: #4e6250; font-size: 13px; box-shadow: 0 2px 10px #2943320a; }
+.mission-world-camera { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin: 12px 0 10px; }
+.play-app .mission-world-camera button, .mission-world-camera button { min-width: 0; min-height: 78px; display: flex; flex-direction: column; gap: 4px; align-items: center; justify-content: center; padding: 8px 3px; border: 1px solid #ced9c6; border-radius: 13px; background: #eef1e5; color: #2f523e; font-size: 16px; font-weight: 600; }
+.play-app .mission-world button:hover:not(:disabled), .mission-world button:hover:not(:disabled) { filter: brightness(.97); }
+.mission-world button:focus-visible, .mission-world select:focus-visible { outline: 3px solid #bd8b2c; outline-offset: 3px; }
+.play-app .mission-world-button, .mission-world-button { min-height: 48px; padding: 12px 16px; border: 1px solid #bacbb2; border-radius: 13px; background: #e8eedf; color: #2b513b; font-weight: 700; }
+.play-app .mission-world-touch-button, .mission-world-touch-button { width: 100%; margin: 0 0 10px; }
+.play-app .mission-world-touch-button.is-active, .mission-world-touch-button.is-active { background: #315841; border-color: #315841; color: #f8f7ed; }
+.play-app .mission-world .mission-world-help, .mission-world .mission-world-help { font-size: 14px; color: #586951; }
+.play-app .mission-world .mission-world-model-note, .mission-world .mission-world-model-note { margin: 12px 0 18px; padding-top: 12px; border-top: 1px solid #dce1d2; font-size: 13px; line-height: 1.5; color: #68715f; }
+.play-app .mission-world label, .mission-world label { display: grid; gap: 7px; color: #37553d; font-size: 16px; font-weight: 650; line-height: 1.4; }
+.play-app .mission-world select, .mission-world select { width: 100%; min-width: 0; min-height: 49px; border: 1px solid #bfcdb5; border-radius: 12px; background: #fffef7; color: #294b37; padding: 11px 30px 11px 12px; font: 16px/1.4 system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+.mission-world-candidate { display: grid; gap: 13px; margin-top: 14px; padding: 17px; border: 1px solid #d1d9c4; border-radius: 17px; background: #edf1e2; }
+.mission-world-candidate-copy { min-width: 0; overflow-wrap: anywhere; }
+.mission-world-eyebrow { color: #68753e; font-size: 12px; font-weight: 750; letter-spacing: .65px; text-transform: uppercase; }
+.play-app .mission-world-use, .mission-world-use { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%; min-height: 51px; border-color: #315841; background: #315841; color: #fff9df; text-align: left; }
+.play-app .mission-world-use:disabled, .mission-world-use:disabled { border-color: #d1d7c7; background: #e0e5d6; color: #77816d; cursor: default; }
+.play-app .mission-world-use span, .mission-world-use span { font-size: 24px; line-height: 1; }
+.play-app .mission-world-photo-link, .mission-world-photo-link { display: flex; gap: 12px; align-items: center; width: fit-content; max-width: 100%; padding: 0; color: #315841; font-size: 14px; font-weight: 650; text-align: left; border: 0; border-radius: 8px; background: transparent; }
+.mission-world-photo-link img { width: 64px; height: 48px; flex: 0 0 auto; object-fit: cover; border-radius: 8px; border: 1px solid #cad4bf; }
+.play-app .mission-world-full, .mission-world-full { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; width: 100%; margin: 10px 0 -6px; padding: 10px; border: 0; border-radius: 12px; background: transparent; color: #476544; font-weight: 650; }
+.mission-world-photo { position: relative; width: 100%; height: 100%; margin: 0; padding-bottom: 68px; background: #26372e; }
+.mission-world-photo > img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.mission-world-photo figcaption { position: absolute; bottom: 0; left: 0; width: 100%; min-height: 68px; padding: 10px 15px; display: flex; flex-direction: column; gap: 1px; background: #26372e; color: #f6f5e8; }
+.mission-world-photo figcaption span { font-size: 12px; color: #cfdbbf; }
+.mission-world-photo figcaption strong { font-size: 15px; line-height: 1.3; font-weight: 600; }
+.mission-world-photo-choice { margin: 12px 0; }
+.mission-world-fallback { pointer-events: auto; touch-action: pan-y; height: 100%; padding: 25px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: #2c503b; text-align: center; }
+.mission-world-fallback button { pointer-events: auto; }
+.mission-world-fallback strong { font-size: 20px; line-height: 1.3; }
+.play-app .mission-world-fallback p, .mission-world-fallback p { max-width: 330px; font-size: 15px; }
+.mission-world-fallback > svg { flex-shrink: 0; width: 64px; height: 64px; }
+@media (max-width: 640px) {
+  .mission-world { padding: 15px; border-radius: 21px; }
+  .play-app .mission-world h2, .mission-world h2 { font-size: 23px; }
+  .mission-world-heading { gap: 9px; align-items: flex-start; }
+  .mission-world-heading > svg { width: 40px; height: 40px; }
+  .mission-world-toolbar { gap: 8px; }
+  .mission-world-segment { width: 100%; }
+  .mission-world-segment button { flex: 1; }
+  .mission-world-viewport { height: 300px; border-radius: 13px; }
+  .mission-world-camera { gap: 5px; }
+  .play-app .mission-world-camera button, .mission-world-camera button { min-height: 78px; font-size: 16px; border-radius: 11px; }
+  .mission-world-candidate { padding: 14px; }
+  .mission-world-fallback { padding: 18px; }
+}
+@media (max-width: 360px) {
+  .mission-world-camera { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .mission-world-camera button { grid-column: span 2; }
+  .mission-world-camera button:nth-child(n + 4) { grid-column: span 3; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mission-world button { transition: none; }
+}

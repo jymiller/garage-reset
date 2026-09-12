@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef } from 'react'
+import { useCallback, useLayoutEffect, useMemo, useRef } from 'react'
 import type { ComponentRef } from 'react'
 import { Canvas, events, useThree } from '@react-three/fiber'
 import type { CanvasProps } from '@react-three/fiber'
@@ -10,6 +10,7 @@ import { scanShell } from './scanGeometry'
 
 type Vec3 = [number, number, number]
 type Scope = 'rear' | 'all'
+export type CurrentSceneCameraCommand = { kind: 'left' | 'right' | 'zoom-in' | 'zoom-out' | 'reset'; seq: number }
 
 interface CurrentSceneProps {
   objects: LayoutObject[]
@@ -22,6 +23,8 @@ interface CurrentSceneProps {
   selectedSpatialId?: string | null
   onSelectSpatial?: (id: string) => void
   showSpatial?: boolean
+  cameraCommand?: CurrentSceneCameraCommand
+  showHint?: boolean
 }
 
 // X-ray catalog boxes remain clickable through the illustrative shelf contents.
@@ -302,10 +305,11 @@ function SpatialBox({ item, selected, onSelect }: { item: SpatialItem; selected:
   )
 }
 
-function CameraControls({ scope }: { scope: Scope }) {
+function CameraControls({ scope, command }: { scope: Scope; command?: CurrentSceneCameraCommand }) {
   const controls = useRef<ComponentRef<typeof OrbitControls>>(null)
+  const lastCommand = useRef<number | null>(null)
   const { camera, invalidate, size } = useThree()
-  useLayoutEffect(() => {
+  const fitScope = useCallback(() => {
     if (!(camera instanceof THREE.PerspectiveCamera) || size.width <= 0 || size.height <= 0) return
 
     // Rear framing includes the observed SUV, not just the rack run.
@@ -349,7 +353,32 @@ function CameraControls({ scope }: { scope: Scope }) {
     controls.current?.update()
     invalidate()
   }, [scope, size.width, size.height, camera, invalidate])
-  return <OrbitControls ref={controls} makeDefault enableDamping={false} enablePan minDistance={2} maxPolarAngle={Math.PI / 2.08} />
+
+  // Fit on mount, scope change and resize. Selection and object edits leave the
+  // user's orbit untouched; explicit reset uses this same current-scope fit.
+  const fittedWith = useRef<(() => void) | null>(null)
+  useLayoutEffect(() => {
+    // Effect replay must not undo a command already applied after the first fit.
+    if (fittedWith.current === fitScope) return
+    fitScope()
+    fittedWith.current = fitScope
+  }, [fitScope])
+  useLayoutEffect(() => {
+    const orbit = controls.current
+    if (!command || !orbit || !Number.isSafeInteger(command.seq) || command.seq < 0
+      || lastCommand.current === command.seq || size.width <= 0 || size.height <= 0) return
+    lastCommand.current = command.seq
+    const step = Math.PI / 8
+    // Use the live controls, including a target moved by a previous pan. These
+    // APIs enforce the same distance and polar limits as mouse/touch gestures.
+    if (command.kind === 'reset') fitScope()
+    else if (command.kind === 'left') orbit.setAzimuthalAngle(orbit.getAzimuthalAngle() - step)
+    else if (command.kind === 'right') orbit.setAzimuthalAngle(orbit.getAzimuthalAngle() + step)
+    else if (command.kind === 'zoom-in') orbit.dollyIn(0.8)
+    else if (command.kind === 'zoom-out') orbit.dollyOut(0.8)
+    invalidate()
+  }, [command?.kind, command?.seq, fitScope, invalidate, size.width, size.height])
+  return <OrbitControls ref={controls} makeDefault enableDamping={false} enablePan minDistance={2} minPolarAngle={0.08} maxPolarAngle={Math.PI / 2.08} />
 }
 
 function Shell() {
@@ -398,7 +427,7 @@ function OrientationLabels({ scope }: { scope: Scope }) {
 }
 
 /** The floor follows the scan; object silhouettes and the optional planning wash are illustrative. */
-export function CurrentScene({ objects, selected, onSelect, scope, showObjects, showParking, spatialItems = [], selectedSpatialId = null, onSelectSpatial, showSpatial = true }: CurrentSceneProps) {
+export function CurrentScene({ objects, selected, onSelect, scope, showObjects, showParking, spatialItems = [], selectedSpatialId = null, onSelectSpatial, showSpatial = true, cameraCommand, showHint = true }: CurrentSceneProps) {
   const validSpatialItems = spatialItems.filter((item) => [item.x, item.y, item.z, item.w, item.d, item.h].every(Number.isFinite) && item.w > 0 && item.d > 0 && item.h > 0)
   return (
     <div style={{ width: '100%', height: '100%', overflow: 'hidden', borderRadius: 14, background: '#eeeee6', position: 'relative' }}>
@@ -417,9 +446,9 @@ export function CurrentScene({ objects, selected, onSelect, scope, showObjects, 
         {showObjects && objects.map((o) => <SceneObject key={o.id} o={o} selected={selected === o.id} onSelect={() => onSelect(selected === o.id ? null : o.id)} />)}
         {showSpatial && validSpatialItems.map((item) => <SpatialBox key={item.id} item={item} selected={selectedSpatialId === item.id} onSelect={onSelectSpatial} />)}
         <OrientationLabels scope={scope} />
-        <CameraControls scope={scope} />
+        <CameraControls scope={scope} command={cameraCommand} />
       </Canvas>
-      <div style={{ position: 'absolute', left: 12, bottom: 12, padding: '5px 8px', borderRadius: 5, color: '#62675a', background: '#f7f7eee8', font: '11px/1.4 system-ui, sans-serif', pointerEvents: 'none' }}>Drag to orbit · Scroll to zoom · Right-drag or two fingers to pan</div>
+      {showHint && <div style={{ position: 'absolute', left: 12, bottom: 12, padding: '5px 8px', borderRadius: 5, color: '#62675a', background: '#f7f7eee8', font: '11px/1.4 system-ui, sans-serif', pointerEvents: 'none' }}>Drag to orbit · Scroll to zoom · Right-drag or two fingers to pan</div>}
     </div>
   )
 }

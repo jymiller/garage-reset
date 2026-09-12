@@ -4,6 +4,7 @@ import type { Tab } from '../App'
 import { currentObjects } from '../garage/currentObjects'
 import type { LayoutObject } from '../garage/currentObjects'
 import { scanShell } from '../garage/scanGeometry'
+import { readCorrections, LAYOUT_CORRECTIONS_KEY } from '../garage/corrections'
 import { validGeometry, footprintOverlaps } from '../garage/layoutDraft'
 import type { Geometry, Correction, Corrections } from '../garage/layoutDraft'
 import { useWorkspace } from '../crates/useWorkspace'
@@ -18,22 +19,10 @@ import '../garage/layout.css'
 
 const CurrentScene = lazy(() => import('../garage/CurrentScene').then(m => ({ default: m.CurrentScene })))
 const photos = [...latestPhotoSurvey, ...photoSurvey]
-const CACHE = 'garage-layout-corrections-v1'
 type View = '3d' | 'map' | 'photo'
 const observedDate = (value: string) => new Date(value).toLocaleString('en-US', { timeZone: 'America/Los_Angeles', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' })
 const fmt = (m: number) => `${m.toFixed(2)} m / ${(m * 3.28084).toFixed(1)} ft`
 
-function readCorrections(): Corrections {
-  try {
-    const value = JSON.parse(localStorage.getItem(CACHE) || '{}')
-    if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
-    const entries: [string, Correction][] = []
-    for (const [id, c] of Object.entries(value)) {
-      if (currentObjects.some(o => o.id === id) && validGeometry(c)) entries.push([id, { x: c.x, y: c.y, w: c.w, d: c.d, h: c.h, note: c.note }])
-    }
-    return Object.fromEntries(entries)
-  } catch { return {} }
-}
 
 export function Garage({ onNavigate, onOpenCrate }: { onNavigate: (tab: Tab) => void; onOpenCrate: (id: string) => void }) {
   const workspace = useWorkspace()
@@ -90,7 +79,7 @@ export function Garage({ onNavigate, onOpenCrate }: { onNavigate: (tab: Tab) => 
     if (correction) next[id] = correction
     else delete next[id]
     try {
-      localStorage.setItem(CACHE, JSON.stringify(next))
+      localStorage.setItem(LAYOUT_CORRECTIONS_KEY, JSON.stringify(next))
       setCorrections(next)
       setSaveMessage(correction ? 'Correction saved in this browser.' : 'Photo-based estimate restored for this object.')
       return true

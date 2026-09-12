@@ -12,6 +12,14 @@ Open the existing family link on each device. New visits start at Home; existing
 
 The game shell uses system fonts, clear touch controls, a bottom bar on phones, and a top bar on laptops. Illustrated icons show a house, mission camera, smiling crate, garage, and toolbox; every destination keeps its text label. Phone navigation icons are 38px with 74px minimum-height buttons. Home tool icons are 54px, and mission choices show a broom, shelf, or crate at 44–48px. Navigation participates in browser Back/Forward. Returning to an active mission or crate preserves its local view; the mission board and All containers controls return to their respective lists.
 
+## Choose a mission in 3D
+
+On **Missions**, use **3D garage** to look around before choosing work. Drag on a laptop to rotate; use the rotate, zoom and reset buttons for easier control. On a phone, turn on **Enable touch rotation** to orbit with one finger or zoom with two, then **Done rotating** to scroll the page normally. The area list works without touching the model.
+
+Select a rack or identified item, then choose **Use this area**. This fills the mission type, location and linked crate (when one is registered). Check those fields and take a before photo to create the mission. Selecting a shape alone does not start a mission, move an object or award points. Changing the registered crate clears the previous location so it cannot keep another crate’s address. Cars and utility references are for viewing and do not offer a cleanup mission.
+
+Switch to **Reference photo** to compare the model with the selected object’s photo. These are static photographs. The 3D view uses the June floor scan and September 9 object references, with estimated object positions and dimensions. Illustrative totes are not individually identified inventory. Identify and link real containers in **Garage** to select them by their registered crate ID. Corrections to the layout are remembered on this device; identified items and crate inventory use the shared workspace.
+
 ## Label boxes before sorting
 
 In **Crates**, choose **Download 32 blank labels**. The four-page PDF is made for ordinary US Letter paper: eight labels per page, actual size / 100%, single-sided. Cut on the borders and tape to the container body, facing the aisle. Print a second copy for matching lid labels if useful. Test one printed QR with the iPhone Camera before attaching the full set.
@@ -41,3 +49,7 @@ The 50% goal uses registered container capacity × fill estimates. Home suppress
 The production build and 59 relevant label, mission, crate, sync, access, and Vercel adapter tests pass. Local browser checks covered the five primary destinations at 320px, the mission setup/camera step and Home resume at 390px, crate registration and contents/repack controls at 320px, browser Back, and the laptop layout at 1366px. No horizontal overflow was observed in the five main screens. The label update also checked unknown-code registration, saved-code reopening after reload, and the single-label preview at 390px. Every QR on all four PDF pages was decoded from rendered pages and matched its expected public container link. Navigation targets are at least 58px high; main phone buttons use 16px type, crate fields 18px, and mission headings at least 24px. CSS accounts for device safe areas and reduced-motion preferences.
 
 Browser resizing is not a physical iPhone/Safari test. Native camera permission and capture must still be exercised on the phone. QA mission/container records were confined to a separate local server and did not enter the hosted workspace.
+
+### Mission world verification
+
+The 3D mission picker passed the production build and 51 mission, player-setup, area-mapping, scan, layout and spatial tests. Local browser checks covered rotation/zoom/reset, rear/whole framing, source-photo switching, protected reference objects, linked crate mission creation, shelf mission editing and reload persistence. At 320px and 390px the picker has no horizontal overflow, 16px camera labels, and a touch-rotation gate that restores page scrolling when disabled. The existing Garage view still renders at 320px. A separate local fixture supplied the QA crate and mission; the live workspace was not changed. Phone resizing verifies layout and toggle behavior, not physical iPhone multitouch gestures.
