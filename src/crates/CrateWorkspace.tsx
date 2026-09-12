@@ -104,7 +104,7 @@ export function CrateWorkspace({ onNavigate, initialCrateId, initialStep, onPlay
           </>}
         </section>
       </div>
-      <footer className="crate-footer"><span>Parking boundary stays clear. One open container at a time.</span><button onClick={()=>onNavigate('capture')}>Previous inventory →</button></footer>
+      <footer className="crate-footer"><span>Parking boundary stays clear. One open container at a time.</span><button onClick={()=>onNavigate('capture')}>Item list →</button></footer>
     </main>
     {showLabel && crate && createPortal(<div className="crate-label-overlay"><section className="crate-label-dialog" role="dialog" aria-modal="true" aria-labelledby="label-dialog-title"><div className="crate-label-controls"><h2 id="label-dialog-title">Label for {crate.code}</h2><p>The QR opens this container on your phone. It contains the ID, never your family access key.</p><p>Print on plain Letter paper at actual size. Cut around the border and tape to the box.</p><div><button onClick={() => window.print()}>Print label</button><button onClick={() => setShowLabel(false)}>Close label</button></div></div><ContainerLabel code={crate.code} name={crate.name} location={crate.location} owner={crate.owner}/></section></div>, document.body)}
     {adding && <NewCrate blocked={!registrationReady} initialCode={!scannedOpened && !scanned ? labelCode : null} locked={data.baselineLocked} existingCodes={data.crates.map(c=>c.code)} onClose={()=>setAdding(false)} onCreate={c=>{if(!registrationReady)return false;const saved=update(d=>({...d,crates:[...d.crates,c]}));if(saved){openCrate(c.id);setAdding(false)}return saved}} />}

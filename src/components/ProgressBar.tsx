@@ -1,22 +1,6 @@
-export function ProgressBar({
-  pct,
-  color = '#2bd14a',
-  className = '',
-}: {
-  pct: number
-  color?: string
-  className?: string
-}) {
-  return (
-    <div className={`arc-bar ${className}`} style={{ borderColor: color }}>
-      <div
-        className="h-full"
-        style={{
-          width: `${pct}%`,
-          background: `repeating-linear-gradient(90deg, ${color} 0 9px, #0d0d18 9px 12px)`,
-          transition: 'width 0.4s steps(8)',
-        }}
-      />
-    </div>
-  )
+export function ProgressBar({pct, color = '#62834c', className = ''}: {pct:number;color?:string;className?:string}) {
+  const value=Number.isFinite(pct)?Math.max(0,Math.min(100,pct)):0
+  return <div className={`tool-meter ${className}`} role="progressbar" aria-label="Task progress" aria-valuenow={Math.round(value)} aria-valuemin={0} aria-valuemax={100}>
+    <div className="tool-meter-fill" style={{width:`${value}%`,backgroundColor:color}}/>
+  </div>
 }

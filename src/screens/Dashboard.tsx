@@ -3,40 +3,31 @@ import type { Tab } from '../App'
 import { useStore } from '../store'
 import { sound } from '../sound'
 import { nextTasks, progress } from '../lib'
-import {
-  xp,
-  level,
-  leaderboard,
-  achievements,
-  rankTitle,
-  dailyMission,
-  todayKey,
-  MISSION_BONUS,
-  WEEKLY_GOAL,
-  allCleared,
-  flameTier,
-} from '../game'
-import { arcPerson } from '../theme'
+import { xp, level, leaderboard, achievements, rankIndex, dailyMission, todayKey, MISSION_BONUS, WEEKLY_GOAL, weekKey, allCleared } from '../game'
 import { ProgressBar } from '../components/ProgressBar'
 import { TaskCard } from '../components/TaskCard'
-import { FlameIcon } from '../components/icons'
+import { GarageIcon } from '../components/GarageIcons'
+import { ToolPage } from '../components/ToolPage'
+import { ResetTaskList } from '../components/ResetTaskList'
+import './progress.css'
 
-const RANK = ['1ST', '2ND', '3RD']
-
-function tagline(pct: number) {
-  if (pct >= 100) return 'BOSS DEFEATED!'
-  if (pct === 0) return 'INSERT COIN — PRESS PLAY'
-  if (pct < 34) return 'COMBO BUILDING...'
-  if (pct < 67) return 'NICE RUN. KEEP GOING'
-  return 'FINAL STRETCH!'
+const LEVEL_NAMES = ['Getting started', 'Finding a rhythm', 'Making room', 'Keeping things organized', 'Experienced organizer']
+const MILESTONES: Record<string, { name: string; description: string }> = {
+  first: { name: 'First task finished', description: 'Complete one task.' },
+  streak: { name: 'Three days of progress', description: 'Complete tasks on three consecutive days.' },
+  quarter: { name: 'A quarter of the list', description: 'Complete 25% of the task list.' },
+  half: { name: 'Halfway through the list', description: 'Complete 50% of the task list.' },
+  zone: { name: 'One area’s tasks finished', description: 'Complete every task assigned to one area.' },
+  quarterm: { name: 'Five items recorded', description: 'Add five items to the local item list.' },
+  boss: { name: 'Every task finished', description: 'Complete 100% of the task list.' },
 }
 
 export function Dashboard({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
-  const { tasks, items, streak, bonusXp, weekDone, combo, resetAll } = useStore()
+  const { tasks, items, streak, bonusXp, weekDone, weekTag, combo, resetAll } = useStore()
   const [muted, setMuted] = useState(sound.isMuted())
-  const weekPct = Math.min(100, Math.round((weekDone / WEEKLY_GOAL) * 100))
+  const thisWeekDone = weekTag === weekKey() ? weekDone : 0
+  const weekPct = Math.min(100, Math.round((thisWeekDone / WEEKLY_GOAL) * 100))
   const cleared = allCleared(tasks)
-  const flame = flameTier(streak)
   const overall = progress(tasks)
   const totalXp = xp(tasks) + bonusXp
   const lv = level(totalXp)
@@ -44,162 +35,83 @@ export function Dashboard({ onNavigate }: { onNavigate: (tab: Tab) => void }) {
   const trophies = achievements(tasks, items, streak)
   const upNext = nextTasks(tasks, 3)
   const mission = dailyMission(tasks, todayKey())
-  const missionDone = mission?.status === 'done'
 
-  return (
-    <div className="space-y-5">
-      <header className="flex items-start justify-between gap-3">
-        <div>
-          <h1 className="font-pixel text-base leading-relaxed text-[#2bd14a]">GARAGE RESET</h1>
-          <p className="arc-vt mt-1 text-[#ffd23f]">{tagline(overall.pct)}</p>
+  return <ToolPage title="Task progress" icon="board" localData description="A clear view of your task list, small wins, and the next thing to do." actions={
+    <button className="tool-button secondary" aria-pressed={!muted} onClick={() => { sound.toggle(); setMuted(sound.isMuted()) }}>
+      <GarageIcon name="sound" />Sound {muted ? 'off' : 'on'}
+    </button>
+  }>
+    <div className="tool-stack task-progress-page">
+      <section className="tool-card task-progress-overview" aria-labelledby="task-list-heading">
+        <div className="tool-row task-progress-heading"><div><p className="tool-muted">Your local task list</p><h2 id="task-list-heading">{cleared ? 'Every listed task is complete.' : overall.done ? 'One task at a time.' : 'Start with one manageable task.'}</h2></div><GarageIcon name={cleared ? 'trophy' : 'board'} /></div>
+        <div className="tool-stats">
+          <div className="tool-stat"><span>Tasks completed</span><strong>{overall.done}<small> / {overall.total}</small></strong></div>
+          <div className="tool-stat"><span>Task list progress</span><strong>{overall.pct}%</strong></div>
+          <div className="tool-stat"><span>Recorded day streak</span><strong>{streak}<small> {streak === 1 ? 'day' : 'days'}</small></strong></div>
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-1.5">
-          <button
-            onClick={() => {
-              sound.toggle()
-              setMuted(sound.isMuted())
-            }}
-            className="font-pixel text-[7px]"
-            style={{ color: muted ? '#5a5a70' : '#2bd14a' }}
-            aria-label="Toggle sound"
-          >
-            {muted ? 'SFX OFF' : 'SFX ON'}
-          </button>
-          <div className="arc-panel px-2.5 py-1.5 text-center" style={{ borderColor: flame.color }}>
-            <div className="flex items-center justify-center gap-1" style={{ color: flame.color }}>
-              {streak > 0 && <FlameIcon className="h-4 w-4" />}
-              <span className="arc-vt text-2xl leading-none">{streak}</span>
-            </div>
-            <p className="font-pixel mt-1 text-[6px]" style={{ color: flame.color }}>
-              {flame.name}
-            </p>
-          </div>
-        </div>
-      </header>
-
-      {combo >= 2 && (
-        <div className="arc-panel arc-panel-pink p-2 text-center">
-          <p className="arc-blink font-pixel text-sm text-[#ff3ca6]">COMBO x{combo}!</p>
-        </div>
-      )}
-
-      <section className="arc-panel p-4">
-        <div className="flex items-end justify-between">
-          <div>
-            <p className="font-pixel text-sm text-[#2bd14a]">LV.{lv.lvl}</p>
-            <p className="font-pixel mt-1.5 text-[8px] text-[#6cf08a]">{rankTitle(lv.lvl)}</p>
-          </div>
-          <p className="arc-vt text-xl text-[#ffd23f]">{totalXp} XP</p>
-        </div>
-        <ProgressBar pct={lv.pct} className="mt-3" />
-        <p className="arc-vt mt-2 text-[#8a8aa6]">
-          {overall.done}/{overall.total} CLEARED · {overall.pct}% · {lv.per - lv.into} XP TO LV.{lv.lvl + 1}
-        </p>
+        <ProgressBar pct={overall.pct} color="#6f8d64" />
+        <p className="tool-muted">Task checkmarks track this list. Use your photos and container inventory to see changes in the garage and how much you’re keeping.</p>
+        {combo >= 2 && <p className="tool-chip">Your last run: {combo} tasks completed close together</p>}
       </section>
 
-      {mission && (
-        <section className={`arc-panel p-3 ${missionDone ? 'arc-panel-dim' : 'arc-panel-yellow'}`}>
-          <div className="flex items-center justify-between">
-            <p className="font-pixel text-[9px] text-[#ffd23f]">TODAY'S MISSION</p>
-            <span className="font-pixel text-[8px] text-[#ffd23f]">+{MISSION_BONUS} XP</span>
-          </div>
-          <p className="arc-vt mt-1.5 text-[#e8e8f5]">
-            {missionDone ? 'MISSION CLEAR ✓' : mission.title}
-          </p>
+      <div className="tool-grid">
+        <section className="tool-card" aria-labelledby="task-level-heading">
+          <div className="tool-row task-progress-heading"><h2 id="task-level-heading" className="tool-section-heading">Task level {lv.lvl}</h2><span className="tool-chip">{totalXp} local XP</span></div>
+          <p>{LEVEL_NAMES[rankIndex(lv.lvl)]}</p>
+          <ProgressBar pct={lv.pct} color="#b68d3f" />
+          <p className="tool-muted">{lv.per - lv.into} XP to level {lv.lvl + 1}. This includes {bonusXp} bonus XP from local tasks.</p>
+          <p className="tool-muted">Photo missions have their own shared XP. Container volume is tracked separately.</p>
         </section>
-      )}
+        <section className="tool-card" aria-labelledby="weekly-task-heading">
+          <div className="tool-row task-progress-heading"><h2 id="weekly-task-heading" className="tool-section-heading">This week’s tasks</h2><span className="tool-chip">{thisWeekDone} / {WEEKLY_GOAL}</span></div>
+          <p>{thisWeekDone >= WEEKLY_GOAL ? 'You reached this week’s task goal.' : 'Complete ' + WEEKLY_GOAL + ' local tasks this week.'}</p>
+          <ProgressBar pct={weekPct} color="#6f8d64" />
+          <p className="tool-muted">A small, steady goal to keep the list moving.</p>
+        </section>
+      </div>
 
-      <section className="arc-panel arc-panel-dim p-3">
-        <div className="mb-2 flex items-center justify-between">
-          <p className="font-pixel text-[8px] text-[#36e0e0]">WEEKLY GOAL</p>
-          <p className="arc-vt text-[#36e0e0]">
-            {weekDone >= WEEKLY_GOAL ? 'CLEARED ★' : `${weekDone}/${WEEKLY_GOAL} QUESTS`}
-          </p>
-        </div>
-        <ProgressBar pct={weekPct} color="#36e0e0" />
+      {mission && <section className="tool-card task-progress-featured" aria-labelledby="featured-task-heading">
+        <div className="tool-row task-progress-heading"><h2 id="featured-task-heading" className="tool-section-heading">Today’s featured task</h2><span className="tool-chip">{mission.status === 'done' ? 'Marked complete' : '+' + MISSION_BONUS + ' bonus XP'}</span></div>
+        <p>{mission.title}</p>
+        <p className="tool-muted">Chosen from your local task list for today.</p>
+      </section>}
+
+      <section className="tool-card task-photo-invitation" aria-labelledby="photo-invitation-heading">
+        <GarageIcon name="missions" />
+        <div><h2 id="photo-invitation-heading" className="tool-section-heading">Make your next step a photo mission.</h2><p>Take a before photo, sort one small batch, then photograph what changed.</p><button className="tool-button" onClick={() => { sound.start(); onNavigate('play') }}>Start a photo mission</button></div>
       </section>
 
-      <button onClick={()=>onNavigate('play')} className="arc-panel arc-panel-yellow w-full p-4 text-left"><span className="font-pixel text-[10px] text-[#ffd23f]">NEW: PHOTO MISSIONS ↗</span><p className="arc-vt mt-2 text-[#d0e6b4]">Before photo. One small batch. After photo. A round you can actually finish.</p></button>
+      <section className="tool-stack" aria-labelledby="next-tasks-heading">
+        <div className="tool-row task-progress-heading"><h2 id="next-tasks-heading" className="tool-section-heading">Next tasks</h2><button className="tool-button secondary" onClick={() => onNavigate('people')}>See team tasks</button></div>
+        {upNext.length ? upNext.map(task => <TaskCard key={task.id} task={task} />) : <div className="tool-card"><p>{cleared ? 'Every task on this list is marked complete.' : 'No tasks are ready to start. Check the team list for blocked tasks.'}</p>{cleared && <button className="tool-button" onClick={() => onNavigate('results')}>See team standings</button>}</div>}
+      </section>
 
-      {cleared ? (
-        <button onClick={() => onNavigate('results')} className="arc-btn w-full py-4 text-base">
-          ★ FINAL STANDINGS
-        </button>
-      ) : (
-        <button
-          onClick={() => {
-            sound.start()
-            onNavigate('play')
-          }}
-          className="arc-btn w-full py-4 text-base"
-        >
-          ▶ PLAY
-        </button>
-      )}
-
-      <section>
-        <h2 className="font-pixel mb-2 text-[10px] text-[#ff3ca6]">LEADERBOARD</h2>
-        <div className="arc-panel space-y-3 p-4">
-          {board.map((p, i) => (
-            <button key={p.id} onClick={() => onNavigate('people')} className="block w-full text-left">
-              <div className="mb-1 flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <span className="font-pixel text-[8px] text-[#8a8aa6]">{RANK[i]}</span>
-                  <span className="arc-vt text-lg" style={{ color: arcPerson[p.id] }}>
-                    {p.name.toUpperCase()}
-                  </span>
-                </span>
-                <span className="arc-vt text-lg text-[#ffd23f]">{p.points} XP</span>
-              </div>
-              <ProgressBar pct={p.total ? Math.round((p.done / p.total) * 100) : 0} color={arcPerson[p.id]} />
-            </button>
-          ))}
+      <section className="tool-stack" aria-labelledby="team-progress-heading">
+        <div className="tool-row task-progress-heading"><h2 id="team-progress-heading" className="tool-section-heading">Team task progress</h2><button className="tool-button secondary" onClick={() => onNavigate('results')}>View standings</button></div>
+        <div className="tool-card task-team-list">
+          {board.map(person => <button className="task-team-row" key={person.id} onClick={() => onNavigate('people')}>
+            <span className="task-team-person"><span className="task-person-initial" aria-hidden="true">{person.name.slice(0, 1)}</span><span><strong>{person.name}</strong><span className="tool-muted">{person.done} of {person.total} tasks complete</span></span></span>
+            <span className="task-person-score">{person.points} <small>task XP</small></span>
+            <ProgressBar pct={person.total ? Math.round(person.done / person.total * 100) : 0} color="#6f8d64" />
+          </button>)}
         </div>
       </section>
 
-      <section>
-        <h2 className="font-pixel mb-2 text-[10px] text-[#36e0e0]">NEXT QUESTS</h2>
-        {upNext.length === 0 ? (
-          <p className="arc-panel arc-vt p-4 text-center text-[#6cf08a]">ALL QUESTS CLEAR. GG.</p>
-        ) : (
-          <div className="space-y-2">
-            {upNext.map((t) => (
-              <TaskCard key={t.id} task={t} />
-            ))}
+      <section className="tool-stack" aria-labelledby="task-milestones-heading">
+        <h2 id="task-milestones-heading" className="tool-section-heading">Small milestones</h2>
+        <div className="task-milestone-grid">{trophies.map(achievement => {
+          const copy = MILESTONES[achievement.id]
+          return <div key={achievement.id} className={'tool-card task-milestone' + (achievement.unlocked ? ' is-earned' : '')}>
+            <GarageIcon name="trophy" /><div><span className="tool-chip">{achievement.unlocked ? 'Reached' : 'Still to come'}</span><h3>{copy?.name ?? achievement.name}</h3><p className="tool-muted">{copy?.description ?? achievement.desc}</p></div>
           </div>
-        )}
+        })}</div>
       </section>
 
-      <section>
-        <h2 className="font-pixel mb-2 text-[10px] text-[#ffd23f]">TROPHIES</h2>
-        <div className="grid grid-cols-2 gap-2">
-          {trophies.map((a) => (
-            <div
-              key={a.id}
-              className={`arc-panel p-2.5 ${a.unlocked ? 'arc-panel-yellow' : 'arc-panel-dim opacity-60'}`}
-            >
-              <p className={`font-pixel text-[8px] ${a.unlocked ? 'text-[#ffd23f]' : 'text-[#5a5a70]'}`}>
-                {a.unlocked ? a.name.toUpperCase() : '???'}
-              </p>
-              <p className="arc-vt mt-1 text-[#8a8aa6]">{a.desc}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <footer className="flex items-center justify-center gap-5 pt-1">
-        <button onClick={() => onNavigate('sound')} className="font-pixel text-[8px] text-[#36e0e0]">
-          ♪ SOUND TEST
-        </button>
-        <button
-          onClick={() => {
-            if (confirm('RESET ALL PROGRESS?')) resetAll()
-          }}
-          className="font-pixel text-[8px] text-[#4f4f66]"
-        >
-          RESET GAME
-        </button>
+      <footer className="tool-card task-progress-footer">
+        <div><h2 className="tool-section-heading">Task settings</h2><p className="tool-muted">Resetting restores the original tasks and removes local item records, task XP, and streaks on this device.</p></div>
+        <div className="tool-row"><button className="tool-button secondary" onClick={() => onNavigate('sound')}>Sound settings</button></div>
+        <ResetTaskList onReset={resetAll} />
       </footer>
     </div>
-  )
+  </ToolPage>
 }

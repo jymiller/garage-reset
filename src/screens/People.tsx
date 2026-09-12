@@ -1,74 +1,53 @@
 import { useState } from 'react'
 import type { PersonId } from '../types'
 import { useStore } from '../store'
-import { people } from '../data'
+import { people, personName } from '../data'
 import { progress } from '../lib'
 import { xp, level, rankTitle } from '../game'
-import { arcPerson } from '../theme'
 import { ProgressBar } from '../components/ProgressBar'
 import { TaskCard } from '../components/TaskCard'
+import { ToolPage } from '../components/ToolPage'
+import './tasks.css'
 
 export function People() {
   const { tasks } = useStore()
   const [active, setActive] = useState<PersonId>('john')
-
-  const theirs = tasks.filter((t) => t.person === active).sort((a, b) => a.order - b.order)
+  const theirs = tasks.filter(task => task.person === active).sort((a, b) => a.order - b.order)
   const pr = progress(tasks, active)
-  const px = xp(tasks, active)
-  const lv = level(px)
-  const color = arcPerson[active]
+  const points = xp(tasks, active)
+  const currentLevel = level(points)
+  const rank = rankTitle(currentLevel.lvl).toLowerCase()
+  const name = personName(active)
 
-  return (
-    <div className="space-y-5">
-      <header>
-        <h1 className="font-pixel text-sm text-[#2bd14a]">PLAYERS</h1>
-      </header>
-
-      <div className="flex gap-2">
-        {people.map((p) => {
-          const on = p.id === active
-          return (
-            <button
-              key={p.id}
-              onClick={() => setActive(p.id)}
-              className="arc-panel flex-1 py-2.5 text-center transition"
-              style={{
-                borderColor: arcPerson[p.id],
-                background: on ? arcPerson[p.id] : '#0d0d18',
-              }}
-            >
-              <span
-                className="arc-vt text-lg"
-                style={{ color: on ? '#07070e' : arcPerson[p.id] }}
-              >
-                {p.name.toUpperCase()}
-              </span>
-            </button>
-          )
-        })}
-      </div>
-
-      <section className="arc-panel p-4" style={{ borderColor: color }}>
-        <div className="flex items-end justify-between">
-          <div>
-            <p className="font-pixel text-sm" style={{ color }}>
-              LV.{lv.lvl}
-            </p>
-            <p className="font-pixel mt-1.5 text-[8px] text-[#8a8aa6]">{rankTitle(lv.lvl)}</p>
-          </div>
-          <p className="arc-vt text-xl text-[#ffd23f]">{px} XP</p>
-        </div>
-        <ProgressBar pct={pr.pct} color={color} className="mt-2" />
-        <p className="arc-vt mt-2 text-[#8a8aa6]">
-          {pr.done}/{pr.total} QUESTS CLEARED · {pr.pct}%
-        </p>
-      </section>
-
-      <section className="space-y-2">
-        {theirs.map((t) => (
-          <TaskCard key={t.id} task={t} />
-        ))}
-      </section>
+  return <ToolPage title="The crew" description="Choose a person to see their tasks and update their progress." icon="crew" localData>
+    <div className="task-people" role="group" aria-label="Choose a crew member">
+      {people.map(person => <button
+        key={person.id}
+        type="button"
+        className={`task-person${person.id === active ? ' is-selected' : ''}`}
+        aria-pressed={person.id === active}
+        onClick={() => setActive(person.id)}
+      >{person.name}</button>)}
     </div>
-  )
+
+    <section className="tool-card tool-stack" aria-labelledby="crew-progress-heading">
+      <div className="tool-row task-summary-heading">
+        <h2 id="crew-progress-heading" className="tool-section-heading task-page-heading">{name}’s progress</h2>
+        <span className="tool-chip task-rank">{rank}</span>
+      </div>
+      <div className="tool-stats">
+        <div className="tool-stat"><span>Tasks complete</span><strong>{pr.done} / {pr.total}</strong></div>
+        <div className="tool-stat"><span>Task level</span><strong>{currentLevel.lvl}</strong></div>
+        <div className="tool-stat"><span>Task points</span><strong>{points} XP</strong></div>
+      </div>
+      <ProgressBar pct={pr.pct} color="#41644d" />
+      <p className="tool-muted task-body-note">{pr.pct}% of {name}’s tasks complete. Task points are separate from photo mission XP.</p>
+    </section>
+
+    <section className="tool-stack" aria-labelledby="crew-tasks-heading">
+      <h2 id="crew-tasks-heading" className="tool-section-heading task-page-heading">{name}’s tasks</h2>
+      {theirs.map(task => <TaskCard key={task.id} task={task} />)}
+      {theirs.length === 0 && <p className="tool-card tool-muted task-body-note">No tasks are assigned to {name} yet.</p>}
+    </section>
+  </ToolPage>
 }

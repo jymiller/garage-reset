@@ -1,0 +1,73 @@
+.task-people{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.task-person{min-width:0;min-height:54px;border:1px solid #b7c6b1;border-radius:14px;padding:12px 10px;background:#fffdf6;color:#294b3c;font:600 18px/1.4 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer;overflow-wrap:anywhere}
+.task-person:hover{background:#e9eeda}
+.task-person.is-selected{background:#2c513f;color:#fff8df;border-color:#2c513f}
+.task-summary-heading{justify-content:space-between;align-items:center}
+.task-rank{text-transform:capitalize}
+.tool-page .task-page-heading{font-size:24px;font-weight:600;line-height:1.3;letter-spacing:-.35px}
+.tool-page .task-body-note{font-size:16px;line-height:1.6}
+.task-people .task-person,.task-status-controls .task-status-button{font-size:16px;font-weight:600}
+.task-card{min-width:0;max-width:100%;padding:20px;border:1px solid #ccd5bf;border-radius:18px;background:#fffdf6;color:#294b3c;font:16px/1.55 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;overflow-wrap:anywhere}
+.task-card.status-done{background:#edf2e4;border-color:#aabfa0}
+.task-card.status-blocked{border-color:#caab81;background:#fcf6e9}
+.task-card-heading{display:grid;grid-template-columns:48px minmax(0,1fr);align-items:start;gap:14px}
+.task-card-title{min-width:0}
+.task-card .task-card-title h3{margin:0;color:#294b3c;font:600 24px/1.3 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;letter-spacing:-.35px}
+.task-complete-toggle{display:grid;place-items:center;min-width:48px;min-height:48px;border:2px solid #547951;border-radius:13px;background:#f8f8ed;color:#fffbe7;cursor:pointer;touch-action:manipulation}
+.task-complete-toggle[aria-pressed=true]{background:#41644d;border-color:#41644d}
+.task-complete-toggle>span{display:grid;place-items:center}
+.task-check-icon{width:25px;height:25px}
+.task-unchecked{width:16px;height:16px;border:1px solid #c6d0b7;border-radius:4px}
+.task-current-status{display:inline-block;margin-top:8px;font-size:16px;font-weight:600;color:#677361}
+.status-in-progress .task-current-status{color:#596d35}
+.status-blocked .task-current-status{color:#79582d}
+.status-done .task-current-status{color:#3c6746}
+.task-card-details{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;margin-top:16px;color:#66705e;font-size:16px}
+.task-effort{display:inline-flex;align-items:center;gap:9px}
+.task-effort-dots{display:flex;gap:4px;flex-wrap:wrap;max-width:60px}
+.task-effort-dots i{width:7px;height:13px;border-radius:3px;background:#c49a47}
+.task-zone-name{min-width:0;max-width:100%;padding:4px 10px;border-radius:10px;border:1px solid #e5d7b0;background:#f6ebcd;color:#65572f}
+.task-earned-points{font-weight:600;color:#41644d}
+.task-status-controls{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.task-status-button{flex:1 1 130px;min-width:0;min-height:48px;border:1px solid #becab4;border-radius:11px;padding:10px 14px;color:#4b6249;background:#f4f5eb;font:600 16px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer;touch-action:manipulation;overflow-wrap:anywhere}
+.task-status-button:hover{background:#e6eddc}
+.task-status-button.is-selected{background:#dbe6cb;border-color:#78916a;color:#294b3c}
+.status-blocked .task-status-button.is-selected{background:#f0dfb9;border-color:#b59760;color:#624c26}
+.task-area{min-width:0;border:1px solid #cbd4bf;border-radius:20px;background:#fffdf6;overflow:hidden;color:#294b3c;font:16px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.task-area.is-complete{border-color:#c4af71}
+.task-area .task-area-heading{margin:0;font:600 24px/1.3 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}
+.task-area-toggle{display:grid;grid-template-columns:48px minmax(0,1fr) 24px;align-items:center;gap:16px;width:100%;min-height:72px;padding:20px 20px 12px;border:0;background:transparent;color:inherit;text-align:left;font:600 24px/1.3 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;cursor:pointer;touch-action:manipulation}
+.task-area-toggle:hover{background:#f3f5e9}
+.task-area-title{min-width:0;overflow-wrap:anywhere}
+.task-area-icon{width:48px;height:48px;flex-shrink:0}
+.task-area-chevron{width:24px;height:24px;transition:transform .18s ease}
+.task-area-chevron.is-open{transform:rotate(180deg)}
+.task-area-summary{display:grid;gap:12px;padding:0 20px 20px}
+.task-area-summary>p{margin:0;font-size:16px;color:#66715f}
+.task-complete-chip{justify-self:start}
+.task-area-content{display:grid;gap:24px;border-top:1px solid #dce2d2;padding:20px;background:#f7f7ed}
+.task-area-content[hidden]{display:none}
+.task-area-items{display:grid;gap:10px;margin:0;padding:0;list-style:none}
+.task-area-item{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px;min-width:0;padding:16px;border:1px solid #d3dbc7;border-radius:14px;background:#fffdf6}
+.task-area-item>div{flex:1 1 160px;min-width:0}
+.task-area-item strong{display:block;font-size:18px;line-height:1.45;font-weight:600;overflow-wrap:anywhere}
+.task-area-item p{margin:4px 0 0;font-size:16px;color:#687362;overflow-wrap:anywhere}
+.task-item-decision{max-width:100%;border:1px solid #c9d0bf;border-radius:10px;padding:6px 10px;font-size:16px;line-height:1.4;color:#586250;background:#eef0e5;overflow-wrap:anywhere}
+.task-item-decision.decision-keep{background:#e3ecd7;border-color:#b7c8a6;color:#395e3e}
+.task-item-decision.decision-move{background:#e4eeeb;border-color:#b3cbc4;color:#355d54}
+.task-item-decision.decision-donate{background:#f4ebcd;border-color:#d6c390;color:#6b582e}
+.task-item-decision.decision-trash{background:#f4e6d7;border-color:#d8b89a;color:#795737}
+.task-person:focus-visible,.task-complete-toggle:focus-visible,.task-status-button:focus-visible{outline:3px solid #a87524;outline-offset:3px}
+.task-area-toggle:focus-visible{outline:3px solid #a87524;outline-offset:-4px;border-radius:18px}
+@media(max-width:600px){
+  .task-people{gap:8px}
+  .task-person{font-size:16px;padding:12px 8px}
+  .task-card{padding:16px}
+  .task-card-heading{gap:12px}
+  .task-area-toggle{grid-template-columns:40px minmax(0,1fr) 22px;gap:12px;padding:16px 16px 12px}
+  .task-area-icon{width:40px;height:40px}
+  .task-area-summary{padding:0 16px 16px}
+  .task-area-content{padding:16px}
+  .task-area-item{padding:14px}
+}
+@media(prefers-reduced-motion:reduce){.task-area-chevron{transition:none}}

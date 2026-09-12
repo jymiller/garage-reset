@@ -1,87 +1,73 @@
 import { useState } from 'react'
-import type { ZoneId } from '../types'
+import type { Decision, ZoneId } from '../types'
 import { useStore } from '../store'
 import { zones, personName } from '../data'
 import { progress } from '../lib'
-import { arcDecision, arcPerson } from '../theme'
 import { ProgressBar } from '../components/ProgressBar'
 import { TaskCard } from '../components/TaskCard'
 import { ChevronIcon } from '../components/icons'
+import { GarageIcon } from '../components/GarageIcons'
+import { ToolPage } from '../components/ToolPage'
+import './tasks.css'
+
+const decisionLabels: Record<Decision, string> = {
+  undecided: 'Not decided', keep: 'Keep', move: 'Move', donate: 'Donate', trash: 'Trash',
+}
 
 export function Zones() {
   const { tasks, items } = useStore()
   const [open, setOpen] = useState<ZoneId | null>(null)
 
-  return (
-    <div className="space-y-5">
-      <header>
-        <h1 className="font-pixel text-sm text-[#2bd14a]">ZONES</h1>
-        <p className="arc-vt mt-1 text-[#8a8aa6]">SELECT A ZONE TO INSPECT.</p>
-      </header>
+  return <ToolPage title="Tasks by area" description="Open an area to see its tasks and the items recorded there." icon="board" localData>
+    <div className="tool-stack">
+      {zones.map(zone => {
+        const zoneTasks = tasks.filter(task => task.zone === zone.id).sort((a, b) => a.order - b.order)
+        const zoneItems = items.filter(item => item.zone === zone.id)
+        const pr = progress(zoneTasks)
+        const isOpen = open === zone.id
+        const complete = pr.total > 0 && pr.done === pr.total
+        const headingId = `task-area-heading-${zone.id}`
+        const contentId = `task-area-content-${zone.id}`
 
-      <div className="space-y-2.5">
-        {zones.map((z) => {
-          const zoneTasks = tasks.filter((t) => t.zone === z.id).sort((a, b) => a.order - b.order)
-          const zoneItems = items.filter((i) => i.zone === z.id)
-          const pr = progress(zoneTasks)
-          const isOpen = open === z.id
-          const cleared = pr.total > 0 && pr.done === pr.total
+        return <section className={`task-area${complete ? ' is-complete' : ''}`} key={zone.id} aria-labelledby={headingId}>
+          <h2 className="task-area-heading" id={headingId}>
+            <button type="button" className="task-area-toggle" onClick={() => setOpen(isOpen ? null : zone.id)} aria-expanded={isOpen} aria-controls={contentId}>
+              <GarageIcon name="shelf" className="task-area-icon" />
+              <span className="task-area-title">{zone.name}</span>
+              <span aria-hidden="true"><ChevronIcon className={`task-area-chevron${isOpen ? ' is-open' : ''}`} /></span>
+            </button>
+          </h2>
+          <div className="task-area-summary">
+            <p>{pr.total ? `${pr.done} of ${pr.total} tasks complete` : 'No tasks recorded'} · {zoneItems.length} {zoneItems.length === 1 ? 'item' : 'items'}</p>
+            {complete && <span className="tool-chip task-complete-chip">All tasks complete</span>}
+            {pr.total > 0 && <ProgressBar pct={pr.pct} color="#41644d" />}
+          </div>
 
-          return (
-            <div className="arc-panel" key={z.id} style={cleared ? { borderColor: '#ffd23f' } : undefined}>
-              <button onClick={() => setOpen(isOpen ? null : z.id)} className="flex w-full items-center gap-3 p-3 text-left">
-                <div className="min-w-0 flex-1">
-                  <p className="arc-vt text-lg text-[#e8e8f5]">
-                    {z.name.toUpperCase()} {cleared && <span className="text-[#ffd23f]">★</span>}
-                  </p>
-                  <p className="arc-vt mt-0.5 text-[#8a8aa6]">
-                    {pr.done}/{pr.total} QUESTS · {zoneItems.length} LOOT
-                  </p>
-                  {pr.total > 0 && <ProgressBar pct={pr.pct} className="mt-2" />}
-                </div>
-                <ChevronIcon className={`h-5 w-5 shrink-0 text-[#2bd14a] transition ${isOpen ? 'rotate-180' : ''}`} />
-              </button>
+          <div id={contentId} className="task-area-content" hidden={!isOpen}>
+            {isOpen && <>
+              {zoneTasks.length > 0 && <div className="tool-stack">
+                <h3 className="tool-section-heading task-page-heading">Tasks</h3>
+                {zoneTasks.map(task => <TaskCard key={task.id} task={task} showZone={false} />)}
+              </div>}
 
-              {isOpen && (
-                <div className="space-y-3 border-t-2 border-[#1d1d2e] p-3">
-                  {zoneTasks.length > 0 && (
-                    <div className="space-y-2">
-                      {zoneTasks.map((t) => (
-                        <TaskCard key={t.id} task={t} showZone={false} />
-                      ))}
+              {zoneItems.length > 0 && <div className="tool-stack">
+                <h3 className="tool-section-heading task-page-heading">Items in this area</h3>
+                <ul className="task-area-items">
+                  {zoneItems.map(item => <li key={item.id} className="task-area-item">
+                    <div>
+                      <strong>{item.name}</strong>
+                      <p>{item.owner ? `Owner: ${personName(item.owner)}` : 'Owner not recorded'}</p>
                     </div>
-                  )}
+                    <span className={`task-item-decision decision-${item.decision}`}>{decisionLabels[item.decision]}</span>
+                  </li>)}
+                </ul>
+              </div>}
 
-                  {zoneItems.length > 0 && (
-                    <div className="space-y-1.5">
-                      <p className="font-pixel text-[8px] text-[#ff3ca6]">LOOT</p>
-                      {zoneItems.map((i) => (
-                        <div key={i.id} className="arc-panel arc-panel-dim flex items-center gap-2 px-3 py-2">
-                          {i.owner && (
-                            <span className="h-2.5 w-2.5 shrink-0" style={{ background: arcPerson[i.owner] }} />
-                          )}
-                          <span className="arc-vt min-w-0 flex-1 truncate text-[#e8e8f5]">{i.name}</span>
-                          {i.owner && <span className="arc-vt text-[#8a8aa6]">{personName(i.owner).toUpperCase()}</span>}
-                          <span
-                            className="font-pixel px-1.5 py-1 text-[7px] text-[#07070e]"
-                            style={{ background: arcDecision[i.decision].color }}
-                          >
-                            {arcDecision[i.decision].label}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {zoneTasks.length === 0 && zoneItems.length === 0 && (
-                    <p className="arc-vt text-center text-[#6a6a82]">EMPTY ZONE.</p>
-                  )}
-                </div>
-              )}
-            </div>
-          )
-        })}
-      </div>
+              {zoneTasks.length === 0 && zoneItems.length === 0 && <p className="tool-muted task-body-note">No tasks or items have been recorded in this area yet.</p>}
+            </>}
+          </div>
+        </section>
+      })}
     </div>
-  )
+  </ToolPage>
 }

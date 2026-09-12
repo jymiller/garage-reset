@@ -1,0 +1,78 @@
+.task-progress-page{color:#294b3c;font-size:16px;line-height:1.65}
+.task-progress-page h2,.task-progress-page h3,.task-progress-page p{margin:0}
+.task-progress-page h2{font-size:28px;font-weight:600;line-height:1.22;letter-spacing:-.6px}
+.task-progress-page h3{font-size:19px;line-height:1.3;font-weight:600}
+.task-progress-page .tool-card{border-radius:20px}
+.task-progress-page .tool-muted{font-size:16px}
+.task-progress-page .tool-card>p+*{margin-top:16px}
+.task-progress-page .tool-card>p+p{margin-top:10px}
+.task-progress-page .tool-stat strong small{font-size:16px;font-weight:400}
+.task-progress-heading{justify-content:space-between;align-items:center;margin-bottom:18px}
+.task-progress-heading>div{min-width:0;flex:1}
+.task-progress-heading>svg{width:64px;height:64px;flex-shrink:0}
+.task-progress-heading>div>p{margin-bottom:8px}
+.task-progress-overview{background:#e8eddd}
+.task-progress-overview>.tool-stats{margin-bottom:20px}
+.task-progress-overview>p{margin-top:18px}
+.task-progress-featured{background:#f4ecd5}
+.task-photo-invitation{display:flex;align-items:flex-start;gap:22px;background:#e4ebd8}
+.task-photo-invitation>svg{width:72px;height:72px;flex-shrink:0}
+.task-photo-invitation>div{min-width:0}
+.task-photo-invitation p{margin:12px 0 20px}
+.task-team-list{padding-top:8px!important;padding-bottom:8px!important}
+.task-team-row{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center;text-align:left;border:0;border-bottom:1px solid #cbd4bc;padding:22px 0;background:transparent;color:inherit;font:inherit;cursor:pointer}
+.task-team-row:last-child{border-bottom:0}
+.task-team-row>div:last-child{grid-column:1/-1}
+.task-team-person{display:flex;gap:14px;align-items:center;min-width:0}
+.task-team-person>span:last-child{min-width:0}
+.task-team-person strong,.task-team-person .tool-muted{display:block;overflow-wrap:anywhere}
+.task-team-person strong{font-size:20px;font-weight:600}
+.task-person-initial{width:46px;height:46px;display:grid;place-items:center;flex-shrink:0;border-radius:50%;background:#dce6cd;color:#345139;font-size:22px;font-weight:600}
+.task-person-score{font-size:22px;font-weight:600;text-align:right;white-space:nowrap}
+.task-person-score small{display:block;font-size:14px;font-weight:400}
+.task-team-row:focus-visible{outline:3px solid #8c712f;outline-offset:5px;border-radius:6px}
+.task-milestone-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.task-milestone{display:flex;gap:18px;align-items:flex-start;background:#f5f3e9}
+.task-milestone>svg{width:48px;height:48px;flex-shrink:0;opacity:.45}
+.task-milestone.is-earned{background:#efe6c7;border-color:#d7c080}
+.task-milestone.is-earned>svg{opacity:1}
+.task-milestone>div{min-width:0}
+.task-milestone h3{margin:12px 0 8px}
+.task-progress-footer{display:flex;flex-direction:column;gap:20px}
+.task-progress-footer>div>p{margin-top:12px}
+.task-progress-footer>button{align-self:flex-start}
+.task-standings-summary{display:flex;gap:24px;align-items:flex-start;background:#e8eddd}
+.task-standings-summary>svg{width:72px;height:72px;flex-shrink:0}
+.task-standings-summary>div{min-width:0}
+.task-standings-summary p{margin-top:12px}
+.task-standing{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:20px;background:#f6f4e9}
+.task-standing.is-leading{background:#f1e8cd;border-color:#d1b870}
+.task-standing-person{display:flex;gap:16px;align-items:center;min-width:0}
+.task-standing-person>div{min-width:0}
+.task-standing-person h2{overflow-wrap:anywhere;margin-top:4px}
+.task-standing-score{text-align:right;display:flex;flex-direction:column}
+.task-standing-score strong{font-size:36px;font-weight:600;line-height:1.1}
+.task-standing-score span{font-size:16px}
+.task-standing-progress{grid-column:1/-1}
+.task-standing-progress>p{margin-bottom:12px}
+.task-standings-next>p{margin:12px 0 20px}
+@media(max-width:700px){
+ .task-progress-page .tool-card{border-radius:16px}
+ .task-progress-page h2{font-size:28px}
+ .task-progress-heading{gap:12px}
+ .task-progress-heading>svg{width:48px;height:48px}
+ .task-photo-invitation,.task-standings-summary{gap:14px;flex-direction:column}
+ .task-photo-invitation>svg,.task-standings-summary>svg{width:56px;height:56px}
+ .task-photo-invitation button{width:100%}
+ .task-milestone-grid{grid-template-columns:1fr}
+ .task-milestone{gap:14px}
+ .task-team-person{gap:10px}
+ .task-team-person strong{font-size:19px}
+ .task-team-person .tool-muted{font-size:16px}
+ .task-person-initial{width:40px;height:40px;font-size:20px}
+ .task-person-score{font-size:21px}
+ .task-standing{gap:18px 12px}
+ .task-standing-person{gap:10px}
+ .task-standing-score strong{font-size:30px}
+ .task-progress-footer>button{width:100%}
+}

@@ -60,15 +60,16 @@ export function App() {
   else if (tab === 'pickup') screen = <PickupPlanner onNavigate={goTo} />
   else if (tab === 'crates') screen = <CrateWorkspace key={labelCode ?? "workspace"} labelCode={labelCode} onNavigate={goTo} initialCrateId={crateFocus} initialStep={crateInitialStep} onPlayCrate={id => { setPlayCrateId(id); setCrateFocus(null); navigate('play') }} />
   else if (tab === 'play' || tab === 'snowball') screen = <PhotoPlay onNavigate={goTo} initialCrateId={playCrateId} onOpenCrate={id => openCrate(id, 'repack')} />
-  else screen = <div className="legacy-screen"><main>
-    <button className="legacy-back" onClick={() => goTo('more')}>← More tools</button>
+  else screen = <div className="tools-screen">
+    <div className="tools-screen-bar">
+    <button className="tools-back" onClick={() => goTo('more')}>← More tools</button></div>
     {tab === 'dashboard' && <Dashboard onNavigate={goTo} />}
     {tab === 'people' && <People />}
     {tab === 'zones' && <Zones />}
     {tab === 'capture' && <Capture />}
     {tab === 'sound' && <SoundTest onNavigate={goTo} />}
     {tab === 'results' && <FinalStandings onNavigate={goTo} />}
-  </main></div>
+  </div>
 
   return <div className="garage-shell">
     <a className="garage-skip" href="#app-screen" onClick={event => { event.preventDefault(); document.getElementById('app-screen')?.focus() }}>Skip to content</a>
