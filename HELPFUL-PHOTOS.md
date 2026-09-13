@@ -15,7 +15,7 @@ Measurements are manual: value, unit, endpoint label, and basis:'user-measured'.
 ## Persistence and retry
 
 - One active route owns one useWorkspace hook. HelperIdentity receives that instance instead of mounting a competing hook.
-- Selecting a photo makes a local preview. Only **Save photo** uploads through uploadCratePhoto and appends a record. Compression and protected /api/photos/... paths are reused.
+- Selecting a photo makes a local preview. **Save photo** retains the exact selected original and a separate display preview through uploadCratePhoto, then appends its observation. Protected /api/photos/... paths are reused.
 - A stable draft ID prevents duplicate observations. An in-memory map shares concurrent uploads for that ID; a successful uploaded URL is reused after a failed workspace save. appendObservation rechecks the latest workspace and preserves unrelated fields.
 - sessionStorage key garage-quick-capture-draft-v1 stores the form and uploaded URL, never raw image bytes. It supports same-tab navigation/reload, not cross-device recovery. An unuploaded original may need reselection. Restored drafts identify their prior type, label, and link.
 - An upload finishing after unmount preserves its URL without letting the old component update the workspace or overwrite a newer form.
@@ -60,4 +60,14 @@ npm run test:access
 npm run build
 ~~~
 
-Use isolated browser fixtures for both labeled roles, unknown labels, mismatched links, anonymous/named capture, manual/pending readings, duplicate Save, navigation during upload, reload, and 409 recovery. Root QA exercised the positive outside/contents flow. Physical iPhone camera, AirDrop, and Home Screen installation require device testing. This feature adds no service worker or offline media cache.
+Use isolated browser fixtures for both labeled roles, unknown labels, mismatched links, anonymous/named capture, manual/pending readings, duplicate Save, navigation during upload, reload, and 409 recovery. Physical iPhone camera, AirDrop, and Home Screen installation require device testing.
+
+## Multiple photos and unchanged originals
+
+**Choose from photos** accepts multiple image files on phone or laptop. A selection of two or more opens a batch queue with optional notes per photo, **Save photos**, **Add more photos**, and retry of unsaved entries. Up to 50 photos fit in a queue. The current capture's crate/label/role/location context is retained; a missing registered crate can be unlinked explicitly. Existing unfinished single-photo drafts must be finished before switching to a batch.
+
+IndexedDB stores each queued original File and its metadata until the user removes it or taps **Done** after confirmed shared saves. Storage failures visibly fall back to memory; the user must keep that page open. This is browser-local recovery, not background upload or a family backup. The app must remain open while saving. Notes persist as they are typed. Stable observation IDs and remembered uploaded URLs prevent retries from duplicating existing shared records. Individual file failures do not stop later files, and **Saved** appears only after a shared workspace acknowledgement.
+
+All new photo upload paths retain the selected original bytes and embedded metadata, its filename, file-modification time, and SHA-256. Originals up to 50 MiB upload in 2 MiB parts, then the server checks the assembled bytes before confirming success. A JPEG preview is separate; a browser that cannot decode HEIC receives a clearly labeled placeholder while the HEIC original is preserved. Placeholder previews are excluded from image analysis. Originals and manifests remain behind family access in existing private app storage. Expanded new-photo cards offer original and metadata downloads. Older JPEG-only uploads are unchanged; their original camera files cannot be reconstructed.
+
+The retained source is the file provided by the device picker. This does not recover metadata or companion files that the device omitted before handing the file to the app. Pilot archiving remains separate, and automatic photo analysis remains disabled pending its existing provider approval.

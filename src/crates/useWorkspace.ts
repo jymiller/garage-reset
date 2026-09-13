@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { emptyWorkspace, validateWorkspace } from './model'
 import type { Workspace } from './model'
-import { preparePhotoUpload } from '../access/photoUpload'
+import { uploadOriginalPhoto } from '../access/photoUpload'
 import { acknowledgeSave, applyRemote, validRevision } from './sync'
 import type { Snapshot } from './sync'
 import { fetchWorkspaceJson } from './workspaceRequest'
@@ -212,21 +212,5 @@ export function useWorkspace() {
 }
 
 export async function uploadCratePhoto(file: File): Promise<string> {
-  const blob = await preparePhotoUpload(file)
-
-  let response: Response
-  try {
-    response = await fetch('/api/photos', { method: 'POST', headers: { 'Content-Type': 'image/jpeg' }, body: blob })
-  } catch {
-    throw new Error('Photo could not be uploaded because the connection failed. Keep the original and try again when connected.')
-  }
-  if (!response.ok) throw new Error('Photo could not be uploaded. Keep the original and try again when connected.')
-  let result: unknown
-  try { result = await response.json() }
-  catch { throw new Error('The photo server returned an invalid response. Keep the original and retry the upload.') }
-  const url = result && typeof result === 'object' && 'url' in result ? result.url : null
-  if (typeof url !== 'string' || !/^\/api\/photos\/[A-Za-z0-9][A-Za-z0-9_-]{0,127}\.(jpg|png|webp)$/.test(url)) {
-    throw new Error('The photo server returned an invalid photo path. Keep the original and retry the upload.')
-  }
-  return url
+  return uploadOriginalPhoto(file)
 }

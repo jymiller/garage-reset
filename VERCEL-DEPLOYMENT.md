@@ -24,6 +24,7 @@ Connect a private Vercel Blob store and provide `BLOB_READ_WRITE_TOKEN` to the s
 | --- | --- | --- |
 | Shared workspace and revision | `garage/workspace.json` | `/api/workspace` |
 | New crate and mission photos | `garage/photos/<generated filename>` | `/api/photos/<filename>` |
+| New selected originals and metadata | `garage/photo-originals/<id>.bin` and `<id>.json` | `/api/photos/<id>.jpg?original=1` and `?metadata=1` |
 | Original reference evidence | `garage/evidence/<relative path>` | `/evidence/<relative path>` |
 
 The reference set was uploaded privately as **22 files**: the 17 September 9 photographs and five earlier reference images, including the Polycam floor plan. Relative paths are preserved for existing photo links. These uploads are separate from public source and build artifacts; a Git push does not upload the evidence again.
@@ -36,13 +37,14 @@ Workspace, uploaded photos and reference evidence are separate objects. An in-ap
 
 Visible, mounted workspace screens refresh shared data every **30 seconds** on hosted addresses. Loopback development uses **four seconds**. Hidden tabs skip background reads; leaving the workspace screen stops its refresh loop. Offline drafts remain on the device when browser storage is available, while photo uploads need a connection.
 
-The browser converts accepted photos to JPEG and progressively reduces quality or dimensions until the encoded body fits within **3,500,000 bytes**. If it cannot fit, it requests a smaller or cropped image before upload.
+New uploads preserve the exact selected original, up to **50 MiB**, using authenticated **2 MiB parts**. The server verifies its byte count and SHA-256 before writing an immutable original, separate preview, and metadata manifest. Repeating the same upload/finalization reuses committed data. Completed chunks are removed; interrupted sessions can resume by resending the same parts. The browser creates a separate JPEG preview up to **3,500,000 bytes**, or a labeled placeholder when decoding is unavailable. The original is never replaced by that preview. Original downloads stream through the authenticated route. Legacy one-shot photo requests remain compatible with older clients.
 
 | Limit | Vercel adapter | Local Node server |
 | --- | --- | --- |
 | Workspace JSON | 2 MiB | 2 MiB |
 | Raw photo upload | 3.5 MiB | 8 MiB |
 | Browser-generated JPEG | 3,500,000 bytes | 3,500,000 bytes |
+| Selected original | 50 MiB in 2 MiB parts | 50 MiB in 2 MiB parts |
 
 Bounding-box dimensions, crate contents-volume estimates and photo-mission points keep their separate meanings after deployment. Hosting does not introduce measured geometry or object detection.
 

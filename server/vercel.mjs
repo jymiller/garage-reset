@@ -4,6 +4,7 @@ import { rewardsTransitionError } from '../src/rewards/contract.mjs'
 import { isAuthorized, handleAccess } from './access.mjs'
 import { AnalysisError, createPhotoAnalysisService, enqueuePhotoAnalysis } from './photo-analysis.mjs'
 import { isPhotoFilename } from '../src/analysis/contract.mjs'
+import { createOriginalPhotoService, handleOriginalPhotoOperation, originalQuery, sendOriginalPhoto, OriginalUploadError } from './photo-originals.mjs'
 
 const WORKSPACE_KEY = 'garage/workspace.json'
 const WORKSPACE_LIMIT = 2 * 1024 * 1024
@@ -88,6 +89,11 @@ export function createBlobStorage({ loadSdk = () => import('@vercel/blob'), toke
         throw new Error('Stored object exceeds its size limit.')
       }
       return { bytes: await readStream(result.stream, limit), etag: result.blob.etag, contentType: result.blob.contentType }
+    },
+    async remove(keys) {
+      if (!Array.isArray(keys) || keys.some(key => !/^garage\/photo-uploads\/[a-f0-9]{64}\/(?:original|preview)-[0-9]{1,2}$/.test(key))) throw new Error('Only completed upload chunks can be removed.')
+      const auth = options(), sdk = await loadSdk()
+      await sdk.del(keys, { token: auth.token })
     },
     async write(key, bytes, { contentType, ifMatch, createOnly = false }) {
       if (!createOnly && (typeof ifMatch !== 'string' || !ifMatch)) throw new Error('A conditional write requires its previous ETag.')
@@ -188,6 +194,7 @@ export function createVercelHandler({ storage = createBlobStorage(), authorize =
   logError = diagnostic => console.error(JSON.stringify(diagnostic)),
   analysis = createPhotoAnalysisService({ storage, enqueue: enqueuePhotoAnalysis }),
 } = {}) {
+  const originals = createOriginalPhotoService({ storage, photoFormat })
   return async function handler(req, res) {
     let stage = 'request'
     const setStage = value => { stage = value }
@@ -268,6 +275,13 @@ export function createVercelHandler({ storage = createBlobStorage(), authorize =
       if (route === 'photos') {
         stage = 'photo-request'
         if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); throw new RequestError(405, 'Method not allowed.') }
+        if (req.headers['x-garage-photo-operation']) {
+          const result = await handleOriginalPhotoOperation({ operation: req.headers['x-garage-photo-operation'], headers: req.headers, readBytes: limit => requestBytes(req, limit), service: originals })
+          if (req.headers['x-garage-photo-operation'] === 'finish' && result.url && result.previewAvailable !== false) {
+            try { await analysis.queue(result.url.split('/').at(-1)) } catch { /* Analysis cannot invalidate an archived original. */ }
+          }
+          json(res, 200, result); return
+        }
         const bytes = await requestBytes(req, PHOTO_LIMIT)
         const extension = photoFormat(bytes)
         if (!extension) throw new RequestError(415, 'Upload a JPEG, PNG or WebP image.')
@@ -287,6 +301,12 @@ export function createVercelHandler({ storage = createBlobStorage(), authorize =
         if (!['GET', 'HEAD'].includes(req.method)) { res.setHeader('Allow', 'GET, HEAD'); throw new RequestError(405, 'Method not allowed.') }
         const extension = route === 'photo' ? typeof name === 'string' && PHOTO_NAME.test(name) && name.split('.').at(-1) : evidenceName(name)
         if (!extension) throw new RequestError(404, 'Image not found.')
+        const originalKind = route === 'photo' ? originalQuery(req.url) : null
+        if (originalKind) {
+          const saved = await originals.read(name, originalKind)
+          if (originalKind === 'metadata') { json(res, 200, saved.metadata); return }
+          await sendOriginalPhoto(req, res, saved); return
+        }
         stage = 'image-read'
         const stored = await storage.read(`garage/${route === 'photo' ? 'photos' : 'evidence'}/${name}`, { limit: EVIDENCE_LIMIT })
         if (!stored) throw new RequestError(404, 'Image not found.')
@@ -297,7 +317,7 @@ export function createVercelHandler({ storage = createBlobStorage(), authorize =
       throw new RequestError(404, 'API route not found.')
     } catch (error) {
       // Never return tokens, Blob URLs or provider diagnostics to the browser.
-      const status = error instanceof RequestError || error instanceof AnalysisError ? error.status : 503
+      const status = error instanceof RequestError || error instanceof AnalysisError || error instanceof OriginalUploadError ? error.status : 503
       if (status === 503) {
         // Only fixed labels reach server logs: never the error message, stack,
         // request, private photo path, workspace data or provider credentials.

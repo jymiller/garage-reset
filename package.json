@@ -18,7 +18,8 @@
     "test:access": "node --test server/access.test.mjs && node src/access/access.test.mjs",
     "test:vercel": "node --test server/vercel.test.mjs",
     "test:labels": "node --test src/crates/labelLinks.test.mjs",
-    "test:analysis": "node --test src/analysis/contract.test.mjs server/photo-analysis.test.mjs server/photo-analysis-routes.test.mjs"
+    "test:analysis": "node --test src/analysis/contract.test.mjs server/photo-analysis.test.mjs server/photo-analysis-routes.test.mjs",
+    "test:photos": "node --test src/discover/photoBatch.test.mjs src/discover/observationDraft.test.mjs src/access/photoUpload.test.mjs server/photo-originals.test.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

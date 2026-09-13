@@ -9,6 +9,7 @@ import { pipeline } from 'node:stream/promises'
 import { validateRewardBook, rewardsTransitionError } from '../src/rewards/contract.mjs'
 import { createPhotoAnalysisService, createAnalysisFileStorage } from './photo-analysis.mjs'
 import { isPhotoFilename } from '../src/analysis/contract.mjs'
+import { createOriginalPhotoService, createOriginalFileStorage, handleOriginalPhotoOperation, originalQuery, sendOriginalPhoto } from './photo-originals.mjs'
 
 const APP_ROOT = fileURLToPath(new URL('..', import.meta.url))
 const WORKSPACE_LIMIT = 2 * 1024 * 1024
@@ -393,6 +394,7 @@ export async function createGarageServer({
   const stateFile = path.join(dataDir, 'workspace.json')
   await fs.mkdir(photoDir, { recursive: true, mode: 0o700 })
   analysis ??= createPhotoAnalysisService({ storage: createAnalysisFileStorage(dataDir) })
+  const originals = createOriginalPhotoService({ storage: createOriginalFileStorage(dataDir), photoFormat })
   let state
   try {
     state = JSON.parse(await fs.readFile(stateFile, 'utf8'))
@@ -472,6 +474,13 @@ export async function createGarageServer({
       }
       if (pathname === '/api/photos') {
         if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); throw new HttpError(405, 'Method not allowed.') }
+        if (req.headers['x-garage-photo-operation']) {
+          const result = await handleOriginalPhotoOperation({ operation: req.headers['x-garage-photo-operation'], headers: req.headers, readBytes: limit => readBody(req, limit), service: originals })
+          if (req.headers['x-garage-photo-operation'] === 'finish' && result.url && result.previewAvailable !== false) {
+            try { await analysis.queue(result.url.split('/').at(-1)) } catch { /* Analysis cannot invalidate an archived original. */ }
+          }
+          json(res, 200, result); return
+        }
         const bytes = await readBody(req, PHOTO_LIMIT)
         const extension = photoFormat(bytes)
         if (!extension) throw new HttpError(415, 'Upload a JPEG, PNG or WebP image.')
@@ -490,6 +499,12 @@ export async function createGarageServer({
         if (!['GET', 'HEAD'].includes(req.method)) { res.setHeader('Allow', 'GET, HEAD'); throw new HttpError(405, 'Method not allowed.') }
         const filename = pathname.slice('/api/photos/'.length)
         if (!PHOTO_NAME.test(filename)) throw new HttpError(404, 'Photo not found.')
+        const originalKind = originalQuery(req.url)
+        if (originalKind) {
+          const saved = await originals.read(filename, originalKind)
+          if (originalKind === 'metadata') { json(res, 200, saved.metadata); return }
+          await sendOriginalPhoto(req, res, saved); return
+        }
         const file = path.join(photoDir, filename)
         if (!(await fs.lstat(file)).isFile()) throw new HttpError(404, 'Photo not found.')
         await sendFile(req, res, file, mimeTypes[path.extname(filename)]); return
