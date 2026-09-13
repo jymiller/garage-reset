@@ -159,13 +159,16 @@ function validActivityCredit(value) {
 }
 
 function validObservation(observation, crateIds, helperIds) {
-  if (!exactObject(observation, ['id', 'kind', 'photo', 'notes', 'location', 'crateId', 'measurement', 'createdAt'], ['labelCode', 'photoRole', 'helperId'])
+  if (!exactObject(observation, ['id', 'kind', 'photo', 'notes', 'location', 'crateId', 'measurement', 'createdAt'], ['labelCode', 'labelCodes', 'photoRole', 'helperId'])
     || !text(observation.id, 120, true) || !['general', 'crate', 'parking', 'measurement', 'placement'].includes(observation.kind)
     || typeof observation.photo !== 'string' || !PHOTO_URL.test(observation.photo)
     || !text(observation.notes, 4000) || !text(observation.location, 160)
     || !(observation.crateId === null || text(observation.crateId, 120, true) && crateIds.has(observation.crateId))
     || !number(observation.createdAt, 0, 8.64e15)
     || Object.hasOwn(observation, 'labelCode') && !(typeof observation.labelCode === 'string' && /^C-(?!000)[0-9]{3}$/.test(observation.labelCode))
+    || Object.hasOwn(observation, 'labelCodes') && !(Array.isArray(observation.labelCodes) && observation.labelCodes.length <= 32
+      && observation.labelCodes.every(code => typeof code === 'string' && /^C-(?!000)[0-9]{3}$/.test(code))
+      && new Set(observation.labelCodes).size === observation.labelCodes.length)
     || Object.hasOwn(observation, 'photoRole') && !['outside', 'contents'].includes(observation.photoRole)
     || Object.hasOwn(observation, 'helperId') && !(observation.helperId === null || text(observation.helperId, 120, true) && helperIds.has(observation.helperId))) return false
   const measurement = observation.measurement
@@ -180,7 +183,7 @@ export function observationsPreserved(current, next) {
   const incoming = new Map((next.observations ?? []).map(observation => [observation.id, observation]))
   return (current.observations ?? []).every(observation => {
     const retained = incoming.get(observation.id)
-    return retained && ['labelCode', 'photoRole', 'helperId'].every(key => !Object.hasOwn(observation, key) || Object.hasOwn(retained, key))
+    return retained && ['labelCode', 'labelCodes', 'photoRole', 'helperId'].every(key => !Object.hasOwn(observation, key) || Object.hasOwn(retained, key))
   })
 }
 

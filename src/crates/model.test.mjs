@@ -9,7 +9,7 @@ const source = (await readFile(new URL('./model.ts', import.meta.url), 'utf8')).
 const compiled = ts.transpileModule(source, {
   compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.ESNext },
 }).outputText
-const { emptyWorkspace, validateWorkspace, sanitizeWorkspace, validateObservation, validatePhotoAward, validateActivityCredit, volumeStats } =
+const { emptyWorkspace, validateWorkspace, sanitizeWorkspace, validateObservation, validatePhotoAward, validateActivityCredit, volumeStats, observationLabelCodes, observationHasLabel } =
   await import(`data:text/javascript;base64,${Buffer.from(compiled).toString('base64')}`)
 
 const crate = (patch = {}) => ({
@@ -30,6 +30,49 @@ const measurement = (patch = {}) => ({ value: 84.5, unit: 'in', label: 'Between 
 const photoAward = (patch = {}) => ({ observationId: 'observation-one', helperId: 'griff', points: 25, reviewedAt: 2000, ...patch })
 const stickerCredit = (patch = {}) => ({ id: 'sticker:C-001:front', kind: 'sticker', helperId: 'griff', points: 25, createdAt: 2000, labelCode: 'C-001', surface: 'front', ...patch })
 const inventoryCredit = (patch = {}) => ({ id: 'inventory-one', kind: 'inventory', helperId: 'griff', points: 25, createdAt: 2000, labelCode: 'A01', itemIds: ['item-a'], ...patch })
+
+test('one shelf photo can identify several labeled crates without inventory or volume changes', () => {
+  const before = emptyWorkspace()
+  const photo = observation({ labelCodes: ['C-001', 'C-002', 'C-003', 'C-004'], photoRole: 'outside' })
+  const after = { ...before, observations: [photo] }
+  assert.equal(validateWorkspace(after), true)
+  assert.deepEqual(sanitizeWorkspace(after), after)
+  assert.notEqual(sanitizeWorkspace(after).observations[0].labelCodes, photo.labelCodes)
+  assert.deepEqual(volumeStats(after), volumeStats(before))
+  assert.deepEqual(after.crates, [])
+  assert.deepEqual(after.items, [])
+  assert.equal(after.rewards, undefined)
+  for (const code of photo.labelCodes) {
+    assert.equal(observationHasLabel(photo, code), true)
+    assert.equal([photo].filter(entry => observationHasLabel(entry, code) && entry.photoRole === 'contents').length, 0)
+  }
+  assert.equal(observationHasLabel(photo, 'C-005'), false)
+})
+
+test('photo matching combines explicit labels, deduplicates the primary label, and preserves legacy fallback', () => {
+  const crates = [crate({ code: 'c-009' })]
+  assert.deepEqual(observationLabelCodes(observation()), [])
+  assert.deepEqual(observationLabelCodes(observation({ crateId: 'crate-a' }), crates), ['C-009'])
+  assert.equal(observationHasLabel(observation({ crateId: 'crate-a' }), ' c-009 ', crates), true)
+  assert.deepEqual(observationLabelCodes(observation({ crateId: 'missing' }), crates), [])
+  const explicit = observation({ labelCode: 'C-001', labelCodes: ['C-001', 'C-002'], crateId: 'crate-a' })
+  assert.deepEqual(observationLabelCodes(explicit, crates), ['C-001', 'C-002'])
+  assert.equal(observationHasLabel(explicit, 'C-009', crates), false)
+  assert.deepEqual(observationLabelCodes(observation({ labelCode: 'C-001', crateId: 'crate-a' }), crates), ['C-001'])
+  assert.deepEqual(observationLabelCodes(observation({ labelCodes: ['C-002'], crateId: 'crate-a' }), crates), ['C-002'])
+})
+
+test('multiple photo labels are optional, canonical, unique and bounded', () => {
+  assert.equal(validateObservation(observation()), true)
+  assert.equal(Object.hasOwn(sanitizeWorkspace({ ...emptyWorkspace(), observations: [observation()] }).observations[0], 'labelCodes'), false)
+  for (const labelCodes of [[], ['C-001'], ['C-999'], Array.from({ length: 32 }, (_, i) => `C-${String(i + 1).padStart(3, '0')}`)]) {
+    assert.equal(validateObservation(observation({ labelCodes })), true)
+  }
+  for (const labelCodes of [null, undefined, 'C-001', {}, ['C-001', 'C-001'], ['C-000'], ['c-001'], [' C-001'], ['C-001 '], ['C-1'], ['C-1000'], [1], [''], Array.from({ length: 33 }, (_, i) => `C-${String(i + 1).padStart(3, '0')}`)]) {
+    assert.equal(validateObservation(observation({ labelCodes })), false, JSON.stringify(labelCodes))
+    assert.equal(validateWorkspace({ ...emptyWorkspace(), observations: [observation({ labelCodes })] }), false)
+  }
+})
 
 test('activity credit receipts preserve legacy data and earn no cleanup cash or volume', () => {
   assert.equal(Object.hasOwn(sanitizeWorkspace(emptyWorkspace()), 'activityCredits'), false)

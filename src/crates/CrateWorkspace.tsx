@@ -5,7 +5,7 @@ import { ContainerLabel } from './ContainerLabel'
 import { findCrateByCode } from './labelLinks'
 import './labelActions.css'
 import type { Tab } from '../App'
-import { volumeStats } from './model'
+import { observationHasLabel, observationLabelCodes, volumeStats } from './model'
 import type { Crate, ContentItem, Workspace } from './model'
 import { HelperIdentity, readHelperPlayerId } from '../rewards/HelperIdentity'
 import { inventoryCredit } from '../rewards/activityPoints'
@@ -37,7 +37,7 @@ export function CrateWorkspace({ onNavigate, initialCrateId, initialStep, onPlay
   const stats = volumeStats(data)
   const pendingMeasurements = data.crates.filter(c => c.status === 'sorting').length
   const filtered = data.crates.filter(c => `${c.code} ${c.name} ${c.location} ${c.owner}`.toLowerCase().includes(query.toLowerCase()))
-  const photographedLabels = [...new Set((data.observations??[]).flatMap(photo=>photo.labelCode?[photo.labelCode]:[]))].sort()
+  const photographedLabels = [...new Set((data.observations??[]).flatMap(photo=>observationLabelCodes(photo, data.crates)))].sort()
   const items = data.items.filter(i => i.crateId === crate?.id)
   const statusLabels = { connecting: 'Connecting…', shared: 'Saved', saving: 'Saving…', offline: 'Offline · draft on this device', conflict: 'Changes need review', error: 'Save needs attention' }
 
@@ -84,7 +84,7 @@ export function CrateWorkspace({ onNavigate, initialCrateId, initialStep, onPlay
       {workspace.conflict && <div className="crate-alert conflict" role="alert"><strong>Another device saved changes.</strong><p>Download your draft before loading the shared version.</p><button onClick={() => { workspace.downloadDraft(); setDraftDownloaded(true) }}>Download my draft</button><button disabled={!draftDownloaded} onClick={() => { workspace.useSharedVersion(); setDraftDownloaded(false); setNotice('') }}>Use shared version</button></div>}
       {workspace.error && !workspace.conflict && <p className="crate-alert" role="alert">{workspace.error}</p>}
       {!crate && (!labelCode || scannedOpened) && <section className="crate-quick-start"><GarageIcon name="crate"/><div><h1>Crates</h1><div className="crate-quick-actions"><button className="crate-primary" onClick={()=>onCapture('crate')}>Add photo</button><button className="crate-secondary" onClick={()=>onLabelQuest()}>Label crates</button></div></div></section>}
-      {!crate && photographedLabels.length>0 && <section className="crate-photo-catalog"><h2>Crate photos</h2><div>{photographedLabels.map(code=>{const photos=(data.observations??[]).filter(photo=>photo.labelCode===code);const latest=photos.slice().sort((a,b)=>b.createdAt-a.createdAt)[0];return <button key={code} onClick={()=>onLabelQuest(code)}><img src={latest.photo} alt={`${code} latest view`}/><span><b>{code}</b><strong>{findCrateByCode(data.crates,code)?.name || latest.location || 'View photos'}</strong><small>{photos.length} photos · {photos.some(photo=>photo.photoRole==='contents')?'Contents ✓':'Needs contents photo'}</small></span></button>})}</div></section>}
+      {!crate && photographedLabels.length>0 && <section className="crate-photo-catalog"><h2>Crate photos</h2><div>{photographedLabels.map(code=>{const photos=(data.observations??[]).filter(photo=>observationHasLabel(photo, code, data.crates));const latest=photos.slice().sort((a,b)=>b.createdAt-a.createdAt)[0];return <button key={code} onClick={()=>onLabelQuest(code)}><img src={latest.photo} alt={`${code} latest view`}/><span><b>{code}</b><strong>{findCrateByCode(data.crates,code)?.name || latest.location || 'View photos'}</strong><small>{photos.length} photos · {photos.some(photo=>photo.photoRole==='contents')?'Contents ✓':'Needs contents photo'}</small></span></button>})}</div></section>}
       <div className={`crate-workbench ${crate ? 'has-selection' : ''}`}>
         <aside className="crate-roster">
           {crate ? rosterContent : <details className="crate-roster-optional"><summary>Inventory ({data.crates.length})</summary>{rosterContent}</details>}

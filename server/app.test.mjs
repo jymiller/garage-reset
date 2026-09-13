@@ -635,6 +635,9 @@ test('server validation accepts current client model records and rejects the sam
       { value: 1e6 + 1 }, { value: '5' }, { label: '' }, { unit: 'yards' }, { basis: 'photo' }, { extra: true }]
       .map(patch => workspace({ observations: [observation({ measurement: observationMeasurement(patch) })] })),
     ...[{ labelCode: 'C-001' }, { labelCode: 'C-999' }, { labelCode: 'C-000' }, { labelCode: 'C-1000' },
+      ...[[], ['C-001', 'C-004'], ['C-999'], null, undefined, 'C-001', ['C-001', 'C-001'], ['C-000'], ['c-001'], [' C-001'], [1],
+        Array.from({ length: 32 }, (_, i) => `C-${String(i + 1).padStart(3, '0')}`),
+        Array.from({ length: 33 }, (_, i) => `C-${String(i + 1).padStart(3, '0')}`)].map(labelCodes => ({ labelCodes })),
       { labelCode: 'c-001' }, { labelCode: undefined }, { photoRole: 'outside' }, { photoRole: 'contents' },
       { photoRole: 'before' }, { helperId: null }, { helperId: undefined }, { helperId: 'griff' }, { helperId: 'missing' }]
       .flatMap(patch => [workspace({ observations: [observation(patch)] }), workspace({ rewards: defaultRewards(1000), observations: [observation(patch)] })]),

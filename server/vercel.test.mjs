@@ -302,6 +302,27 @@ test('Blob label progress keeps both photo roles and helper attribution without 
   assert.equal(first.storage.writes.length, 2)
 })
 
+test('shared shelf labels persist and old clients cannot silently drop their associations', async t => {
+  const first = await fixture(t)
+  const data = { ...empty(), observations: [observation({ labelCodes: ['C-001', 'C-002', 'C-003', 'C-004'], photoRole: 'outside' })] }
+  assert.equal((await first.put(0, data)).status, 200)
+  const second = await fixture(t, { storage: first.storage })
+  assert.deepEqual(await (await second.get()).json(), { revision: 1, data })
+  const dropped = structuredClone(data)
+  delete dropped.observations[0].labelCodes
+  assert.equal((await second.put(1, dropped)).status, 409)
+  for (const labelCodes of [null, ['C-000'], ['c-001'], ['C-001', 'C-001'], Array.from({ length: 33 }, (_, i) => `C-${String(i + 1).padStart(3, '0')}`)]) {
+    assert.equal((await second.put(1, { ...data, observations: [observation({ labelCodes, photoRole: 'outside' })] })).status, 400)
+  }
+  assert.deepEqual(await (await second.get()).json(), { revision: 1, data })
+  const corrected = { ...data, observations: [{ ...data.observations[0], labelCodes: ['C-001', 'C-002'], notes: 'Only these labels are readable.' }] }
+  assert.equal((await second.put(1, corrected)).status, 200)
+  assert.deepEqual(await (await first.get()).json(), { revision: 2, data: corrected })
+  assert.deepEqual(corrected.crates, [])
+  assert.deepEqual(corrected.items, [])
+  assert.equal(corrected.rewards, undefined)
+})
+
 test('Blob rewards persist across handlers and CAS protects duplicate approvals, payments and ledger history', async t => {
   const first = await fixture(t)
   const data = assignMission({ ...empty(), missions: [rewardMission()], rewards: defaultRewards(1000) }, 'mission-one', 'griff')

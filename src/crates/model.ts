@@ -87,6 +87,8 @@ export type Observation = {
   createdAt: number
   /** Printed label identity; does not register a volume-tracked crate. */
   labelCode?: string
+  /** Readable labels sharing one photo; each can find this evidence without registering inventory. */
+  labelCodes?: string[]
   photoRole?: 'outside' | 'contents'
   helperId?: string | null
 }
@@ -153,6 +155,18 @@ const MISSION_PHASES = new Set<CleanupMission['phase']>(['before', 'active', 're
 
 export function emptyWorkspace(): Workspace {
   return { schemaVersion: 1, crates: [], items: [], baselineLocked: false, notes: '' }
+}
+
+/** Explicit photo labels take precedence over the legacy linked-crate fallback. */
+export function observationLabelCodes(photo: Pick<Observation, 'labelCode' | 'labelCodes' | 'crateId'>, crates: readonly Pick<Crate, 'id' | 'code'>[] = []): string[] {
+  const explicit = [...new Set([...(photo.labelCode ? [photo.labelCode] : []), ...(photo.labelCodes ?? [])])]
+  if (explicit.length) return explicit
+  const linked = photo.crateId ? crates.find(crate => crate.id === photo.crateId) : null
+  return linked ? [linked.code.trim().toUpperCase()] : []
+}
+
+export function observationHasLabel(photo: Pick<Observation, 'labelCode' | 'labelCodes' | 'crateId'>, code: string, crates: readonly Pick<Crate, 'id' | 'code'>[] = []): boolean {
+  return observationLabelCodes(photo, crates).includes(code.trim().toUpperCase())
 }
 
 function record(raw: unknown): Record<string, unknown> | null {
@@ -271,13 +285,16 @@ export function validSpatialItem(raw: unknown): raw is SpatialItem {
 /** Photos do not establish dimensions or whether either car fits. */
 export function validateObservation(raw: unknown): raw is Observation {
   const value = record(raw)
-  if (!value || !exactKeys(value, ['id', 'kind', 'photo', 'notes', 'location', 'crateId', 'measurement', 'createdAt'], ['labelCode', 'photoRole', 'helperId'])
+  if (!value || !exactKeys(value, ['id', 'kind', 'photo', 'notes', 'location', 'crateId', 'measurement', 'createdAt'], ['labelCode', 'labelCodes', 'photoRole', 'helperId'])
     || !textIsValid(value.id, 120, true) || !['general', 'crate', 'parking', 'measurement', 'placement'].includes(value.kind as string)
     || typeof value.photo !== 'string' || !PHOTO_PATH.test(value.photo)
     || !textIsValid(value.notes, 4000) || !textIsValid(value.location, 160)
     || !(value.crateId === null || textIsValid(value.crateId, 120, true))
     || !finiteBetween(value.createdAt, 0, 8.64e15)
     || Object.hasOwn(value, 'labelCode') && !(typeof value.labelCode === 'string' && /^C-(?!000)[0-9]{3}$/.test(value.labelCode))
+    || Object.hasOwn(value, 'labelCodes') && !(Array.isArray(value.labelCodes) && value.labelCodes.length <= 32
+      && value.labelCodes.every(code => typeof code === 'string' && /^C-(?!000)[0-9]{3}$/.test(code))
+      && new Set(value.labelCodes).size === value.labelCodes.length)
     || Object.hasOwn(value, 'photoRole') && !['outside', 'contents'].includes(value.photoRole as string)
     || Object.hasOwn(value, 'helperId') && !(value.helperId === null || textIsValid(value.helperId, 120, true))) return false
   if (value.measurement === null) return true

@@ -3,6 +3,7 @@ import type { Tab } from '../App'
 import { GarageIcon } from '../components/GarageIcons'
 import { useWorkspace } from '../crates/useWorkspace'
 import { findCrateByCode } from '../crates/labelLinks'
+import { observationHasLabel } from '../crates/model'
 import { HelperIdentity, readHelperPlayerId } from '../rewards/HelperIdentity'
 import { stickerCredit } from '../rewards/activityPoints'
 import './label-quest.css'
@@ -32,16 +33,17 @@ export function LabelQuest({ initialCode, onCaptureLabel, onNavigate, onOpenCrat
   }
   const shared = workspace.status === 'shared' && !workspace.dirty && !workspace.conflict && !workspace.storageError
   const saving = workspace.status === 'saving' || (workspace.status === 'shared' && workspace.dirty)
-  const photos = observations.filter(photo => photo.labelCode ? photo.labelCode === code : Boolean(photo.crateId && workspace.data.crates.find(crate => crate.id === photo.crateId)?.code.toUpperCase() === code))
+  const photosForLabel = (label: string) => observations.filter(photo => observationHasLabel(photo, label, workspace.data.crates))
+  const photos = photosForLabel(code)
   const outside = photos.filter(photo => photo.photoRole === 'outside')
   const contents = photos.filter(photo => photo.photoRole === 'contents')
   const crate = findCrateByCode(workspace.data.crates, code)
-  const documented = labels.filter(label => observations.some(photo => photo.labelCode === label && photo.photoRole === 'outside') && observations.some(photo => photo.labelCode === label && photo.photoRole === 'contents')).length
-  const photographed = labels.filter(label => observations.some(photo => photo.labelCode === label)).length
+  const documented = labels.filter(label => { const found = photosForLabel(label); return found.some(photo => photo.photoRole === 'outside') && found.some(photo => photo.photoRole === 'contents') }).length
+  const photographed = labels.filter(label => photosForLabel(label).length > 0).length
   function pick(value: string) { history.replaceState(null,'',`#labels?code=${encodeURIComponent(value)}`); setCode(value); setInput(value); setError(''); setNotice('') }
   function next() {
     const index = labels.indexOf(code)
-    const nextLabel = [...labels.slice(index + 1), ...labels.slice(0, index + 1)].find(label => !(observations.some(photo => photo.labelCode === label && photo.photoRole === 'contents') && observations.some(photo => photo.labelCode === label && photo.photoRole === 'outside')))
+    const nextLabel = [...labels.slice(index + 1), ...labels.slice(0, index + 1)].find(label => { const found = photosForLabel(label); return !(found.some(photo => photo.photoRole === 'contents') && found.some(photo => photo.photoRole === 'outside')) })
     pick(nextLabel ?? labels[(index + 1) % labels.length]); window.scrollTo({ top: 0, behavior: 'auto' })
   }
   return <main className="label-quest">
@@ -56,7 +58,7 @@ export function LabelQuest({ initialCode, onCaptureLabel, onNavigate, onOpenCrat
       <div className="label-quest-finish">{outside.length > 0 && contents.length > 0 && <strong>Both photos saved ✓</strong>}<button onClick={next}>Next crate →</button></div>
       <details className="label-quest-notes"><summary>Saved notes</summary>{photos.length ? photos.map(photo => <article key={photo.id}><b>{photo.photoRole === 'outside' ? 'Outside' : photo.photoRole === 'contents' ? 'Contents' : 'Photo'} · {new Date(photo.createdAt).toLocaleDateString()}</b>{(photo.location || photo.helperId) && <p>{photo.location}{photo.helperId && workspace.data.rewards?.players.find(player => player.id === photo.helperId) ? ` · ${workspace.data.rewards.players.find(player => player.id === photo.helperId)!.name}` : ''}</p>}{photo.notes && <p>{photo.notes}</p>}</article>) : <p>No notes yet.</p>}{crate && <button onClick={() => onOpenCrate(crate.id)}>Open inventory →</button>}</details>
     </section>
-    <details className="label-quest-labels"><summary>Other crates</summary><div>{labels.map(label => <button key={label} aria-pressed={label === code} onClick={() => pick(label)}>{label}{observations.some(photo => photo.labelCode === label) ? ' •' : ''}</button>)}</div></details>
+    <details className="label-quest-labels"><summary>Other crates</summary><div>{labels.map(label => <button key={label} aria-pressed={label === code} onClick={() => pick(label)}>{label}{photosForLabel(label).length ? ' •' : ''}</button>)}</div></details>
     <details className="label-quest-help"><summary>Help & points</summary><p>Match the lid and front / side IDs. Tap each sticker button after placing it: 25 points, once per sticker.</p><p>Photograph the label and surroundings, then the contents. A useful photo earns 25 points after John’s review. New inventory entries earn 25 per saved batch.</p><p>Keep both car spaces clear. Skip crates that are hard to reach or open.</p><p>{documented} / 32 crates have both photos. Photos don’t identify items automatically.</p></details>
     <footer><button onClick={() => onNavigate('observations')}>All photos →</button></footer>
   </main>
